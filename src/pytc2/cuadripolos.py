@@ -5,39 +5,12 @@ Created on Thu Mar  2 14:14:13 2023
 
 @author: mariano
 """
-from IPython.display import display, Math, Markdown
 
 import numpy as np
 
 import sympy as sp
 
-
-#########################
-#%% Funciones generales #
-#########################
-
-def print_console_alert(strAux):
-    
-    strAux = '# ' + strAux + ' #\n'
-    strAux1 =  '#' * (len(strAux)-1) + '\n' 
-    
-    print( '\n\n' + strAux1 + strAux + strAux1 )
-    
-def print_console_subtitle(strAux):
-    
-    strAux = strAux + '\n'
-    strAux1 =  '-' * (len(strAux)-1) + '\n' 
-    
-    print( '\n\n' + strAux + strAux1 )
-    
-def print_subtitle(strAux):
-    
-    display(Markdown('#### ' + strAux))
-
-def print_latex(strAux):
-    
-    display(Math(strAux))
-
+from .general import print_latex
 
 
 '''

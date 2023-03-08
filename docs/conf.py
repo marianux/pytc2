@@ -34,3 +34,12 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+
+
+myst_enable_extensions = [
+    "amsmath",
+    "dollarmath",
+    "html_image",
+]
+
+myst_url_schemes = ("http", "https", "mailto")

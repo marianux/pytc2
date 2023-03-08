@@ -562,10 +562,35 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
     w0, aux_idx = np.unique(np.abs(p), return_index=True)
     qq = 1 / (2*np.cos(np.pi - np.angle(p[aux_idx])))
    
+    # label distance to the datapoint
+    lab_mod = 40 
+    
+    # sign alternance for conjugate complex sing.
+    aux_sign = np.sign(np.random.uniform(-1,1))
+    
     for ii in range(len(w0)):
 
+        rand_dir = np.random.uniform(0,2*np.pi)
+        
+        xy_coorde =   (lab_mod *  np.cos(rand_dir), lab_mod *  np.sin(rand_dir))
+        
+        if(xy_coorde[0] < 0.0):
+            halign = 'left'
+        else:
+            halign = 'right'
+
+        if(xy_coorde[1] < 0.0):
+            valign = 'top'
+        else:
+            valign = 'bottom'
+        
+        # print(np.sqrt(np.sum(np.array(xy_coorde)**2)))
+        
         if p[aux_idx[ii]].imag > 0.0:
             # annotate with Q only complex conj singularities
+            
+            
+            aux_sign = aux_sign * -1
             
             circle = patches.Circle((0,0), radius=w0[ii], color = poles[0].get_color(), fill=False, ls= (0, (1, 10)), lw = 0.7)
             
@@ -575,29 +600,48 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
     
             if annotations:
                 axes_hdl.annotate('$\omega$ = {:3.3g} \n Q = {:3.3g}'.format(w0[ii], qq[ii]),
-                            xy=(p[aux_idx[ii]].real, p[aux_idx[ii]].imag), xycoords='data',
-                            xytext=(-25, 30), textcoords='offset points',
-                            arrowprops=dict(facecolor='black', shrink=0.15,
+                            xy=(p[aux_idx[ii]].real, p[aux_idx[ii]].imag * aux_sign), xycoords='data',
+                            xytext = xy_coorde, textcoords='offset points',
+                            arrowprops=dict(facecolor= poles[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment='right', verticalalignment='bottom')
+                            horizontalalignment = halign, verticalalignment = valign)
     
         else:
             # annotate with omega real singularities
             
             if annotations:
                 axes_hdl.annotate('$\omega$ = {:3.3g}'.format(w0[ii]),
-                            xy=(p[aux_idx[ii]].real, p[aux_idx[ii]].imag), xycoords='data',
-                            xytext=(-25, 30), textcoords='offset points',
-                            arrowprops=dict(facecolor='black', shrink=0.15,
+                            xy=(p[aux_idx[ii]].real, p[aux_idx[ii]].imag) , xycoords='data',
+                            xytext = xy_coorde, textcoords='offset points',
+                            arrowprops=dict(facecolor= poles[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment='right', verticalalignment='bottom')
+                            horizontalalignment = halign, verticalalignment = valign)
             
 
     # and then zeros
     w0, aux_idx = np.unique(np.abs(z), return_index=True)
     qq = 1 / (2*np.cos(np.pi - np.angle(z[aux_idx])))
 
+    # sign alternance for conjugate complex sing.
+    aux_sign = np.sign(np.random.uniform(-1,1))
+
     for ii in range(len(w0)):
+
+        aux_sign = aux_sign * -1
+
+        rand_dir = np.random.uniform(0, 2*np.pi)
+        
+        xy_coorde = (lab_mod *  np.cos(rand_dir), lab_mod *  np.sin(rand_dir))
+
+        if(xy_coorde[0] < 0.0):
+            halign = 'left'
+        else:
+            halign = 'right'
+
+        if(xy_coorde[1] < 0.0):
+            valign = 'top'
+        else:
+            valign = 'bottom'
 
         if z[aux_idx[ii]].imag > 0.0:
             
@@ -609,11 +653,11 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
     
             if annotations:
                 axes_hdl.annotate('$\omega$ = {:3.3g} \n Q = {:3.3g}'.format(w0[ii], qq[ii]),
-                            xy=(z[aux_idx[ii]].real, z[aux_idx[ii]].imag), xycoords='data',
-                            xytext=(-25, 30), textcoords='offset points',
-                            arrowprops=dict(facecolor='black', shrink=0.15,
+                            xy=(z[aux_idx[ii]].real, z[aux_idx[ii]].imag * aux_sign), xycoords='data',
+                            xytext = xy_coorde, textcoords='offset points',
+                            arrowprops=dict(facecolor=zeros[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment='right', verticalalignment='bottom')
+                            horizontalalignment = halign, verticalalignment = valign)
     
         else:
             # annotate with omega real singularities
@@ -621,10 +665,10 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
             if annotations:
                 axes_hdl.annotate('$\omega$ = {:3.3g}'.format(w0[ii]),
                             xy=(z[aux_idx[ii]].real, z[aux_idx[ii]].imag), xycoords='data',
-                            xytext=(-25, 30), textcoords='offset points',
-                            arrowprops=dict(facecolor='black', shrink=0.15,
+                            xytext = xy_coorde, textcoords='offset points',
+                            arrowprops=dict(facecolor=zeros[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment='right', verticalalignment='bottom')
+                            horizontalalignment = halign, verticalalignment = valign)
 
 
     # Scale axes to fit

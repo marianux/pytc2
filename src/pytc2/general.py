@@ -12,6 +12,7 @@ by Mariano Llamedo llamedom _at_ frba_utn_edu_ar
 
 import sympy as sp
 
+from IPython.display import display, Math, Markdown
 
 ##########################################
 #%% Variables para el análisis simbólico #
@@ -47,10 +48,33 @@ def pp(z1, z2):
 
 
 
-'''
-Otras funciones
+#########################
+#%% Funciones generales #
+#########################
 
-'''
+def print_console_alert(strAux):
+    
+    strAux = '# ' + strAux + ' #\n'
+    strAux1 =  '#' * (len(strAux)-1) + '\n' 
+    
+    print( '\n\n' + strAux1 + strAux + strAux1 )
+    
+def print_console_subtitle(strAux):
+    
+    strAux = strAux + '\n'
+    strAux1 =  '-' * (len(strAux)-1) + '\n' 
+    
+    print( '\n\n' + strAux + strAux1 )
+    
+def print_subtitle(strAux):
+    
+    display(Markdown('#### ' + strAux))
+
+def print_latex(strAux):
+    
+    display(Math(strAux))
+
+
 
 
 def Chebyshev_polynomials(nn):

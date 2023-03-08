@@ -9,7 +9,6 @@ Created on Thu Mar  2 11:26:00 2023
 import numpy as np
 
 import sympy as sp
-from sympy.polys.partfrac import apart
 
 from .remociones import remover_polo_infinito, remover_valor_en_infinito, remover_polo_dc, remover_valor_en_dc, trim_func_s
 
@@ -214,7 +213,7 @@ def foster( imm ):
 
     '''    
         
-    imm_foster = apart(imm)
+    imm_foster = sp.polys.partfrac.apart(imm)
     
     all_terms = imm_foster.as_ordered_terms()
     
