@@ -14,10 +14,7 @@ import sympy as sp
 #%% Variables para el análisis simbólico #
 ##########################################
 
-# Laplace complex variable. s = σ + j.ω
-s = sp.symbols('s', complex=True)
-# Fourier real variable ω 
-w = sp.symbols('w', complex=False)
+from .general import s
 
 
 
