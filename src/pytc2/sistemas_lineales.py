@@ -18,11 +18,12 @@ from IPython.display import display, Math
 
 from fractions import Fraction
 
+##########################################
+#%% Variables para el análisis simbólico #
+##########################################
 
-# Laplace complex variable. s = σ + j.ω
-s = sp.symbols('s', complex=True)
-# Fourier real variable ω 
-w = sp.symbols('w', complex=False)
+from .general import s
+
 
 
 def parametrize_sos(num, den):
@@ -211,8 +212,6 @@ def parametrize_sos(num, den):
 
     return( num, den, w_on, Q_n, w_od, Q_d, K )
 
-
-
 def tfcascade(tfa, tfb):
 
     tfc = TransferFunction( np.polymul(tfa.num, tfb.num), np.polymul(tfa.den, tfb.den) )
@@ -221,54 +220,9 @@ def tfcascade(tfa, tfb):
 
 def tfadd(tfa, tfb):
 
-    tfc = TransferFunction( np.polyadd(np.polymul(tfa.num,tfb.den),np.polymul(tfa.den,tfb.num)),
-                            np.polymul(tfa.den,tfb.den) )
+    tfc = TransferFunction( np.polyadd( np.polymul(tfa.num,tfb.den),np.polymul(tfa.den,tfb.num)),
+                                        np.polymul(tfa.den,tfb.den) )
     return tfc
-
-
-def build_poly_str(this_poly):
-    
-    poly_str = ''
-
-    for ii in range( this_poly.shape[0] ):
-    
-        if this_poly[ii] != 0.0:
-            
-            if (this_poly.shape[0]-2) == ii:
-                poly_str +=  '+ s ' 
-            
-            elif (this_poly.shape[0]-1) != ii:
-                poly_str +=  '+ s^{:d} '.format(this_poly.shape[0]-ii-1) 
-
-            if (this_poly.shape[0]-1) == ii:
-                poly_str += '+ {:3.4g} '.format(this_poly[ii])
-            else:
-                if this_poly[ii] != 1.0:
-                    poly_str +=  '\,\, {:3.4g} '.format(this_poly[ii])
-                
-    return poly_str[2:]
-
-def build_omegayq_str(this_quad_poly, den = np.array([])):
-
-    if den.shape[0] > 0:
-        # numerator style bandpass s. hh . oemga/ qq
-        
-        omega = np.sqrt(den[2]) # from denominator
-        qq = omega / den[1] # from denominator
-        
-        hh = this_quad_poly[1] * qq / omega
-        
-        poly_str = r's\,{:3.4g}\,\frac{{{:3.4g}}}{{{:3.4g}}}'.format(hh, omega, qq )
-    
-    else:
-        # all other complete quadratic polynomial
-        omega = np.sqrt(this_quad_poly[2])
-        qq = omega / this_quad_poly[1]
-        
-        poly_str = r's^2 + s \frac{{{:3.4g}}}{{{:3.4g}}} + {:3.4g}^2'.format(omega, qq, omega)
-                
-    return poly_str
-
 
 def pretty_print_lti(num, den = None, displaystr = True):
     
@@ -277,8 +231,8 @@ def pretty_print_lti(num, den = None, displaystr = True):
     else:
         this_lti = TransferFunction(num, den)
     
-    num_str_aux = build_poly_str(this_lti.num)
-    den_str_aux = build_poly_str(this_lti.den)
+    num_str_aux = _build_poly_str(this_lti.num)
+    den_str_aux = _build_poly_str(this_lti.den)
 
     strout = r'\frac{' + num_str_aux + '}{' + den_str_aux + '}'
 
@@ -286,8 +240,6 @@ def pretty_print_lti(num, den = None, displaystr = True):
         display(Math(strout))
     else:
         return strout
-
-        
 
 def pretty_print_bicuad_omegayq(num, den = None, displaystr = True):
     
@@ -304,15 +256,15 @@ def pretty_print_bicuad_omegayq(num, den = None, displaystr = True):
     
     if np.all( np.abs(num) > 0):
         # complete 2nd order, omega and Q parametrization
-        num_str_aux = build_omegayq_str(num)
+        num_str_aux = _build_omegayq_str(num)
     elif np.all(num[[0,2]] == 0) and num[1] > 0 :
         # bandpass style  s . k = s . H . omega/Q 
-        num_str_aux = build_omegayq_str(num, den = den)
+        num_str_aux = _build_omegayq_str(num, den = den)
     else:
-        num_str_aux = build_poly_str(num)
+        num_str_aux = _build_poly_str(num)
         
     
-    den_str_aux = build_omegayq_str(den)
+    den_str_aux = _build_omegayq_str(den)
     
     strout = r'\frac{' + num_str_aux + '}{' + den_str_aux + '}'
 
@@ -320,26 +272,6 @@ def pretty_print_bicuad_omegayq(num, den = None, displaystr = True):
         display(Math(strout))
     else:   
         return strout
-
-def one_sos2tf(mySOS):
-    
-    # check zeros in the higher order coerffs
-    if mySOS[0] == 0 and mySOS[1] == 0:
-        num = mySOS[2]
-    elif mySOS[0] == 0:
-        num = mySOS[1:3]
-    else:
-        num = mySOS[:3]
-        
-    if mySOS[3] == 0 and mySOS[4] == 0:
-        den = mySOS[-1]
-    elif mySOS[3] == 0:
-        den = mySOS[4:]
-    else:
-        den = mySOS[3:]
-    
-    return num, den
-
 
 def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
     '''
@@ -389,7 +321,7 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
         if mode == "omegayq" and mySOS[ii,3] > 0:
             sos_str += r' . ' + pretty_print_bicuad_omegayq(mySOS[ii,:], displaystr = False )
         else:
-            num, den = one_sos2tf(mySOS[ii,:])
+            num, den = _one_sos2tf(mySOS[ii,:])
             this_tf = TransferFunction(num, den)
             sos_str += r' . ' + pretty_print_lti(this_tf, displaystr = False)
 
@@ -399,8 +331,6 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
         display(Math( r' ' + sos_str))
     else:
         return sos_str
-
-
 
 def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True, digital = False, fs = 2*np.pi):
     
@@ -502,8 +432,6 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
 
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_GroupDelay.'  + img_ext, format=img_ext)
-
-
 
 def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none', axes_hdl='none', digital = False, fs = 2*np.pi):
     """Plot the complex s-plane given zeros and poles.
@@ -744,7 +672,6 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
 
     return fig_id, axes_hdl
     
-
 def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi):
 
     w_nyq = 2*np.pi*fs/2
@@ -757,7 +684,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
         
         for ii in range(cant_sos):
             
-            num, den = one_sos2tf(myFilter[ii,:])
+            num, den = _one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
             
             if digital:
@@ -851,7 +778,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         
         for ii in range(cant_sos):
             
-            num, den = one_sos2tf(myFilter[ii,:])
+            num, den = _one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
             if digital:
                 w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.linspace(10**-2, w_nyq,npoints))
@@ -1001,7 +928,6 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     
     return fig_id, axes_hdl
     
-
 def plot_plantilla(filter_type = 'lowpass', fpass = 0.25, ripple = 0.5, fstop = 0.6, attenuation = 40, fs = 2 ):
     
     # para sobreimprimir la plantilla de diseño de un filtro
@@ -1072,9 +998,6 @@ def plot_plantilla(filter_type = 'lowpass', fpass = 0.25, ripple = 0.5, fstop = 
     
     plt.show()
     
-    
-
-
 def sos2tf_analog(mySOS):
     
     SOSnumber, _ = mySOS.shape
@@ -1084,7 +1007,7 @@ def sos2tf_analog(mySOS):
     
     for ii in range(SOSnumber):
         
-        sos_num, sos_den = one_sos2tf(mySOS[ii,:])
+        sos_num, sos_den = _one_sos2tf(mySOS[ii,:])
         num = np.polymul(num, sos_num)
         den = np.polymul(den, sos_den)
 
@@ -1311,19 +1234,9 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
         
     return sos
     
-    # SOSarray = tf2sos(myFilter.num, myFilter.den)
-    
-    # SOSnumber,_ = SOSarray.shape
-    
-    # SOSoutput = np.empty(shape=(SOSnumber,3))
-    
-    # for index in range(SOSnumber):
-    #     SOSoutput[index][:] = SOSarray[index][3::]
-        
-    #     if SOSoutput[index][2]==0:
-    #         SOSoutput[index] = np.roll(SOSoutput[index],1)
-        
-    # return SOSoutput
+########################
+#%% Funciones internas #
+########################
 
 def _nearest_real_complex_idx(fro, to, which):
     """Get the next closest real or complex element based on distance"""
@@ -1436,4 +1349,66 @@ def _cplxreal(z, tol=None):
     zc = (zp + zn.conj()) / 2
 
     return zc, zr
+
+def _one_sos2tf(mySOS):
+    
+    # check zeros in the higher order coerffs
+    if mySOS[0] == 0 and mySOS[1] == 0:
+        num = mySOS[2]
+    elif mySOS[0] == 0:
+        num = mySOS[1:3]
+    else:
+        num = mySOS[:3]
+        
+    if mySOS[3] == 0 and mySOS[4] == 0:
+        den = mySOS[-1]
+    elif mySOS[3] == 0:
+        den = mySOS[4:]
+    else:
+        den = mySOS[3:]
+    
+    return num, den
+
+def _build_poly_str(this_poly):
+    
+    poly_str = ''
+
+    for ii in range( this_poly.shape[0] ):
+    
+        if this_poly[ii] != 0.0:
+            
+            if (this_poly.shape[0]-2) == ii:
+                poly_str +=  '+ s ' 
+            
+            elif (this_poly.shape[0]-1) != ii:
+                poly_str +=  '+ s^{:d} '.format(this_poly.shape[0]-ii-1) 
+
+            if (this_poly.shape[0]-1) == ii:
+                poly_str += '+ {:3.4g} '.format(this_poly[ii])
+            else:
+                if this_poly[ii] != 1.0:
+                    poly_str +=  '\,\, {:3.4g} '.format(this_poly[ii])
+                
+    return poly_str[2:]
+
+def _build_omegayq_str(this_quad_poly, den = np.array([])):
+
+    if den.shape[0] > 0:
+        # numerator style bandpass s. hh . oemga/ qq
+        
+        omega = np.sqrt(den[2]) # from denominator
+        qq = omega / den[1] # from denominator
+        
+        hh = this_quad_poly[1] * qq / omega
+        
+        poly_str = r's\,{:3.4g}\,\frac{{{:3.4g}}}{{{:3.4g}}}'.format(hh, omega, qq )
+    
+    else:
+        # all other complete quadratic polynomial
+        omega = np.sqrt(this_quad_poly[2])
+        qq = omega / this_quad_poly[1]
+        
+        poly_str = r's^2 + s \frac{{{:3.4g}}}{{{:3.4g}}} + {:3.4g}^2'.format(omega, qq, omega)
+                
+    return poly_str
 

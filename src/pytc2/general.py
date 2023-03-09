@@ -43,10 +43,6 @@ def pp(z1, z2):
     '''
 
     return(z1*z2/(z1+z2))
-    
-
-
-
 
 #########################
 #%% Funciones generales #
@@ -73,9 +69,6 @@ def print_subtitle(strAux):
 def print_latex(strAux):
     
     display(Math(strAux))
-
-
-
 
 def Chebyshev_polynomials(nn):
     
