@@ -10,6 +10,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
+from matplotlib.colors import rgb2hex
 from collections import defaultdict
 from scipy.signal import tf2zpk, TransferFunction, zpk2tf
 import sympy as sp
@@ -27,7 +28,6 @@ from .general import s
 
 
 def parametrize_sos(num, den):
-    
     '''
     Parameters
     ----------
@@ -213,19 +213,70 @@ def parametrize_sos(num, den):
     return( num, den, w_on, Q_n, w_od, Q_d, K )
 
 def tfcascade(tfa, tfb):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
 
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
+    
     tfc = TransferFunction( np.polymul(tfa.num, tfb.num), np.polymul(tfa.den, tfb.den) )
 
     return tfc
 
 def tfadd(tfa, tfb):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
 
     tfc = TransferFunction( np.polyadd( np.polymul(tfa.num,tfb.den),np.polymul(tfa.den,tfb.num)),
                                         np.polymul(tfa.den,tfb.den) )
     return tfc
 
 def pretty_print_lti(num, den = None, displaystr = True):
+    """
     
+    Parameters
+    ----------
+    num : TYPE
+        DESCRIPTION.
+    den : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
+
     if den is None:
         this_lti = num
     else:
@@ -242,7 +293,24 @@ def pretty_print_lti(num, den = None, displaystr = True):
         return strout
 
 def pretty_print_bicuad_omegayq(num, den = None, displaystr = True):
+    """
     
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
+
     if den is None:
         this_sos = num.reshape((1,6))
     else:
@@ -260,6 +328,18 @@ def pretty_print_bicuad_omegayq(num, den = None, displaystr = True):
     elif np.all(num[[0,2]] == 0) and num[1] > 0 :
         # bandpass style  s . k = s . H . omega/Q 
         num_str_aux = _build_omegayq_str(num, den = den)
+    elif num[1] == 0 and np.all(num[[0,2]] > 0):
+        # complex conj zeros style  s² + omega² 
+        num_str_aux = _build_omegayq_str(num)
+        
+        kk = num[0]
+        if kk == 1.0:        
+            omega = np.sqrt(num[2])
+            num_str_aux = r's^2 + {:3.4g}^2'.format(omega)
+        else:
+            omega = np.sqrt(num[2]/kk)
+            num_str_aux = r'{:3.4g}(s^2 + {:3.4g}^2)'.format(kk, omega)
+        
     else:
         num_str_aux = _build_poly_str(num)
         
@@ -333,7 +413,24 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
         return sos_str
 
 def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True, digital = False, fs = 2*np.pi):
+    """
     
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
+
     valid_ext = ['none', 'png', 'svg']
     if img_ext not in valid_ext:
         raise ValueError('Image extension must be one of %s, not %s'
@@ -434,13 +531,22 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
         plt.savefig('_'.join(sys_name) + '_GroupDelay.'  + img_ext, format=img_ext)
 
 def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none', axes_hdl='none', digital = False, fs = 2*np.pi):
-    """Plot the complex s-plane given zeros and poles.
-    Pamams:
-     - b: array_like. Numerator polynomial coefficients.
-     - a: array_like. Denominator polynomial coefficients.
+    """
     
-    http://www.ehu.eus/Procesadodesenales/tema6/102.html
-    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
     """
 
     if fig_id == 'none':
@@ -532,7 +638,9 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
                             xytext = xy_coorde, textcoords='offset points',
                             arrowprops=dict(facecolor= poles[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment = halign, verticalalignment = valign)
+                            horizontalalignment = halign, verticalalignment = valign,
+                            color=poles[0].get_color(),
+                            bbox=dict(edgecolor=poles[0].get_color(), facecolor=_complementaryColor(rgb2hex(poles[0].get_color())), alpha=0.4))
     
         else:
             # annotate with omega real singularities
@@ -543,7 +651,9 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
                             xytext = xy_coorde, textcoords='offset points',
                             arrowprops=dict(facecolor= poles[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment = halign, verticalalignment = valign)
+                            horizontalalignment = halign, verticalalignment = valign,
+                            color=poles[0].get_color(),
+                            bbox=dict(edgecolor=poles[0].get_color(), facecolor=_complementaryColor(rgb2hex(poles[0].get_color())), alpha=0.4) )
             
 
     # and then zeros
@@ -583,9 +693,11 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
                 axes_hdl.annotate('$\omega$ = {:3.3g} \n Q = {:3.3g}'.format(w0[ii], qq[ii]),
                             xy=(z[aux_idx[ii]].real, z[aux_idx[ii]].imag * aux_sign), xycoords='data',
                             xytext = xy_coorde, textcoords='offset points',
-                            arrowprops=dict(facecolor=zeros[0].get_color(), shrink=0.15,
+                            arrowprops=dict(facecolor=poles[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment = halign, verticalalignment = valign)
+                            horizontalalignment = halign, verticalalignment = valign,
+                            color=poles[0].get_color(),
+                            bbox=dict(boxstyle = 'Circle', edgecolor=poles[0].get_color(), facecolor=None, alpha=0.4) )
     
         else:
             # annotate with omega real singularities
@@ -594,9 +706,11 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
                 axes_hdl.annotate('$\omega$ = {:3.3g}'.format(w0[ii]),
                             xy=(z[aux_idx[ii]].real, z[aux_idx[ii]].imag), xycoords='data',
                             xytext = xy_coorde, textcoords='offset points',
-                            arrowprops=dict(facecolor=zeros[0].get_color(), shrink=0.15,
+                            arrowprops=dict(facecolor=poles[0].get_color(), shrink=0.15,
                                             width = 1, headwidth = 5 ),
-                            horizontalalignment = halign, verticalalignment = valign)
+                            horizontalalignment = halign, verticalalignment = valign,
+                            color=poles[0].get_color(),
+                            bbox=dict(boxstyle = 'Circle', edgecolor=poles[0].get_color(), facecolor=None, alpha=0.4) )
 
 
     # Scale axes to fit
@@ -673,6 +787,23 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
     return fig_id, axes_hdl
     
 def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
 
     w_nyq = 2*np.pi*fs/2
     
@@ -766,6 +897,23 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
     return fig_id, axes_hdl
 
 def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi ):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
 
     w_nyq = 2*np.pi*fs/2
     
@@ -929,6 +1077,23 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     return fig_id, axes_hdl
     
 def plot_plantilla(filter_type = 'lowpass', fpass = 0.25, ripple = 0.5, fstop = 0.6, attenuation = 40, fs = 2 ):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
     
     # para sobreimprimir la plantilla de diseño de un filtro
     
@@ -999,6 +1164,23 @@ def plot_plantilla(filter_type = 'lowpass', fpass = 0.25, ripple = 0.5, fstop = 
     plt.show()
     
 def sos2tf_analog(mySOS):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
     
     SOSnumber, _ = mySOS.shape
     
@@ -1016,6 +1198,23 @@ def sos2tf_analog(mySOS):
     return tf
 
 def tf2sos_analog(num, den, pairing='nearest'):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
 
     z, p, k = tf2zpk(num, den)
     
@@ -1142,7 +1341,11 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
                 else:
                     # complex pole
                     p2 = p1.conj()
-                    z2 = np.nan
+                    if np.isnan(z1):
+                        z2 = z1
+                    else:
+                        # complex zero (no more zeros)
+                        z2 = z1.conj()
                 
             else:
                 # there are zero/s for z2
@@ -1351,6 +1554,23 @@ def _cplxreal(z, tol=None):
     return zc, zr
 
 def _one_sos2tf(mySOS):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
     
     # check zeros in the higher order coerffs
     if mySOS[0] == 0 and mySOS[1] == 0:
@@ -1370,6 +1590,23 @@ def _one_sos2tf(mySOS):
     return num, den
 
 def _build_poly_str(this_poly):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
     
     poly_str = ''
 
@@ -1392,6 +1629,23 @@ def _build_poly_str(this_poly):
     return poly_str[2:]
 
 def _build_omegayq_str(this_quad_poly, den = np.array([])):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
 
     if den.shape[0] > 0:
         # numerator style bandpass s. hh . oemga/ qq
@@ -1412,3 +1666,16 @@ def _build_omegayq_str(this_quad_poly, den = np.array([])):
                 
     return poly_str
 
+def _complementaryColor(my_hex):
+    """Returns complementary RGB color
+
+    Example:
+    >>>complementaryColor('FFFFFF')
+    '000000'
+    """
+    
+    if my_hex[0] == '#':
+        my_hex = my_hex[1:]
+    rgb = (my_hex[0:2], my_hex[2:4], my_hex[4:6])
+    comp = ['%02X' % (255 - int(a, 16)) for a in rgb]
+    return '#' + ''.join(comp)

@@ -343,8 +343,24 @@ def TabcdY_s(Yexc):
     return( Tpar ) 
 
 
-
 def Y2T_s(YY):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
     
     TT = sp.Matrix([[0, 0], [0, 0]])
     
@@ -453,6 +469,23 @@ def T2Y_s(TT):
     return(YY)
 
 def Y2T(YY):
+    """
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    """
     
     TT = np.zeros_like(YY)
     
@@ -559,9 +592,6 @@ def T2Y(TT):
     
     return(YY)
 
-
-
-
 def y2mai(YY):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
@@ -613,7 +643,6 @@ def may2y(Ymai, nodes2del):
         YY.col_del(ii)
     
     return(YY)
-
 
 def TabcdLYZ(Yexc, Zexc):
     '''
@@ -745,12 +774,26 @@ def TabcdY(Yexc):
     
     return( Tpar ) 
 
-
-
-
 def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
+    """Calcula la transferencia de impedancia V_ij / I_mn
+
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+    
     """
-    Calcula la transferencia de impedancia V_ij / I_mn
+
+    """
     """
     
     if ii > jj:
@@ -791,8 +834,22 @@ def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     return(Tz)
 
 def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
-    """
-    Calcula la transferencia de tensión V_ij / V_mn
+    """Calcula la transferencia de tensión V_ij / V_mn
+    
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+    
     """
     
     if ii > jj:
@@ -834,7 +891,24 @@ def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
 
 
 def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
+    """Calcula la transferencia de tensión V_ij / V_mn
     
+    Parameters
+    ----------
+    tfa : TYPE
+        DESCRIPTION.
+    tfb : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+    
+    """
+
     if ii > jj:
         max_idx = ii
         min_idx = jj
