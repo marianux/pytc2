@@ -1,3 +1,12 @@
+
 myst-nb
 sphinx-autoapi
 sphinx-rtd-theme
+numpy
+scipy
+sympy
+jupyter
+matplotlib
+schemdraw
+pytc2
+

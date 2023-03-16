@@ -49,6 +49,21 @@ def pp(z1, z2):
 #########################
 
 def print_console_alert(strAux):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     strAux = '# ' + strAux + ' #\n'
     strAux1 =  '#' * (len(strAux)-1) + '\n' 
@@ -56,6 +71,21 @@ def print_console_alert(strAux):
     print( '\n\n' + strAux1 + strAux + strAux1 )
     
 def print_console_subtitle(strAux):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     strAux = strAux + '\n'
     strAux1 =  '-' * (len(strAux)-1) + '\n' 
@@ -63,14 +93,59 @@ def print_console_subtitle(strAux):
     print( '\n\n' + strAux + strAux1 )
     
 def print_subtitle(strAux):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     display(Markdown('#### ' + strAux))
 
 def print_latex(strAux):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     display(Math(strAux))
 
 def Chebyshev_polynomials(nn):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     Cn_pp = 1
     Cn_p = w

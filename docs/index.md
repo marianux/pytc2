@@ -6,6 +6,7 @@
 :hidden:
 
 principal.ipynb
+main.ipynb
 changelog.md
 contributing.md
 conduct.md

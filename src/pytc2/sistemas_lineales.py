@@ -1442,7 +1442,21 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
 ########################
 
 def _nearest_real_complex_idx(fro, to, which):
-    """Get the next closest real or complex element based on distance"""
+    '''
+    Get the next closest real or complex element based on distance
+    
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+    
     assert which in ('real', 'complex')
     order = np.argsort(np.abs(fro - to))
     mask = np.isreal(fro[order])

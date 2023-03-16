@@ -32,6 +32,17 @@ from .general import s
 def to_latex( unsimbolo ):
     '''
     Convierte un símbolo en un string formateado para visualizarse en LaTex 
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
     '''
     
     return('$'+ sp.latex(unsimbolo) + '$')
@@ -39,6 +50,17 @@ def to_latex( unsimbolo ):
 def str_to_latex( unstr):
     '''
     Formatea un string para visualizarse en LaTex 
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
     '''
     
     return('$'+ unstr + '$')
@@ -567,6 +589,21 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, z_exc = None):
 
 
 def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl = None):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     d += Dot(open=True)
     
@@ -598,6 +635,21 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
     return(d)
 
 def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl = None):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if current_lbl is None:
         d += Line().right().length(d.unit*.5)
@@ -630,6 +682,21 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
 
 
 def dibujar_espaciador( d ):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     d += Line().right().length(d.unit*.5)
 
@@ -645,7 +712,21 @@ def dibujar_espaciador( d ):
 
 
 def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_salida  = False, hacia_entrada  = False ):
-# ok
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     half_width = d.unit*k_gap_width/2
     
@@ -688,6 +769,21 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     return([d, lbl])
 
 def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_salida = False, hacia_entrada = False ):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     half_width = d.unit*k_gap_width/2
     
@@ -732,6 +828,21 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
     return([d, lbl])
 
 def dibujar_elemento_serie(d, elemento, sym_label=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(sym_label, sp.Number ):
         sym_label = to_latex(sym_label)
@@ -752,6 +863,21 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     return(d)
 
 def dibujar_espacio_derivacion(d):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     d += Line().right().length(d.unit*.25)
     d.push()
@@ -762,6 +888,21 @@ def dibujar_espacio_derivacion(d):
     return(d)
 
 def dibujar_elemento_derivacion(d, elemento, sym_label=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(sym_label, sp.Number ):
         sym_label = to_latex(sym_label)
@@ -782,6 +923,21 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
 
 
 def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(sym_R_label, sp.Number ):
         sym_R_label = to_latex(sym_R_label)
@@ -809,6 +965,21 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
     return(d)
 
 def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(sym_R_label, sp.Number ):
         sym_R_label = to_latex(sym_R_label)
@@ -830,6 +1001,21 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
     return(d)
 
 def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(sym_R_label, sp.Number ):
         sym_R_label = to_latex(sym_R_label)
@@ -857,6 +1043,21 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
     return(d)
 
 def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(sym_R_label, sp.Number ):
         sym_R_label = to_latex(sym_R_label)
@@ -878,6 +1079,21 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
     return(d)
 
 def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(sym_cap_label, sp.Number ):
         sym_cap_label = to_latex(sym_cap_label)
@@ -953,6 +1169,21 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
 #     return(d)
 
 def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     if isinstance(inductor_lbl, sp.Number ):
         inductor_lbl = to_latex(inductor_lbl)

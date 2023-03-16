@@ -19,6 +19,21 @@ from .general import s
 
 
 def simplify_n_monic(tt):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     num, den = sp.fraction(sp.simplify(sp.expand(tt)))
     
@@ -91,6 +106,21 @@ def tanque_y( doska, omegasq ):
 
 
 def trim_poly_s( this_poly, tol = 10**-6 ):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     all_terms = this_poly.as_poly(s).all_terms()
     
@@ -106,6 +136,21 @@ def trim_poly_s( this_poly, tol = 10**-6 ):
     return(poly_acc)
 
 def trim_func_s( rat_func, tol = 10**-6 ):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     num, den = rat_func.as_numer_denom()
     
@@ -115,6 +160,21 @@ def trim_func_s( rat_func, tol = 10**-6 ):
     return(num/den)
 
 def modsq2mod_s( aa ):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     num, den = sp.fraction(aa)
 
@@ -184,6 +244,21 @@ def modsq2mod_s( aa ):
 
 
 def modsq2mod( aa ):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     rr = np.roots(aa)
     bb = rr[np.real(rr) == 0]

@@ -101,6 +101,21 @@ cap_ser_str = [ 'SYMBOL cap {:d} {:d} R90\n', # posición absoluta X-Y en el esq
 #############################################
 
 def ltsp_nuevo_circuito(circ_name=None):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
 
     global cap_num, res_num, ind_num, cur_x, cur_y
 
@@ -141,6 +156,21 @@ def ltsp_nuevo_circuito(circ_name=None):
     return(circ_hdl)
 
 def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     global cap_der_str, cap_num
     
@@ -175,6 +205,21 @@ def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
 
 
 def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     global ind_ser_str, cap_num, cur_x, cur_y
     
@@ -215,6 +260,21 @@ def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
 
 
 def ltsp_etiquetar_nodo(circ_hdl, node_label=None):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
     
     global cap_der_str, node_num, cur_x, cur_y
     
