@@ -9,6 +9,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "<3.12, >=3.8"
+prompt-toolkit = "^3.0.38"
+jupyter-console = "^6.6.3"
+ipython = "^7.34"
 sympy = "^1.11.1"
 schemdraw = "^0.15"
 jupyter = "^1.0.0"

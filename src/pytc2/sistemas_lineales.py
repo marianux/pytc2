@@ -330,7 +330,6 @@ def pretty_print_bicuad_omegayq(num, den = None, displaystr = True):
         num_str_aux = _build_omegayq_str(num, den = den)
     elif num[1] == 0 and np.all(num[[0,2]] > 0):
         # complex conj zeros style  s² + omega² 
-        num_str_aux = _build_omegayq_str(num)
         
         kk = num[0]
         if kk == 1.0:        
@@ -1222,7 +1221,7 @@ def tf2sos_analog(num, den, pairing='nearest'):
 
     return sos
         
-def zpk2sos_analog(z, p, k, pairing='nearest'):
+def zpk2sos_analog(zz, pp, kk, pairing='nearest'):
     """
     From scipy.signal, modified by marianux
     ----------------------------------------
@@ -1264,18 +1263,18 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
     """
     
     # if empty filter then
-    if len(z) == len(p) == 0:
-        return np.array([[0., 0., k, 1., 0., 0.]])
+    if len(zz) == len(pp) == 0:
+        return np.array([[0., 0., kk, 1., 0., 0.]])
 
-    assert len(z) <= len(p), "Filter must have more poles than zeros"
+    assert len(zz) <= len(pp), "Filter must have more poles than zeros"
     
-    n_sections = ( len(p) + 1) // 2
+    n_sections = ( len(pp) + 1) // 2
     sos = np.zeros((n_sections, 6))
 
     # Ensure we have complex conjugate pairs
     # (note that _cplxreal only gives us one element of each complex pair):
-    z = np.concatenate(_cplxreal(z))
-    p = np.concatenate(_cplxreal(p))
+    z = np.concatenate(_cplxreal(zz))
+    p = np.concatenate(_cplxreal(pp))
 
     # calculate los omega_0 and Q for each pole
     # w0 = np.abs(p)
@@ -1314,6 +1313,7 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
             p2 = z2 = np.nan
             
         else:
+            # SOS 
             
             if z.size == 0:
                 # no zero, just poles
@@ -1327,7 +1327,7 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
 
             # Now that we have p1 and z1, figure out what p2 and z2 need to be
             
-            if z.size == 0:
+            if np.isnan(z1):
                 # no zero, just poles
                 if np.isreal(p1):
                     # pick the next "worst" pole to use
@@ -1341,38 +1341,15 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
                 else:
                     # complex pole
                     p2 = p1.conj()
-                    if np.isnan(z1):
-                        z2 = z1
-                    else:
-                        # complex zero (no more zeros)
-                        z2 = z1.conj()
                 
             else:
                 # there are zero/s for z2
                     
-                if not np.isreal(p1):
-                    p2 = p1.conj()
+                if np.isreal(p1):
                     
-                    if not np.isreal(z1):  # complex pole, complex zero
-                        z2 = z1.conj()
-                    else:  # complex pole, real zero
+                    if np.isreal(z1):  
                         
-                        if one_z_per_section:
-                            # avoid picking double zero (high-pass)
-                            # prefer picking band-pass sections (Schaumann 5.3.1)
-                            z2 = np.nan
-                        else:
-                            z2_idx = _nearest_real_complex_idx(z, p1, 'real')
-                            z2 = z[z2_idx]
-                            assert np.isreal(z2)
-                            z = np.delete(z, z2_idx)
-                else:
-                    if not np.isreal(z1):  # real pole, complex zero
-                        z2 = z1.conj()
-                        p2_idx = _nearest_real_complex_idx(p, z1, 'real')
-                        p2 = p[p2_idx]
-                        assert np.isreal(p2)
-                    else:  # real pole, real zero
+                        # real pole, real zero
                         # pick the next "worst" pole to use
                         idx = np.nonzero(np.isreal(p))[0]
                         assert len(idx) > 0
@@ -1390,7 +1367,41 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
                             z2 = z[z2_idx]
                             assert np.isreal(z2)
                             z = np.delete(z, z2_idx)
+                        
+                    else:  
+
+                        # real pole, complex zero
+                        z2 = z1.conj()
+                        p2_idx = _nearest_real_complex_idx(p, z1, 'real')
+                        p2 = p[p2_idx]
+                        assert np.isreal(p2)
+
                     p = np.delete(p, p2_idx)
+                    
+                else:
+                    # complex pole
+
+                    p2 = p1.conj()
+                    
+                    if np.isreal(z1):  # complex pole, complex zero
+
+                        # complex pole, real zero -> possible bandpass
+                        
+                        if z1 == 0:
+                            # avoid picking double zero (high-pass)
+                            # prefer picking band-pass sections (Schaumann 5.3.1)
+                            z2 = np.nan
+                        else:
+                            # z1 over the \sigma axis
+                            z2_idx = _nearest_real_complex_idx(z, p1, 'real')
+                            z2 = z[z2_idx]
+                            assert np.isreal(z2)
+                            z = np.delete(z, z2_idx)
+
+                    else:  
+                        # complex pole, complex zero -> SOS
+                        
+                        z2 = z1.conj()
                     
         p_sos[si] = [p1, p2]
         z_sos[si] = [z1, z2]
@@ -1403,8 +1414,7 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
     z_sos = np.reshape(z_sos[::-1], (n_sections, 2))
     
     maxima_tf = np.ones(n_sections)
-    gains = np.ones(n_sections, np.array(k).dtype)
-    # gains[0] = k # todo: distribute k along sections
+    gains = np.ones(n_sections, np.array(kk).dtype)
     
     for si in range(n_sections):
         
@@ -1421,7 +1431,7 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
     mmi = np.cumprod(maxima_tf) # M_i according to Schaumann eq 5.76
 
     # first gain to optimize dynamic range.
-    gains[0] = k * (mmi[-1]/mmi[0])
+    gains[0] = kk * (mmi[-1]/mmi[0])
 
     for si in range(n_sections):
 
@@ -1434,6 +1444,22 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
         den = np.concatenate((np.zeros(np.max(3 - len(den), 0)), den))
             
         sos[si] = np.concatenate((num,den))
+        
+        
+    # verify the factorization
+    tf_verif = sos2tf_analog(sos)
+    z_v, p_v, k_v = tf2zpk(tf_verif.num, tf_verif.den)
+    
+    num_t, den_t = zpk2tf(zz, pp, kk)
+    
+    if np.std(num_t - tf_verif.num) > 1e-10:
+
+        raise ValueError('Incorrect factorization: Zeros does not match')
+
+    if np.std(den_t - tf_verif.den) > 1e-10:
+
+        raise ValueError('Incorrect factorization: Poles does not match')
+        
         
     return sos
     
@@ -1674,9 +1700,13 @@ def _build_omegayq_str(this_quad_poly, den = np.array([])):
     else:
         # all other complete quadratic polynomial
         omega = np.sqrt(this_quad_poly[2])
-        qq = omega / this_quad_poly[1]
         
-        poly_str = r's^2 + s \frac{{{:3.4g}}}{{{:3.4g}}} + {:3.4g}^2'.format(omega, qq, omega)
+        if this_quad_poly[1] == 0:
+            poly_str = r's^2 + {:3.4g}^2'.format(omega)
+        else:
+            qq = omega / this_quad_poly[1]
+            poly_str = r's^2 + s \frac{{{:3.4g}}}{{{:3.4g}}} + {:3.4g}^2'.format(omega, qq, omega)
+        
                 
     return poly_str
 
