@@ -1329,18 +1329,20 @@ def zpk2sos_analog(zz, pp, kk, pairing='nearest'):
             
             if np.isnan(z1):
                 # no zero, just poles
+                z2 = np.nan
+                
                 if np.isreal(p1):
                     # pick the next "worst" pole to use
                     idx = np.nonzero(np.isreal(p))[0]
                     assert len(idx) > 0
                     p2_idx = idx[np.argmax(qq)]
                     p2 = p[p2_idx]
-                    z2 = np.nan
                     p = np.delete(p, p2_idx)
 
                 else:
                     # complex pole
                     p2 = p1.conj()
+
                 
             else:
                 # there are zero/s for z2
@@ -1413,22 +1415,23 @@ def zpk2sos_analog(zz, pp, kk, pairing='nearest'):
     p_sos = np.reshape(p_sos[::-1], (n_sections, 2))
     z_sos = np.reshape(z_sos[::-1], (n_sections, 2))
     
-    maxima_tf = np.ones(n_sections)
+    # asignación de ganancias para cada SOS
+    mmi = np.ones(n_sections)
     gains = np.ones(n_sections, np.array(kk).dtype)
+    
+    tf_j = TransferFunction(1.0, 1.0)
     
     for si in range(n_sections):
         
         num, den = zpk2tf(z_sos[si, np.logical_not( np.isnan(z_sos[si])) ], p_sos[si, np.logical_not(np.isnan(p_sos[si]))], 1) # no gain
         
-        # find maximum in transfer function
-        thisFilter = TransferFunction(num, den)
+        tf_j = tfcascade(tf_j, TransferFunction(num, den))
         
-        _, mag, _ = thisFilter.bode(np.logspace(-2,2,100))
+        _, mag, _ = tf_j.bode(np.logspace(-2,2,100))
         
         # bode in dB
-        maxima_tf[si] = 10**(np.max(mag)/20)
+        mmi[si] = 10**(np.max(mag)/20) # M_i according to Schaumann eq 5.76
     
-    mmi = np.cumprod(maxima_tf) # M_i according to Schaumann eq 5.76
 
     # first gain to optimize dynamic range.
     gains[0] = kk * (mmi[-1]/mmi[0])
