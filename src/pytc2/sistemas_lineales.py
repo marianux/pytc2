@@ -1423,11 +1423,17 @@ def zpk2sos_analog(zz, pp, kk, pairing='nearest'):
     
     for si in range(n_sections):
         
-        num, den = zpk2tf(z_sos[si, np.logical_not( np.isnan(z_sos[si])) ], p_sos[si, np.logical_not(np.isnan(p_sos[si]))], 1) # no gain
+        this_zz = z_sos[si, np.logical_not( np.isnan(z_sos[si])) ]
+        this_pp = p_sos[si, np.logical_not(np.isnan(p_sos[si]))]
+        
+        num, den = zpk2tf(this_zz, this_pp, 1) # no gain
         
         tf_j = tfcascade(tf_j, TransferFunction(num, den))
+
+        this_zzpp = np.abs(np.concatenate([this_zz, this_pp]))
+        this_zzpp = this_zzpp[this_zzpp > 0]
         
-        _, mag, _ = tf_j.bode(np.logspace(-2,2,100))
+        _, mag, _ = tf_j.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-2, np.ceil(np.log10(np.max(this_zzpp)))+2, 100))
         
         # bode in dB
         mmi[si] = 10**(np.max(mag)/20) # M_i according to Schaumann eq 5.76
