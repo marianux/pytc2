@@ -412,21 +412,79 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
         return sos_str
 
 def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True, digital = False, fs = 2*np.pi):
-    """
+    """ Analyzes the behavior of a linear system in terms of:
+        
+          * Magnitude and phase response or Bode plot
+          * Pole-zero map
+          * Group delay
+          
+        The funcion admits the system to analyze (*all_sys*) as:
+            
+            * one or a list of TransferFunction objects
+            * a matrix defining several second order sections (SOSs).
+            
+        If *all_sys* is a SOS matrix, the function displays each of the SOS, 
+        and the system resulting frome the cascade of all SOS.
     
     Parameters
     ----------
-    tfa : TYPE
-        DESCRIPTION.
-    tfb : TYPE
-        DESCRIPTION.
-
+    all_sys : list or (Nx5) matrix
+        The linear system to analyze. Wether a list of [scipy.signal.TransferFuncion](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.TransferFunction.html)
+        objects or a matrix defining a cascade of SOS.
+    sys_name : string or list.
+        The labels or system description. Default: None
+    img_ext : string  ['none', 'png', 'svg'].
+        When different from 'none' the function save plot results to a file with 
+        the indicated extension. Default: 'none'
+    same_figs : boolean
+        Use always the same figure numbers to plot results. When False, each call
+        produce a new group of figures in a separate plot container. Default: True
+    annotations : boolean
+        Add annotations to the PZmap plot. When True, each singularity will be 
+        acompanied of the value of omega (i.e. the radial distance to the origin)
+        and Q (i.e. measure of proximity to the jw axis). Default: True
+    digital : boolean
+        True to analyze the system as *digital*. Default: False
+    fs : real value.
+        The sampling frequency of the digital system. Valid only if digital is 
+        True. Default:  2*np.pi
+    
     Returns
     -------
     None.
 
     Example
     -------
+
+    Analyze a system with w0 = 1 rad/s and Q = sqrt(2)/2
+
+    >>> import numpy as np
+    >>> from scipy import signal as sig
+    >>> from pytc2.sistemas_lineales import analyze_sys, pretty_print_bicuad_omegayq
+    >>> Q = np.sqrt(2)/2
+    >>> w0 = 1
+    >>> # Cargamos la funcion transferencia como vectores de sus coeficientes.
+    >>> num = np.array([ w0**2 ])
+    >>> den = np.array([ 1., w0 / Q, w0**2 ])
+    >>> H1 = sig.TransferFunction( num, den )
+    >>> pretty_print_bicuad_omegayq(num,den)
+    >>> analyze_sys(H1, sys_name='mi ejemplo')
+
+    Compare the former system with two others with different Q values
+
+    >>> Q = 5
+    >>> w0 = 1
+    >>> num = np.array([ w0**2 ])
+    >>> den = np.array([ 1., w0 / Q, w0**2 ])
+    >>> H2 = sig.TransferFunction( num, den )
+    >>> analyze_sys([H1, H2], sys_name=['H1', 'H2'])
+
+    See Also
+    --------
+
+    :func:`pretty_print_bicuad_omegayq`
+    :func:`bodePlot`
+    :func:`pzmap`
 
     """
 
@@ -524,7 +582,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     
     # axes_hdl.legend(sys_name)
 
-    axes_hdl.set_ylim(bottom=0)
+    # axes_hdl.set_ylim(bottom=0)
 
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_GroupDelay.'  + img_ext, format=img_ext)
@@ -816,42 +874,79 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
             
             num, den = _one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
+
+            this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
+            this_zzpp = this_zzpp[this_zzpp > 0]
             
             if digital:
-                w, _, phase[:,ii] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+                w, _, phase[:,ii] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
             else:
-                w, _, phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
+                w, _, phase[:,ii] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
             
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
         thisFilter = sos2tf_analog(myFilter)
+
+        this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
+        this_zzpp = this_zzpp[this_zzpp > 0]
         
         if digital:
-            w, _, phase[:,cant_sos] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+            w, _, phase[:,cant_sos] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
         else:
-            w, _, phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
+            w, _, phase[:,cant_sos] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
+        
+        # if digital:
+        #     w, _, phase[:,cant_sos] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+        # else:
+        #     w, _, phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
         
         sos_label += [filter_description]
         
         filter_description = sos_label
+
+        phaseRad = phase * np.pi / 180.0
+    
+        phaseRad = phaseRad.reshape((npoints, 1+cant_sos))
+        
+        # filter gaps and jumps
+        all_jump_x, all_jump_y = (np.abs(np.diff(phaseRad, axis = 0)) > 4/5*np.pi).nonzero()
+
+        for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y ):
+            phaseRad[this_jump_x+1:, this_jump_y] = phaseRad[this_jump_x+1:, this_jump_y]  - np.pi
         
     else:
         # LTI object
         cant_sos = 0
         
-        if myFilter.dt is None:
-            w, _, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
+        this_zzpp = this_zzpp[this_zzpp > 0]
+        
+        if digital:
+            w, _, phase = myFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
         else:
-            digital = True
-            w, _, phase = myFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+            w, _, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
+
+        phaseRad = phase * np.pi / 180.0
+
+        phaseRad = phaseRad.reshape((npoints, 1))
+
+        # filter gaps and jumps
+        all_jump = np.where(np.abs(np.diff(phaseRad, axis = 0)) > 4/5*np.pi)[0]
+
+        for this_jump_x in all_jump:
+            phaseRad[this_jump_x+1:] = phaseRad[this_jump_x+1] - np.pi
+        
+        # if myFilter.dt is None:
+        #     w, _, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        # else:
+        #     digital = True
+        #     w, _, phase = myFilter.bode(np.linspace(10**-2, w_nyq, npoints))
         
         # if isinstance(filter_description, str):
         #     filter_description = [filter_description]
-
-
-    phaseRad = phase * np.pi / 180.0
-    groupDelay = -np.diff(phaseRad.reshape((npoints, 1+cant_sos)), axis = 0)/np.diff(w).reshape((npoints-1,1))
+    
+    groupDelay = -np.diff(phaseRad, axis = 0) / np.diff(w).reshape((npoints-1,1))
 
     if fig_id == 'none':
         fig_hdl = plt.figure()
@@ -927,20 +1022,37 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             
             num, den = _one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
+            
+            this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
+            this_zzpp = this_zzpp[this_zzpp > 0]
+            
             if digital:
-                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.linspace(10**-2, w_nyq,npoints))
+                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
             else:
-                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
+                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
+            
+            # if digital:
+            #     w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.linspace(10**-2, w_nyq,npoints))
+            # else:
+            #     w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
                 
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
         thisFilter = sos2tf_analog(myFilter)
 
+        this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
+        this_zzpp = this_zzpp[this_zzpp > 0]
+        
         if digital:
-            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
         else:
-            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
+            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
+
+        # if digital:
+        #     w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+        # else:
+        #     w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
             
         sos_label += [filter_description]
         
@@ -950,11 +1062,19 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         # LTI object
         cant_sos = 0
         
-        if myFilter.dt is None:
-            # filtro analógico normalizado
-            w, mag, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
+        this_zzpp = this_zzpp[this_zzpp > 0]
+        
+        if digital:
+            w, mag, phase = myFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
         else:
-            w, mag, phase = myFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+            w, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
+        
+        # if myFilter.dt is None:
+        #     # filtro analógico normalizado
+        #     w, mag, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        # else:
+        #     w, mag, phase = myFilter.bode(np.linspace(10**-2, w_nyq, npoints))
         
         # if isinstance(filter_description, str):
         #     filter_description = [filter_description]
