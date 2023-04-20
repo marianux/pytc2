@@ -9,9 +9,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "<3.12, >=3.8"
-prompt-toolkit = "^3.0.38"
-jupyter-console = "^6.6.3"
-ipython = "^7.34"
+#prompt-toolkit = "^3.0.38"
+#jupyter-console = "^6.6.3"
+#ipython = "^7.34"
 sympy = "^1.11.1"
 schemdraw = "^0.15"
 jupyter = "^1.0.0"
@@ -31,6 +31,7 @@ myst-nb = {version = "^0.17.1", python = "^3.9"}
 sphinx-autoapi = "^2.0.1"
 sphinx-rtd-theme = "^1.2.0"
 sphinxcontrib-napoleon = "^0.7"
+pandas = "^2.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

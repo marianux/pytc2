@@ -27,6 +27,39 @@ from .general import s
 
 
 
+def simplify_n_monic(tt):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+    
+    num, den = sp.fraction(sp.simplify(sp.expand(tt)))
+    
+    num = sp.poly(num,s)
+    den = sp.poly(den,s)
+    
+    # lcnum = sp.LC(num)
+    # lcden = sp.LC(den)
+    
+    k = num.LC() / den.LC()
+    
+    num = num.monic()
+    den = den.monic()
+
+    return( sp.Mul(k,num/den, evaluate=False) )
+
+
 def parametrize_sos(num, den):
     '''
     Parameters
