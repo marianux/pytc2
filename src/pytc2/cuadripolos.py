@@ -889,7 +889,6 @@ def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     
     return(Av)
 
-
 def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
     """Calcula la transferencia de tensión V_ij / V_mn
     

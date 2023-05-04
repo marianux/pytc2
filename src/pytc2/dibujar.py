@@ -99,9 +99,15 @@ def dibujar_Tee(ZZ):
     Zb = ZZ[0,1] 
     Zc = ZZ[1,1] - ZZ[0,1] 
     
-    d = dibujar_elemento_serie(d, ResistorIEC, Za )
-    d = dibujar_elemento_derivacion(d, ResistorIEC, Zb )
-    d = dibujar_elemento_serie(d, ResistorIEC, Zc )
+    if( not Za.is_zero ):
+        d = dibujar_elemento_serie(d, ResistorIEC, Za )
+
+    if( not Zb.is_zero ):
+        d = dibujar_elemento_derivacion(d, ResistorIEC, Zb )
+    
+    if( not Zc.is_zero ):
+        d = dibujar_elemento_serie(d, ResistorIEC, Zc )
+        
     
     d = dibujar_puerto_salida(d, 
                                   port_name = 'Out')
@@ -140,7 +146,9 @@ def dibujar_Pi(YY):
     Yb = -YY[0,1]
     Yc = YY[1,1] + YY[0,1]
     
-    if isinstance(YY[0,0], sp.Symbol):
+    bSymbolic = isinstance(YY[0,0], sp.Basic)
+    
+    if bSymbolic:
         
         Za = sp.simplify(sp.expand(1/Ya))
         Zb = sp.simplify(sp.expand(1/Yb))
@@ -152,9 +160,14 @@ def dibujar_Pi(YY):
         Zb = 1/(-YY[0,1])
         Zc = 1/(YY[1,1] + YY[0,1])
     
-    d = dibujar_elemento_derivacion(d, ResistorIEC, Za )
-    d = dibujar_elemento_serie(d, ResistorIEC, Zb )
-    d = dibujar_elemento_derivacion(d, ResistorIEC, Zc )
+    if( bSymbolic and (not Ya.is_zero) or (not bSymbolic) and Ya != 0 ):
+        d = dibujar_elemento_derivacion(d, ResistorIEC, Za )
+
+    if( bSymbolic and (not Yb.is_zero) or (not bSymbolic) and Yb != 0 ):
+        d = dibujar_elemento_serie(d, ResistorIEC, Zb )
+
+    if( bSymbolic and (not Yc.is_zero) or (not bSymbolic) and Yc != 0 ):
+        d = dibujar_elemento_derivacion(d, ResistorIEC, Zc )
     
     d = dibujar_puerto_salida(d, 
                                   port_name = 'Out')
@@ -844,7 +857,7 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
 
     '''
     
-    if isinstance(sym_label, sp.Number ):
+    if isinstance(sym_label, sp.Basic ):
         sym_label = to_latex(sym_label)
     elif isinstance(sym_label, np.number):
         sym_label = str_to_latex('{:3.3f}'.format(sym_label))
@@ -904,7 +917,7 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
 
     '''
     
-    if isinstance(sym_label, sp.Number ):
+    if isinstance(sym_label, sp.Basic ):
         sym_label = to_latex(sym_label)
     elif isinstance(sym_label, np.number):
         sym_label = str_to_latex('{:3.3f}'.format(sym_label))
@@ -939,12 +952,12 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
 
     '''
     
-    if isinstance(sym_R_label, sp.Number ):
+    if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
     else:
         sym_R_label = str_to_latex(sym_R_label)
     
-    if isinstance(capacitor_lbl, sp.Number ):
+    if isinstance(capacitor_lbl, sp.Basic ):
         capacitor_lbl = to_latex(capacitor_lbl)
     else:
         capacitor_lbl = str_to_latex(capacitor_lbl)
@@ -981,12 +994,12 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
 
     '''
     
-    if isinstance(sym_R_label, sp.Number ):
+    if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
     else:
         sym_R_label = str_to_latex(sym_R_label)
     
-    if isinstance(capacitor_lbl, sp.Number ):
+    if isinstance(capacitor_lbl, sp.Basic ):
         capacitor_lbl = to_latex(capacitor_lbl)
     else:
         capacitor_lbl = str_to_latex(capacitor_lbl)
@@ -1017,12 +1030,12 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
 
     '''
     
-    if isinstance(sym_R_label, sp.Number ):
+    if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
     else:
         sym_R_label = str_to_latex(sym_R_label)
     
-    if isinstance(sym_ind_label, sp.Number ):
+    if isinstance(sym_ind_label, sp.Basic ):
         sym_ind_label = to_latex(sym_ind_label)
     else:
         sym_ind_label = str_to_latex(sym_ind_label)
@@ -1059,12 +1072,12 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
 
     '''
     
-    if isinstance(sym_R_label, sp.Number ):
+    if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
     else:
         sym_R_label = str_to_latex(sym_R_label)
     
-    if isinstance(sym_ind_label, sp.Number ):
+    if isinstance(sym_ind_label, sp.Basic ):
         sym_ind_label = to_latex(sym_ind_label)
     else:
         sym_ind_label = str_to_latex(sym_ind_label)
@@ -1095,12 +1108,12 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
 
     '''
     
-    if isinstance(sym_cap_label, sp.Number ):
+    if isinstance(sym_cap_label, sp.Basic ):
         sym_cap_label = to_latex(sym_cap_label)
     else:
         sym_cap_label = str_to_latex(sym_cap_label)
     
-    if isinstance(sym_ind_label, sp.Number ):
+    if isinstance(sym_ind_label, sp.Basic ):
         sym_ind_label = to_latex(sym_ind_label)
     else:
         sym_ind_label = str_to_latex(sym_ind_label)
@@ -1122,12 +1135,12 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
 
 # def dibujar_tanque_RL_derivacion(d, sym_R_label='', inductor_lbl=''):
     
-#     if isinstance(sym_R_label, sp.Number ):
+#     if isinstance(sym_R_label, sp.Basic ):
 #         sym_R_label = to_latex(sym_R_label)
 #     else:
 #         sym_R_label = str_to_latex(sym_R_label)
     
-#     if isinstance(inductor_lbl, sp.Number ):
+#     if isinstance(inductor_lbl, sp.Basic ):
 #         inductor_lbl = to_latex(inductor_lbl)
 #     else:
 #         inductor_lbl = str_to_latex(inductor_lbl)
@@ -1143,12 +1156,12 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
 
 # def dibujar_tanque_serie(d, inductor_lbl='', capacitor_lbl=''):
     
-#     if isinstance(inductor_lbl, sp.Number ):
+#     if isinstance(inductor_lbl, sp.Basic ):
 #         inductor_lbl = to_latex(inductor_lbl)
 #     else:
 #         inductor_lbl = str_to_latex(inductor_lbl)
     
-#     if isinstance(capacitor_lbl, sp.Number ):
+#     if isinstance(capacitor_lbl, sp.Basic ):
 #         capacitor_lbl = to_latex(capacitor_lbl)
 #     else:
 #         capacitor_lbl = str_to_latex(capacitor_lbl)
@@ -1185,12 +1198,12 @@ def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
 
     '''
     
-    if isinstance(inductor_lbl, sp.Number ):
+    if isinstance(inductor_lbl, sp.Basic ):
         inductor_lbl = to_latex(inductor_lbl)
     else:
         inductor_lbl = str_to_latex(inductor_lbl)
     
-    if isinstance(capacitor_lbl, sp.Number ):
+    if isinstance(capacitor_lbl, sp.Basic ):
         capacitor_lbl = to_latex(capacitor_lbl)
     else:
         capacitor_lbl = str_to_latex(capacitor_lbl)
