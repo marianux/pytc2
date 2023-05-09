@@ -20,57 +20,15 @@ from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line
 #%% Variables para el análisis simbólico #
 ##########################################
 
-from .general import s
+from .general import s, to_latex, str_to_latex
 
-
-#########################
-#%% Funciones generales #
-#########################
-
-
-
-def to_latex( unsimbolo ):
-    '''
-    Convierte un símbolo en un string formateado para visualizarse en LaTex 
-
-    Parameters
-    ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
-
-    Returns
-    -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
-
-    '''
-    
-    return('$'+ sp.latex(unsimbolo) + '$')
-
-def str_to_latex( unstr):
-    '''
-    Formatea un string para visualizarse en LaTex 
-
-    Parameters
-    ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
-
-    Returns
-    -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
-
-    '''
-    
-    return('$'+ unstr + '$')
 
 
 ########################################
 #%% Funciones para dibujar cuadripolos #
 ########################################
 
-def dibujar_Tee(ZZ):
+def dibujar_Tee(ZZ, return_components = False):
     '''
     Dibuja una red Tee a partir de la matriz Z.
 
@@ -95,9 +53,9 @@ def dibujar_Tee(ZZ):
     d = dibujar_puerto_entrada(d,
                                    port_name = 'In' )
     
-    Za = ZZ[0,0] - ZZ[0,1] 
-    Zb = ZZ[0,1] 
-    Zc = ZZ[1,1] - ZZ[0,1] 
+    Za = sp.simplify(sp.expand(ZZ[0,0] - ZZ[0,1]))
+    Zb = sp.simplify(sp.expand(ZZ[0,1]))
+    Zc = sp.simplify(sp.expand(ZZ[1,1] - ZZ[0,1]))
     
     if( not Za.is_zero ):
         d = dibujar_elemento_serie(d, ResistorIEC, Za )
@@ -114,10 +72,12 @@ def dibujar_Tee(ZZ):
 
     display(d)        
     
-    return([Za,Zb,Zc])
+    if(return_components):
+        return([Za,Zb,Zc])
+    
 
 
-def dibujar_Pi(YY):
+def dibujar_Pi(YY, return_components = False):
     '''
     Dibuja una red Pi a partir de la matriz Y.
 
@@ -142,9 +102,9 @@ def dibujar_Pi(YY):
     d = dibujar_puerto_entrada(d,
                                    port_name = 'In')
     
-    Ya = YY[0,0] + YY[0,1]
-    Yb = -YY[0,1]
-    Yc = YY[1,1] + YY[0,1]
+    Ya = sp.simplify(sp.expand(YY[0,0] + YY[0,1]))
+    Yb = sp.simplify(sp.expand(-YY[0,1]))
+    Yc = sp.simplify(sp.expand(YY[1,1] + YY[0,1]))
     
     bSymbolic = isinstance(YY[0,0], sp.Basic)
     
@@ -173,8 +133,9 @@ def dibujar_Pi(YY):
                                   port_name = 'Out')
     
     display(d)        
-    
-    return([Ya, Yb, Yc])
+
+    if(return_components):
+        return([Ya, Yb, Yc])
 
 
 
@@ -585,8 +546,6 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, z_exc = None):
         d += Line().left().length(d.unit*.25)
         
         display(d)
-        
-        return(d)
 
     else:    
         

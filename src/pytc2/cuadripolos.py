@@ -310,7 +310,6 @@ def TabcdZ_s(Zexc):
     
     return( Tpar ) 
 
-
 def TabcdY_s(Yexc):
     '''
     Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
@@ -342,8 +341,7 @@ def TabcdY_s(Yexc):
     
     return( Tpar ) 
 
-
-def Y2T_s(YY):
+def Y2Tabcd_s(YY):
     """
     
     Parameters
@@ -375,7 +373,7 @@ def Y2T_s(YY):
     
     return(TT)
 
-def Z2T_s(ZZ):
+def Z2Tabcd_s(ZZ):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -406,7 +404,7 @@ def Z2T_s(ZZ):
     
     return(TT)
 
-def T2Z_s(TT):
+def Tabcd2Z_s(TT):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -437,7 +435,7 @@ def T2Z_s(TT):
     
     return(ZZ)
 
-def T2Y_s(TT):
+def Tabcd2Y_s(TT):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -468,7 +466,7 @@ def T2Y_s(TT):
     
     return(YY)
 
-def Y2T(YY):
+def Y2Tabcd(YY):
     """
     
     Parameters
@@ -500,7 +498,7 @@ def Y2T(YY):
     
     return(TT)
 
-def Z2T(ZZ):
+def Z2Tabcd(ZZ):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -531,7 +529,7 @@ def Z2T(ZZ):
     
     return(TT)
 
-def T2Z(TT):
+def Tabcd2Z(TT):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -562,7 +560,7 @@ def T2Z(TT):
     
     return(ZZ)
 
-def T2Y(TT):
+def Tabcd2Y(TT):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
