@@ -50,12 +50,20 @@ def dibujar_Tee(ZZ, return_components = False):
     
     d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
-    d = dibujar_puerto_entrada(d,
-                                   port_name = 'In' )
+    d = dibujar_puerto_entrada(d, port_name = '' )
+
+    bSymbolic = isinstance(ZZ, sp.Basic)
     
-    Za = sp.simplify(sp.expand(ZZ[0,0] - ZZ[0,1]))
-    Zb = sp.simplify(sp.expand(ZZ[0,1]))
-    Zc = sp.simplify(sp.expand(ZZ[1,1] - ZZ[0,1]))
+    Za = ZZ[0,0] - ZZ[0,1]
+    Zb = ZZ[0,1]
+    Zc = ZZ[1,1] - ZZ[0,1]
+    
+    if bSymbolic:
+        
+        Za = sp.simplify(sp.expand(Za))
+        Zb = sp.simplify(sp.expand(Zb))
+        Zc = sp.simplify(sp.expand(Zc))
+
     
     if( not Za.is_zero ):
         d = dibujar_elemento_serie(d, ResistorIEC, Za )
@@ -67,15 +75,13 @@ def dibujar_Tee(ZZ, return_components = False):
         d = dibujar_elemento_serie(d, ResistorIEC, Zc )
         
     
-    d = dibujar_puerto_salida(d, 
-                                  port_name = 'Out')
+    d = dibujar_puerto_salida(d, port_name = '')
 
     display(d)        
     
     if(return_components):
         return([Za,Zb,Zc])
     
-
 
 def dibujar_Pi(YY, return_components = False):
     '''
@@ -99,12 +105,11 @@ def dibujar_Pi(YY, return_components = False):
     
     d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
-    d = dibujar_puerto_entrada(d,
-                                   port_name = 'In')
+    d = dibujar_puerto_entrada(d, port_name = '')
     
-    Ya = sp.simplify(sp.expand(YY[0,0] + YY[0,1]))
-    Yb = sp.simplify(sp.expand(-YY[0,1]))
-    Yc = sp.simplify(sp.expand(YY[1,1] + YY[0,1]))
+    Ya = YY[0,0] + YY[0,1]
+    Yb = -YY[0,1]
+    Yc = YY[1,1] + YY[0,1]
     
     bSymbolic = isinstance(YY[0,0], sp.Basic)
     
@@ -116,9 +121,9 @@ def dibujar_Pi(YY, return_components = False):
         
     else:
 
-        Za = 1/(YY[0,0] + YY[0,1])
-        Zb = 1/(-YY[0,1])
-        Zc = 1/(YY[1,1] + YY[0,1])
+        Za = 1/Ya
+        Zb = 1/Yb
+        Zc = 1/Yc
     
     if( bSymbolic and (not Ya.is_zero) or (not bSymbolic) and Ya != 0 ):
         d = dibujar_elemento_derivacion(d, ResistorIEC, Za )
@@ -129,13 +134,99 @@ def dibujar_Pi(YY, return_components = False):
     if( bSymbolic and (not Yc.is_zero) or (not bSymbolic) and Yc != 0 ):
         d = dibujar_elemento_derivacion(d, ResistorIEC, Zc )
     
-    d = dibujar_puerto_salida(d, 
-                                  port_name = 'Out')
+    d = dibujar_puerto_salida(d, port_name = '')
     
     display(d)        
 
     if(return_components):
         return([Ya, Yb, Yc])
+
+
+def dibujar_lattice(ZZ=None, return_components = False):
+    '''
+    Draws a lattice network from the Z parameters of a network.
+
+    Parameters
+    ----------
+    ZZ : Symbolic Matrix
+        Z parameters.
+    return_components : boolean
+        Returns the components of the symmetric lattice network (Za and Zb).
+
+    Returns
+    -------
+    Za, Zb : Symbolic
+        (Optional) Impedances of of the symmetric lattice network.
+
+    '''
+
+    if ZZ is None    :
+        # sin valores, solo el dibujo
+        Za_lbl = 'Za'
+        Zb_lbl = 'Zb'
+        
+        Za = 1
+        Zb = 1
+        bSymbolic = False
+        
+    else:
+        # calculo los valores de la matriz Z
+        # z11 - z12
+        Za = ZZ[0,0] - ZZ[0,1]
+        Zb = ZZ[0,0] + ZZ[0,1]
+        
+        bSymbolic = isinstance(ZZ[0,0], sp.Basic)
+        
+        if bSymbolic:
+            
+            Za = sp.simplify(Za)
+            Zb = sp.simplify(Zb)
+    
+            Za_lbl = to_latex(Za)
+            Zb_lbl = to_latex(Zb)
+            
+        else:
+                
+            Za_lbl = str_to_latex('{:3.3f}'.format(Za))
+            Zb_lbl = str_to_latex('{:3.3f}'.format(Zb))
+
+    # Dibujo la red Lattice    
+    
+    with Drawing() as d:
+        
+        d.config(fontsize=16, unit=4)
+
+        d = dibujar_puerto_entrada(d, port_name = '' )
+
+        if( bSymbolic and (not Za.is_zero) or (not bSymbolic) and Za != 0 ):
+            d += (Za_d := ResistorIEC().right().label(Za_lbl).dot().idot())
+        else:
+            d += (Za_d := Line().right().dot())
+
+        d.push()
+        
+        d += Gap().down().label('')
+
+        d += (line_down := Line(ls='dotted').left().dot().idot())
+
+        cross_line_vec = line_down.end - Za_d.end
+
+        d += Line(ls='dotted').endpoints(Za_d.end, Za_d.end + 0.25*cross_line_vec )
+
+        d += Line(ls='dotted').endpoints(Za_d.end + 0.6*cross_line_vec, line_down.end )
+
+        if( bSymbolic and (not Zb.is_zero) or (not bSymbolic) and Zb != 0 ):
+            d += (Zb_d := ResistorIEC().label(Zb_lbl).endpoints(Za_d.start, line_down.start).dot())
+        else:
+            d += (Zb_d := Line().endpoints(Za_d.start, line_down.start).dot())
+            
+        d.pop()
+
+        d = dibujar_puerto_salida(d, port_name = '' )
+
+
+    if(return_components):
+        return([Za, Zb])
 
 
 
@@ -833,6 +924,7 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     d.pop()
 
     return(d)
+
 
 def dibujar_espacio_derivacion(d):
     '''
