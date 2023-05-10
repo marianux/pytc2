@@ -8,5 +8,12 @@
 
  * Basic functionality of the library
  * Incomplete documentation
+
+## v0.0.2 (09/05/2023)
+
+- Bug correction
+
+ * Improved functionality of the library
+ * Improved documentation
     
 
