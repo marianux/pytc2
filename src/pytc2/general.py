@@ -11,6 +11,7 @@ by Mariano Llamedo llamedom _at_ frba_utn_edu_ar
 """
 
 import sympy as sp
+import numpy as np
 
 from IPython.display import display, Math, Markdown
 
@@ -232,3 +233,51 @@ def Chebyshev_polynomials(nn):
             
     return(sp.simplify(sp.expand(Cn)))
 
+
+
+'''
+  ################################################
+ ## Bloque de funciones para parametros imagen ##
+################################################
+'''
+
+
+def db2nepper(at_en_db):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+    
+    return( at_en_db/(20*np.log10(np.exp(1))) )
+
+def nepper2db(at_en_np):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+    
+    return( at_en_np*(20*np.log10(np.exp(1))) )
+
+    

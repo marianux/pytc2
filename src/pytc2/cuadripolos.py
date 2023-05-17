@@ -466,6 +466,129 @@ def Tabcd2Y_s(TT):
     
     return(YY)
 
+def I2Tabcd_s(gamma, z01, z02 = None):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    gamma : Symbol
+        Ganancia compleja expresada en neppers (Re{gamma}) y rad (Im{gamma}).
+        
+    z01 : Symbol
+        Nivel de impedancia del puerto 1.
+
+    z02 : Symbol
+        (Opcional) Nivel de impedancia del puerto 2. Default: z02 = z01 = Zo (imp. característica). 
+
+    Returns
+    -------
+    TT : Symbolic Matrix
+        Matriz ABCD en función de los parámetros imagen 
+
+    '''
+    
+    if z02 is None:
+        z02 = z01
+    
+    TT = sp.Matrix([[sp.cosh(gamma)*sp.sqrt(z01/z02),
+                     sp.sinh(gamma)*sp.sqrt(z01*z02)], 
+                    [sp.sinh(gamma)/sp.sqrt(z01*z02),
+                     sp.cosh(gamma)*sp.sqrt(z02/z01)]])
+    
+    
+    return(TT)
+
+
+def Model_conversion( src_model, dst_model  ):
+    '''
+    Convierte modelos de cuadripolos lineales.
+
+    Parameters
+    ----------
+    src_model : Dict. 
+        Diccionario que describe al modelo de origen.
+        
+    dst_model : Dict. 
+        Diccionario que describe al modelo de salida.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    Example
+    -------
+
+    # Parámetros Z (impedancia - circ. abierto)
+    ZZ = sp.Matrix([[z11, z12], [z21, z22]])
+    # vars. dependientes
+    vv = sp.Matrix([[v1], [v2]])
+    # vars. INdependientes
+    ii = sp.Matrix([[i1], [i2]])
+    
+    
+    # Parámetros Tdcba (Transmisión inversos, DCBA)
+    TTi = sp.Matrix([[Ai, Bi], [-Ci, -Di]])
+    # vars. dependientes
+    ti_dep = sp.Matrix([[v2], [i2]])
+    # vars. INdependientes. (Signo negativo de corriente)
+    ti_ind = sp.Matrix([[v1], [i1]])
+    
+    # Diccionario con la definición de cada modelo
+    src_model = { 'model_name': 'Z', 'matrix': ZZ, 'dep_var': vv, 'indep_var':ii }
+    dst_model = { 'model_name': 'T', 'matrix': TT, 'dep_var': t_dep, 'indep_var':t_ind, 'neg_i2_current': True }
+    
+    T_z = convert_params( src_model, dst_model )
+    
+    print_latex(a_equal_b_latex_s('T_Z', T_z ))
+
+
+    '''
+    
+    aa = sp.solve([ src_model['matrix'] * src_model['indep_var'] - src_model['dep_var']
+                ], 
+                dst_model['dep_var'])
+    
+    # reemplazaremos el determinante por Delta.
+    det_src_matrix = sp.det(src_model['matrix'])
+    
+    # i2 se define al revés en este modelo
+    if 'neg_i2_current' in src_model:
+        det_src_matrix = -det_src_matrix
+    
+    
+    dd = sp.Symbol('\Delta')
+    jj = 0
+    
+    QQ = sp.Matrix([[0,0],[0,0]])
+
+    for dep_var in dst_model['dep_var']:
+
+        jj += 1
+        
+        yyy = sp.collect(sp.expand(aa[dep_var]), dst_model['indep_var'][0])
+        yyy = sp.collect(yyy, dst_model['indep_var'][1])
+
+        # i2 se define al revés en este modelo
+        if dep_var.name == 'i2' and 'neg_i2_current' in dst_model:
+            yyy = -yyy
+
+        kk = 0
+        for indep_var in dst_model['indep_var']:
+            kk += 1
+            
+            bb = sp.cancel(yyy.coeff(indep_var,1))
+            # i2 se define al revés en este modelo
+            if indep_var.name == 'i2' and 'neg_i2_current' in dst_model:
+                bb = -bb
+                
+            QQ[jj-1,kk-1] = bb.subs(det_src_matrix, dd)
+            #print_latex(a_equal_b_latex_s( param_lab + '{:d}{:d}'.format(jj,kk), QQ[jj-1,kk-1] ))
+
+    return({'matrix': QQ, 'name': dst_model['model_name'] + '_{' + src_model['model_name'] + '}' })
+
+
 def Y2Tabcd(YY):
     """
     
@@ -771,6 +894,36 @@ def TabcdY(Yexc):
     Tpar[1,1] = 1
     
     return( Tpar ) 
+
+def I2Tabcd(gamma, z01, z02 = None):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    if z02 is None:
+        z02 = z01
+
+    # if np.sqrt(z02/z01)
+    
+    TT = np.matrix([[np.cosh(gamma)*np.sqrt(z01/z02),
+                     np.sinh(gamma)*np.sqrt(z01*z02)], 
+                    [np.sinh(gamma)/np.sqrt(z01*z02),
+                     np.cosh(gamma)*np.sqrt(z02/z01)]])
+    
+    return(TT)
+
 
 def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     """Calcula la transferencia de impedancia V_ij / I_mn
