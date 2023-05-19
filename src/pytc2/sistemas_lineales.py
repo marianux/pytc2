@@ -1542,7 +1542,7 @@ def zpk2sos_analog(zz, pp, kk, pairing='nearest'):
 
                         # complex pole, real zero -> possible bandpass
                         
-                        if z1 == 0:
+                        if one_z_per_section:
                             # avoid picking double zero (high-pass)
                             # prefer picking band-pass sections (Schaumann 5.3.1)
                             z2 = np.nan
