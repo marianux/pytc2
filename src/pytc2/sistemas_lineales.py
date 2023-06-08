@@ -1042,10 +1042,23 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
     """
 
-    w_nyq = 2*np.pi*fs/2
+    ww_nyq = 2*np.pi*fs/2
     
     if isinstance(myFilter, np.ndarray):
         # SOS section
+        
+        wholeFilter = sos2tf_analog(myFilter)
+
+        # all singularities
+        this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
+        this_zzpp = this_zzpp[this_zzpp > 0]
+
+        # calculate the omega axis according to singularities of the whole filter
+        if digital:
+            ww = np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, ww_nyq, npoints)
+        else:
+            ww = np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints)
+        
         cant_sos = myFilter.shape[0]
         mag = np.empty((npoints, cant_sos+1))
         phase = np.empty_like(mag)
@@ -1058,35 +1071,14 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             
             this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
             this_zzpp = this_zzpp[this_zzpp > 0]
-            
-            if digital:
-                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
-            else:
-                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
-            
-            # if digital:
-            #     w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.linspace(10**-2, w_nyq,npoints))
-            # else:
-            #     w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
+
+            _, mag[:, ii], phase[:,ii] = thisFilter.bode(ww)
                 
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
-        thisFilter = sos2tf_analog(myFilter)
+        _, mag[:, cant_sos], phase[:,cant_sos] = wholeFilter.bode(ww)
 
-        this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
-        this_zzpp = this_zzpp[this_zzpp > 0]
-        
-        if digital:
-            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
-        else:
-            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
-
-        # if digital:
-        #     w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
-        # else:
-        #     w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
-            
         sos_label += [filter_description]
         
         filter_description = sos_label
@@ -1099,15 +1091,15 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         this_zzpp = this_zzpp[this_zzpp > 0]
         
         if digital:
-            w, mag, phase = myFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
+            ww, mag, phase = myFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, ww_nyq, npoints))
         else:
-            w, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
+            ww, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
         
         # if myFilter.dt is None:
         #     # filtro analógico normalizado
-        #     w, mag, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        #     ww, mag, phase = myFilter.bode(np.logspace(-2,2,npoints))
         # else:
-        #     w, mag, phase = myFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+        #     ww, mag, phase = myFilter.bode(np.linspace(10**-2, ww_nyq, npoints))
         
         # if isinstance(filter_description, str):
         #     filter_description = [filter_description]
@@ -1131,14 +1123,14 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
     if digital:
         if filter_description is None:
-            aux_hdl = plt.plot(w / w_nyq, mag)    # Bode magnitude plot
+            aux_hdl = plt.plot(ww / ww_nyq, mag)    # Bode magnitude plot
         else:
-            aux_hdl = plt.plot(w / w_nyq, mag, label=filter_description)    # Bode magnitude plot
+            aux_hdl = plt.plot(ww / ww_nyq, mag, label=filter_description)    # Bode magnitude plot
     else:
         if filter_description is None:
-            aux_hdl = plt.semilogx(w, mag)    # Bode magnitude plot
+            aux_hdl = plt.semilogx(ww, mag)    # Bode magnitude plot
         else:
-            aux_hdl = plt.semilogx(w, mag, label=filter_description)    # Bode magnitude plot
+            aux_hdl = plt.semilogx(ww, mag, label=filter_description)    # Bode magnitude plot
     
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -1159,15 +1151,15 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     
     if digital:
         if filter_description is None:
-            aux_hdl = plt.plot(w / w_nyq, np.pi/180*phase)    # Bode phase plot
+            aux_hdl = plt.plot(ww / ww_nyq, np.pi/180*phase)    # Bode phase plot
         else:
-            aux_hdl = plt.plot(w / w_nyq, np.pi/180*phase, label=filter_description)    # Bode phase plot
+            aux_hdl = plt.plot(ww / ww_nyq, np.pi/180*phase, label=filter_description)    # Bode phase plot
             
     else:
         if filter_description is None:
-            aux_hdl = plt.semilogx(w, np.pi/180*phase)    # Bode phase plot
+            aux_hdl = plt.semilogx(ww, np.pi/180*phase)    # Bode phase plot
         else:
-            aux_hdl = plt.semilogx(w, np.pi/180*phase, label=filter_description)    # Bode phase plot
+            aux_hdl = plt.semilogx(ww, np.pi/180*phase, label=filter_description)    # Bode phase plot
     
     
     # Scale axes to fit
@@ -1227,7 +1219,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         phase_ax_hdl.legend()
     
     return fig_id, axes_hdl
-    
+
 def plot_plantilla(filter_type = 'lowpass', fpass = 0.25, ripple = 0.5, fstop = 0.6, attenuation = 40, fs = 2 ):
     """
     
@@ -1513,7 +1505,7 @@ def zpk2sos_analog(zz, pp, kk, pairing='nearest'):
                         # find a real zero to match the added pole
                         assert np.isreal(p2)
                         
-                        if one_z_per_section:
+                        if one_z_per_section or len(z) == 0:
                             # avoid picking double zero (high-pass)
                             # prefer picking band-pass sections (Schaumann 5.3.1)
                             z2 = np.nan
@@ -1542,7 +1534,7 @@ def zpk2sos_analog(zz, pp, kk, pairing='nearest'):
 
                         # complex pole, real zero -> possible bandpass
                         
-                        if one_z_per_section:
+                        if one_z_per_section or len(z) == 0:
                             # avoid picking double zero (high-pass)
                             # prefer picking band-pass sections (Schaumann 5.3.1)
                             z2 = np.nan
