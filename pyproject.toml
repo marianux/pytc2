@@ -1,7 +1,7 @@
 
 [tool.poetry]
 name = "pytc2"
-version = "0.0.2"
+version = "0.0.3"
 description = "A circuit theory module for students at Universidad Tecnológica Nacional Regional Buen"
 authors = ["Mariano Llamedo Soria"]
 license = "MIT"

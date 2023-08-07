@@ -77,6 +77,26 @@ def Ts2S_s(Ts):
     
     return( sp.simplify(sp.expand( 1 / Ts[0,0] * Spar ) ) ) 
 
+def Ts2Tabcd_s(Ts, Z0 = sp.Rational('1') ):
+    '''
+    Convierte una matriz de transferencia de scattering (Ts) simbólica 
+    al modelo ABCD o Tabcd simbólico (Tabcd).
+
+    Parameters
+    ----------
+    Ts : Symbolic Matrix
+        Matriz de parámetros Ts.
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+        Matriz de parámetros de ABCD.
+
+    '''
+    
+    return(sp.simplify(sp.expand(S2Tabcd_s(Ts2S_s(Ts), Z0))))
+
+
 def Tabcd2S_s(Tabcd, Z0 = sp.Rational('1') ):
     '''
     Convierte una matriz de parámetros ABCD (Tabcd) simbólica 
@@ -545,13 +565,29 @@ def Model_conversion( src_model, dst_model  ):
 
 
     '''
+
     
-    aa = sp.solve([ src_model['matrix'] * src_model['indep_var'] - src_model['dep_var']
+    if src_model['model_name'] == dst_model['model_name']:
+        
+        # mismo modelo -> salimos
+        QQ = src_model['matrix']
+        
+        return({'matrix': QQ, 'name': dst_model['model_name'] + '_{' + src_model['model_name'] + '}' })
+
+    if 'proxy_matrix' in src_model:
+        # Uso una representación Tabcd en el caso de parámetros S o Ts
+        src_matrix = src_model['proxy_matrix']
+        
+    else:
+        src_matrix = src_model['matrix']
+    
+    aa = sp.solve([ src_matrix * src_model['indep_var'] - src_model['dep_var']
                 ], 
                 dst_model['dep_var'])
+
     
     # reemplazaremos el determinante por Delta.
-    det_src_matrix = sp.det(src_model['matrix'])
+    det_src_matrix = sp.det(src_matrix)
     
     # i2 se define al revés en este modelo
     if 'neg_i2_current' in src_model:
@@ -562,6 +598,9 @@ def Model_conversion( src_model, dst_model  ):
     jj = 0
     
     QQ = sp.Matrix([[0,0],[0,0]])
+
+
+
 
     for dep_var in dst_model['dep_var']:
 
