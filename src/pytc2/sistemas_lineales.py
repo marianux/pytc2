@@ -876,6 +876,35 @@ def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none
 
     return fig_id, axes_hdl
     
+     
+def group_delay( freq, phase):
+    """
+    Calcula el retardo de grupo para una función de fase.
+    
+    Parameters
+    ----------
+    freq : NP array
+        La grilla de frecuencia a la que se calcula la fase.
+    phase : NP array
+        La fase de la función a calcular el retardo de grupo.
+
+    Returns
+    -------
+    gd : NP array.
+        Devuelve una estimación de la derivada de la fase 
+        respecto a la frecuencia cambiada de signo (retardo 
+        de grupo).
+
+    Example
+    -------
+
+    """
+    
+    groupDelay = -np.diff(phase)/np.diff(freq)
+    
+    return(np.append(groupDelay, groupDelay[-1]))
+    
+    
 def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi):
     """
     
