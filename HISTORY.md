@@ -1,5 +1,9 @@
 # History
 
+## v0.0.4 (13/09/2023)
+
+ * Bug corrections and imrpovements in documentation
+
 ## v0.0.3 (08/06/2023)
 
  * Bug corrections and imrpovements in documentation

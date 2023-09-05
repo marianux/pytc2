@@ -444,7 +444,7 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
     else:
         return sos_str
 
-def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True, digital = False, fs = 2*np.pi):
+def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True, xaxis = 'omega', fs = None):
     """ Analyzes the behavior of a linear system in terms of:
         
           * Magnitude and phase response or Bode plot
@@ -476,11 +476,15 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
         Add annotations to the PZmap plot. When True, each singularity will be 
         acompanied of the value of omega (i.e. the radial distance to the origin)
         and Q (i.e. measure of proximity to the jw axis). Default: True
-    digital : boolean
-        True to analyze the system as *digital*. Default: False
+    xaxis = : string
+        The meaning of the X axis: "omega" is measured in radians/s and is 
+        preferred for analog systems. "freq" is measured in Hz (1/s) and is 
+        valid for digital and analog. "norm" is a normalized version with norm
+        defined by fs.
+        . Default: omega
     fs : real value.
-        The sampling frequency of the digital system. Valid only if digital is 
-        True. Default:  2*np.pi
+        The sampling frequency of the digital system or the norm for xaxis equal
+        to "norm". Valid only if digital is True. Default: None (defined in 1/dlti.dt)
     
     Returns
     -------
@@ -547,7 +551,12 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     axes_hdl = ()
 
     for ii in range(cant_sys):
-        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description = sys_name[ii], digital = digital, fs = fs)
+        if all_sys[ii].dt is None:
+            this_digital = False
+        else:
+            this_digital = True
+
+        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description = sys_name[ii], digital = this_digital, xaxis = xaxis, fs = fs)
 
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_Bode.' + img_ext, format=img_ext)
@@ -611,7 +620,13 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
         fig_id = 'none'
     
     for ii in range(cant_sys):
-        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description = sys_name[ii], digital = digital, fs = fs)
+        
+        if all_sys[ii].dt is None:
+            this_digital = False
+        else:
+            this_digital = True
+        
+        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description = sys_name[ii], digital = this_digital, xaxis = xaxis, fs = fs)
     
     # axes_hdl.legend(sys_name)
 
@@ -905,7 +920,7 @@ def group_delay( freq, phase):
     return(np.append(groupDelay, groupDelay[-1]))
     
     
-def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi):
+def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000, digital = False, xaxis = 'omega', fs = 2*np.pi):
     """
     
     Parameters
@@ -923,8 +938,6 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
     -------
 
     """
-
-    w_nyq = 2*np.pi*fs/2
     
     if isinstance(myFilter, np.ndarray):
         # SOS section
@@ -941,7 +954,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
             this_zzpp = this_zzpp[this_zzpp > 0]
             
             if digital:
-                w, _, phase[:,ii] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
+                w, _, phase[:,ii] = thisFilter.bode(np.linspace(0, np.pi, npoints))
             else:
                 w, _, phase[:,ii] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
             
@@ -954,7 +967,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
         this_zzpp = this_zzpp[this_zzpp > 0]
         
         if digital:
-            w, _, phase[:,cant_sos] = thisFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
+            w, _, phase[:,cant_sos] = thisFilter.bode(np.linspace(0, np.pi, npoints))
         else:
             w, _, phase[:,cant_sos] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
         
@@ -985,7 +998,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
         this_zzpp = this_zzpp[this_zzpp > 0]
         
         if digital:
-            w, _, phase = myFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, w_nyq, npoints))
+            w, _, phase = myFilter.bode(np.linspace(0, np.pi, npoints))
         else:
             w, _, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
 
@@ -1010,6 +1023,23 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
     
     groupDelay = -np.diff(phaseRad, axis = 0) / np.diff(w).reshape((npoints-1,1))
 
+    # ww ya está en rad/s
+    if xaxis == "freq":
+        # to Hz
+        ww = w / 2 / np.pi
+    elif xaxis == "norm":
+        if fs is None:
+            # normalizar cada respuesta a su propio nyqyuist
+            wnorm = 2*np.pi/myFilter.dt/2
+        else:
+            # normalizado a fs
+            wnorm = 2*np.pi*fs
+            
+        ww = w / wnorm
+    else:
+        ww = w
+
+
     if fig_id == 'none':
         fig_hdl = plt.figure()
         fig_id = fig_hdl.number
@@ -1021,9 +1051,9 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
             fig_id = fig_hdl.number
 
     if digital:
-        aux_hdl = plt.plot(w[1:] / w_nyq , groupDelay, label=filter_description)    # Bode phase plot
+        aux_hdl = plt.plot(ww[1:], groupDelay, label=filter_description)    # Bode phase plot
     else:
-        aux_hdl = plt.semilogx(w[1:], groupDelay, label=filter_description)    # Bode phase plot
+        aux_hdl = plt.semilogx(ww[1:], groupDelay, label=filter_description)    # Bode phase plot
 
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -1033,13 +1063,26 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
     plt.grid(True)
     
     
-    if digital:
-
+    
+    if xaxis == "freq":
+        # to Hz
+        plt.xlabel('Frequency [Hz]')
+    elif xaxis == "norm":
+        # normalizado a fs
         plt.gca().set_xlim([0, 1])
+
+        if fs is None:
+            # normalizar cada respuesta a su propio nyqyuist
+            this_fs = 1/myFilter.dt
+        else:
+            # normalizado a fs
+            this_fs = fs
         
-        plt.xlabel('Frecuencia normalizada a Nyq [#]')
+        plt.xlabel('Frecuencia normalizada a fs={:3.3f} [#]'.format(this_fs))
     else:
         plt.xlabel('Angular frequency [rad/sec]')
+    
+
     
     plt.ylabel('Group Delay [sec]')
     plt.title('Group delay')
@@ -1052,7 +1095,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000,
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi ):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, npoints = 1000, digital = False, xaxis = 'omega', fs = 2*np.pi ):
     """
     
     Parameters
@@ -1070,8 +1113,6 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     -------
 
     """
-
-    ww_nyq = 2*np.pi*fs/2
     
     if isinstance(myFilter, np.ndarray):
         # SOS section
@@ -1084,7 +1125,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
         # calculate the omega axis according to singularities of the whole filter
         if digital:
-            ww = np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, ww_nyq, npoints)
+            ww = np.linspace(0, np.pi, npoints)
         else:
             ww = np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints)
         
@@ -1103,6 +1144,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
             _, mag[:, ii], phase[:,ii] = thisFilter.bode(ww)
                 
+            
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
@@ -1120,7 +1162,8 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         this_zzpp = this_zzpp[this_zzpp > 0]
         
         if digital:
-            ww, mag, phase = myFilter.bode(np.linspace(np.floor(np.log10(np.min(this_zzpp)))-1, ww_nyq, npoints))
+            ww, mag, phase = myFilter.bode(n=np.linspace(0, np.pi, npoints))
+                
         else:
             ww, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp)))-1, np.ceil(np.log10(np.max(this_zzpp))) + 1 ,npoints))
         
@@ -1133,6 +1176,19 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         # if isinstance(filter_description, str):
         #     filter_description = [filter_description]
         
+
+    # ww ya está en rad/s
+    if xaxis == "freq":
+        # to Hz
+        ww = ww / 2 / np.pi
+    elif xaxis == "norm":
+        if fs is None:
+            # normalizar cada respuesta a su propio nyqyuist
+            wnorm = 2*np.pi/myFilter.dt/2
+        else:
+            # normalizado a fs
+            wnorm = 2*np.pi*fs
+        ww = ww / wnorm
 
     if fig_id == 'none':
         fig_hdl, axes_hdl = plt.subplots(2, 1, sharex='col')
@@ -1152,9 +1208,9 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
     if digital:
         if filter_description is None:
-            aux_hdl = plt.plot(ww / ww_nyq, mag)    # Bode magnitude plot
+            aux_hdl = plt.plot(ww, mag)    # Bode magnitude plot
         else:
-            aux_hdl = plt.plot(ww / ww_nyq, mag, label=filter_description)    # Bode magnitude plot
+            aux_hdl = plt.plot(ww, mag, label=filter_description)    # Bode magnitude plot
     else:
         if filter_description is None:
             aux_hdl = plt.semilogx(ww, mag)    # Bode magnitude plot
@@ -1180,9 +1236,9 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     
     if digital:
         if filter_description is None:
-            aux_hdl = plt.plot(ww / ww_nyq, np.pi/180*phase)    # Bode phase plot
+            aux_hdl = plt.plot(ww, np.pi/180*phase)    # Bode phase plot
         else:
-            aux_hdl = plt.plot(ww / ww_nyq, np.pi/180*phase, label=filter_description)    # Bode phase plot
+            aux_hdl = plt.plot(ww, np.pi/180*phase, label=filter_description)    # Bode phase plot
             
     else:
         if filter_description is None:
@@ -1233,13 +1289,26 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     
     plt.grid(True)
 
-    if digital:
-
+    if xaxis == "freq":
+        # to Hz
+        plt.xlabel('Frequency [Hz]')
+        
+    elif xaxis == "norm":
+        # normalizado a fs
         plt.gca().set_xlim([0, 1])
         
-        plt.xlabel('Frecuencia normalizada a Nyq [#]')
+        if fs is None:
+            # normalizar cada respuesta a su propio nyqyuist
+            this_fs = 1/myFilter.dt
+        else:
+            # normalizado a fs
+            this_fs = fs
+        
+        plt.xlabel('Frecuencia normalizada a fs={:3.3f} [#]'.format(this_fs))
     else:
         plt.xlabel('Angular frequency [rad/sec]')
+        
+        
     plt.ylabel('Phase [rad]')
     plt.title('Phase response')
     
