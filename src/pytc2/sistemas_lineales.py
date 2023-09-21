@@ -488,7 +488,9 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     
     Returns
     -------
-    None.
+    
+    return_values : list
+        List with three pair of fig and axis handles of each graphic displayed.
 
     Example
     -------
@@ -543,7 +545,9 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     if not isinstance(sys_name, list):
         sys_name = [sys_name]
         
-    ## BODE plots
+    #%% BODE plots
+    return_values = []
+        
     if same_figs:
         fig_id = 1
     else:
@@ -558,9 +562,12 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
 
         fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description = sys_name[ii], digital = this_digital, xaxis = xaxis, fs = fs)
 
+
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_Bode.' + img_ext, format=img_ext)
 
+    return_values += [ [fig_id, axes_hdl] ]
+    
     # fig_id = 6
     # axes_hdl = ()
 
@@ -573,10 +580,11 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     #     plt.savefig('_'.join(sys_name) + '_Bode-3db.' + img_ext, format=img_ext)
 
 
-    ## PZ Maps
+    #%% PZ Maps
+    
     if same_figs:
-        analog_fig_id = 3
-        digital_fig_id = 4
+        analog_fig_id = 2
+        digital_fig_id = 3
     else:
         analog_fig_id = 'none'
         digital_fig_id = 'none'
@@ -596,9 +604,15 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
                 
             if all_sys[ii].dt is None:
                 analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = annotations)
+                
             else:
                 digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = digital_fig_id, axes_hdl=digital_axes_hdl, annotations = annotations)
-            
+
+
+    return_values += [ [analog_fig_id, analog_axes_hdl] ]
+        
+    return_values += [ [digital_fig_id, digital_axes_hdl] ]
+
 
     if isinstance(all_sys[ii], np.ndarray) or ( isinstance(all_sys[ii], TransferFunction) and all_sys[ii].dt is None) :
         analog_axes_hdl.legend()
@@ -610,12 +624,14 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
         if img_ext != 'none':
             plt.figure(digital_fig_id)
             plt.savefig('_'.join(sys_name) + '_Digital_PZmap.' + img_ext, format=img_ext)
+
     
 #    plt.show()
     
-    ## Group delay plots
+    #%% Group delay plots
+    
     if same_figs:
-        fig_id = 5
+        fig_id = 4
     else:
         fig_id = 'none'
     
@@ -628,12 +644,17 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
         
         fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description = sys_name[ii], digital = this_digital, xaxis = xaxis, fs = fs)
     
+    return_values += [ [fig_id, axes_hdl] ]
+    
     # axes_hdl.legend(sys_name)
 
     # axes_hdl.set_ylim(bottom=0)
 
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_GroupDelay.'  + img_ext, format=img_ext)
+
+
+    return(return_values)
 
 def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none', axes_hdl='none', digital = False, fs = 2*np.pi):
     """
@@ -1400,10 +1421,10 @@ def plot_plantilla(filter_type = 'lowpass', fpass = 0.25, ripple = 0.5, fstop = 
     
     plt.axis([xmin, xmax, np.max([ymin, -100]), np.max([ymax, 5])])
     
-    axes_hdl = plt.gca()
-    axes_hdl.legend()
+    # axes_hdl = plt.gca()
+    # axes_hdl.legend()
     
-    plt.show()
+    # plt.show()
     
 def sos2tf_analog(mySOS):
     """
