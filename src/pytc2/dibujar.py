@@ -668,6 +668,9 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
 
     '''
     
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+    
     d += Dot(open=True)
     
     if voltage_lbl is None:
@@ -713,6 +716,8 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
         Matriz de parámetros de transferencia scattering.
 
     '''
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if current_lbl is None:
         d += Line().right().length(d.unit*.5)
@@ -761,6 +766,9 @@ def dibujar_espaciador( d ):
 
     '''
 
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+
     d += Line().right().length(d.unit*.5)
 
     d.push()
@@ -790,6 +798,9 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
         Matriz de parámetros de transferencia scattering.
 
     '''
+
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
     half_width = d.unit*k_gap_width/2
     
@@ -847,6 +858,8 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
         Matriz de parámetros de transferencia scattering.
 
     '''
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
     half_width = d.unit*k_gap_width/2
     
@@ -906,6 +919,9 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(sym_label, sp.Basic ):
         sym_label = to_latex(sym_label)
@@ -942,6 +958,8 @@ def dibujar_espacio_derivacion(d):
         Matriz de parámetros de transferencia scattering.
 
     '''
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
     d += Line().right().length(d.unit*.25)
     d.push()
@@ -967,6 +985,9 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+    
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(sym_label, sp.Basic ):
         sym_label = to_latex(sym_label)
@@ -1002,6 +1023,9 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+    
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
@@ -1044,6 +1068,9 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
@@ -1080,6 +1107,9 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
@@ -1122,6 +1152,9 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(sym_R_label, sp.Basic ):
         sym_R_label = to_latex(sym_R_label)
@@ -1158,6 +1191,9 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(sym_cap_label, sp.Basic ):
         sym_cap_label = to_latex(sym_cap_label)
@@ -1174,7 +1210,7 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     d += Inductor().right().label(sym_ind_label, fontsize=16)
     d.pop()
     d += Line().up().length(d.unit*.5)
-    d += Resistor().right().label(sym_cap_label, fontsize=16)
+    d += Capacitor().right().label(sym_cap_label, fontsize=16)
     d += Line().down().length(d.unit*.5)
     d += Dot()
     d.push()
@@ -1248,6 +1284,9 @@ def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
         Matriz de parámetros de transferencia scattering.
 
     '''
+
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     if isinstance(inductor_lbl, sp.Basic ):
         inductor_lbl = to_latex(inductor_lbl)

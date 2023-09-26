@@ -230,7 +230,7 @@ def foster( imm ):
             
         elif sp.degree(den) == 1 and sp.degree(num) == 0:
             
-            k0 = den.as_poly(s).LC() / num
+            k0 = num / den.as_poly(s).LC()
     
         elif sp.degree(num) == 1 and sp.degree(den) == 2:
             # tanque
