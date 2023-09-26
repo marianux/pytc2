@@ -1210,7 +1210,7 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     d += Inductor().right().label(sym_ind_label, fontsize=16)
     d.pop()
     d += Line().up().length(d.unit*.5)
-    d += Resistor().right().label(sym_cap_label, fontsize=16)
+    d += Capacitor().right().label(sym_cap_label, fontsize=16)
     d += Line().down().length(d.unit*.5)
     d += Dot()
     d.push()
