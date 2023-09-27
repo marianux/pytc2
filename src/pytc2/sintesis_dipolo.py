@@ -220,7 +220,11 @@ def foster( imm ):
     ki = []
     ii = 0
     
+    foster_form = sp.Rational(0)
+    
     for this_term in all_terms:
+
+        foster_form += this_term
         
         num, den = this_term.as_numer_denom()
         
@@ -262,6 +266,6 @@ def foster( imm ):
     if ii == 0:
         ki = None
 
-    return([k0, koo, ki])
+    return([k0, koo, ki, foster_form])
 
 
