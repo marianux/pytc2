@@ -562,7 +562,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, y_exc = None):
         print('Nada para dibujar')
 
 
-def dibujar_foster_serie(k0 = None, koo = None, ki = None, z_exc = None):
+def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = None):
     '''
     Description
     -----------
@@ -599,7 +599,14 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, z_exc = None):
 
     '''    
 
-    if not(k0 is None and koo is None and ki is None):
+    if not(k0 is None and koo is None and ki is None and kk is None):
+        
+        
+        if kk is None:
+            bDisipativo = False
+        else:
+            bDisipativo = True
+        
         # si hay algo para dibujar ...
         
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -615,6 +622,10 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, z_exc = None):
                                                       hacia_salida = True,
                                                       k_gap_width = 0.5)
 
+        if not(kk is None):
+            
+            d = dibujar_elemento_serie(d, Resistor, kk)
+            
         if not(k0 is None):
         
             d = dibujar_elemento_serie(d, Capacitor, 1/k0)
@@ -627,7 +638,10 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, z_exc = None):
 
             for un_tanque in ki:
                 
-                d = dibujar_tanque_serie(d, sym_ind_label = 1/un_tanque[0], sym_cap_label = un_tanque[1] )
+                if bDisipativo:
+                    d = dibujar_tanque_serie(d, sym_ind_label = 1/un_tanque[0], sym_cap_label = un_tanque[1] )
+                else:    
+                    d = dibujar_tanque_serie(d, sym_ind_label = 1/un_tanque[0], sym_cap_label = un_tanque[1] )
 
                 dibujar_espacio_derivacion(d)
 
