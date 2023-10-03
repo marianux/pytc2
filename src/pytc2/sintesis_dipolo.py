@@ -180,6 +180,62 @@ def cauer_LC( imm, remover_en_inf = True ):
 
 
 
+def foster_zRC2yRC( k0 = None, koo = None, ki_wi = None, kk = None, ZRC_foster = None ):
+    '''
+    Parameters
+    ----------
+    immittance : symbolic rational function
+        La inmitancia a sintetizar.
+
+    Returns
+    -------
+    Convierte una expansión disipativa de foster ZRC a YRC, cuando se 
+    expande YRC/s para que quede de la forma ZRC.
+        
+        Imm = k0 / s + koo * s +  1 / ( k0_i / s + koo_i * s ) 
+
+
+    imm_list = [ k0, koo, [k00, koo0], [k01, koo1], ..., [k0N, kooN]  ]
+    
+    Si algún elemento no está presente, su valor será de "None".
+
+    Ejemplo
+    -------
+    
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Foster
+    k0, koo, ki = tc2.foster(Imm)
+
+
+    '''    
+    
+    if koo is None:
+    # koo tiene que ser None para ZRC ya que en inf habrá
+    # o 0 o cte.
+        
+        if not(kk is None):
+            koo = kk
+            kk = None
+            
+        if not(k0 is None):
+            kk = k0
+            k0 = None
+            
+        if not(ki_wi is None):
+            
+            ki = []
+            for this_ki_wi in ki_wi:
+                
+                ki += [[this_ki_wi[1], this_ki_wi[0]]]
+            
+            
+        YRC_foster = sp.expand(ZRC_foster * s)
+
+    return([k0, koo, ki, kk, YRC_foster])
+
+
 def foster( imm ):
     '''
     Parameters
@@ -210,11 +266,18 @@ def foster( imm ):
 
 
     '''    
-        
+
+    num, den = imm.as_numer_denom()
+    
+    # grados de P y Q
+    deg_P = sp.degree(num)
+    deg_Q = sp.degree(den)
+    
     imm_foster = sp.polys.partfrac.apart(imm)
     
     all_terms = imm_foster.as_ordered_terms()
     
+    kk = None
     k0 = None
     koo = None
     ki = []
@@ -231,10 +294,23 @@ def foster( imm ):
         if sp.degree(num) == 1 and sp.degree(den) == 0:
         
             koo = num.as_poly(s).LC() / den
-            
+    
         elif sp.degree(den) == 1 and sp.degree(num) == 0:
             
-            k0 = num / den.as_poly(s).LC()
+            if den.as_poly(s).all_coeffs()[1] == 0:
+                # red no disipativa
+                k0 = num / den.as_poly(s).LC()
+            else:
+                # red disipativa - tanque RC-RL
+                
+                # koo_i, k0_i
+                ki += [[(den / num).expand().as_poly(s).LC(), 
+                        (den / num).expand().as_poly(s).EC() ]]
+                ii += 1
+    
+        elif sp.degree(den) == 0 and sp.degree(num) == 0:
+            # constante en redes disipativas
+            kk = num / den.as_poly(s).LC()
     
         elif sp.degree(num) == 1 and sp.degree(den) == 2:
             # tanque
@@ -266,6 +342,6 @@ def foster( imm ):
     if ii == 0:
         ki = None
 
-    return([k0, koo, ki, foster_form])
+    return([k0, koo, ki, kk, foster_form])
 
 
