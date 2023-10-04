@@ -225,10 +225,11 @@ def foster_zRC2yRC( k0 = None, koo = None, ki_wi = None, kk = None, ZRC_foster =
             
         if not(ki_wi is None):
             
-            ki = []
-            for this_ki_wi in ki_wi:
+            ki = ki_wi
+            # ki = []
+            # for this_ki_wi in ki_wi:
                 
-                ki += [[this_ki_wi[1], this_ki_wi[0]]]
+            #     ki += [[this_ki_wi[1], this_ki_wi[0]]]
             
             
         YRC_foster = sp.expand(ZRC_foster * s)
@@ -303,9 +304,9 @@ def foster( imm ):
             else:
                 # red disipativa - tanque RC-RL
                 
-                # koo_i, k0_i
-                ki += [[(den / num).expand().as_poly(s).LC(), 
-                        (den / num).expand().as_poly(s).EC() ]]
+                # kk_i, koo_i
+                ki += [[(den / num).expand().as_poly(s).EC(), 
+                        (den / num).expand().as_poly(s).LC() ]]
                 ii += 1
     
         elif sp.degree(den) == 0 and sp.degree(num) == 0:
