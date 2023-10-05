@@ -470,7 +470,7 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
 
 
 
-def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, y_exc = None):
+def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc = None):
     '''
     Description
     -----------
@@ -507,7 +507,13 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, y_exc = None):
 
     '''    
 
-    if not(k0 is None and koo is None and ki is None):
+    if not(k0 is None and koo is None and ki is None and kk is None):
+        
+        if kk is None:
+            bDisipativo = False
+        else:
+            bDisipativo = True
+        
         # si hay algo para dibujar ...
         
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -525,8 +531,19 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, y_exc = None):
                                                       hacia_salida = True,
                                                       k_gap_width = 0.5)
 
+
+        if not(kk is None):
+            
+            d = dibujar_elemento_derivacion(d, Resistor, 1/kk)
+
+            bComponenteDibujado = True
+
         if not(k0 is None):
-        
+
+            if bComponenteDibujado:
+                
+                dibujar_espacio_derivacion(d)
+
             d = dibujar_elemento_derivacion(d, Inductor, 1/k0)
             
             bComponenteDibujado = True
@@ -550,9 +567,19 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, y_exc = None):
                     
                     dibujar_espacio_derivacion(d)
                 
-                d = dibujar_tanque_derivacion(d, inductor_lbl = un_tanque[1], capacitor_lbl = 1/un_tanque[0])
-
-                bComponenteDibujado = True
+                if bDisipativo:
+                    
+                    if k0 is None:
+                        d = dibujar_tanque_RC_derivacion(d, capacitor_lbl = 1/un_tanque[0], sym_R_label = un_tanque[1] )
+                        bComponenteDibujado = True
+                    else:
+                        d = dibujar_tanque_RL_derivacion(d, sym_ind_label = un_tanque[1], sym_R_label = un_tanque[0] )
+                        bComponenteDibujado = True
+                        
+                else:    
+                
+                    d = dibujar_tanque_derivacion(d, inductor_lbl = un_tanque[1], capacitor_lbl = 1/un_tanque[0])
+                    bComponenteDibujado = True
 
         
         display(d)
@@ -639,7 +666,12 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
             for un_tanque in ki:
                 
                 if bDisipativo:
-                    d = dibujar_tanque_serie(d, sym_ind_label = 1/un_tanque[0], sym_cap_label = un_tanque[1] )
+                    
+                    if k0 is None:
+                        d = dibujar_tanque_RL_serie(d, sym_ind_label = 1/un_tanque[0], sym_R_label = 1/un_tanque[1] )
+                    else:
+                        d = dibujar_tanque_RC_serie(d, sym_R_label = 1/un_tanque[0], capacitor_lbl = un_tanque[1] )
+                        
                 else:    
                     d = dibujar_tanque_serie(d, sym_ind_label = 1/un_tanque[0], sym_cap_label = un_tanque[1] )
 
@@ -975,10 +1007,10 @@ def dibujar_espacio_derivacion(d):
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
-    d += Line().right().length(d.unit*.25)
+    d += Line().right().length(d.unit*.5)
     d.push()
     d += Gap().down().label( '' )
-    d += Line().left().length(d.unit*.25)
+    d += Line().left().length(d.unit*.5)
     d.pop()
 
     return(d)
