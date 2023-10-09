@@ -15,6 +15,8 @@ jupyter = "^1.0.0"
 matplotlib = "^3.7.0"
 numpy = "^1.24.2"
 scipy = "^1.10.1"
+# tuve problemas con jupyter-notebook
+traitlets = "5.9.0"
 
 [tool.poetry.dev-dependencies]
 
@@ -29,6 +31,8 @@ sphinx-rtd-theme = "^1.2.0"
 sphinxcontrib-napoleon = "^0.7"
 pandas = "^2.0.0"
 spyder = "^5.4.3"
+# tuve problemas con jupyter-notebook
+traitlets = "5.9.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
