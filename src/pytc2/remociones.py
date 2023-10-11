@@ -285,6 +285,8 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
     else:
         yy = imm
 
+    sigma = sp.Abs(sigma)
+
     if sigma_zero is None:
         # remoción total
         
@@ -301,10 +303,13 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
             else:
                 kk = sp.limit(yy*(s + sigma), s, -sigma)
         
-        if kk.is_negative:
-            assert('Residuo negativo. Verificar Z/Y RC/RL')
+        assert not kk.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
+        
         
     else:
+        
+        sigma_zero = sp.Abs(sigma_zero)
+        
         # remoción parcial
         if isImpedance:
             if isRC:
@@ -318,8 +323,7 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
             else:
                 kk = sp.simplify(sp.expand(yy*(s + sigma))).subs(s, -sigma_zero)
 
-        if kk.is_negative:
-            assert('Residuo negativo. Verificar Z/Y RC/RL')
+        assert not kk.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
     
     # extraigo kk
     if isImpedance:
@@ -585,7 +589,7 @@ def remover_valor( imit, sigma_zero):
 
     return( [imit_r, k_prima] )
 
-def remover_valor_en_infinito( imit ):
+def remover_valor_en_infinito( imit, sigma_zero = None ):
     '''
     Se removerá un valor constante en infinito de la imitancia ($I$) de forma 
     completa. 
@@ -612,15 +616,23 @@ def remover_valor_en_infinito( imit ):
         Valor del residuo en infinito
     '''
 
-    # remoción total
-    k_inf = sp.limit(imit, s, sp.oo)
+    if sigma_zero is None:
+        # remoción total
+        k_inf = sp.limit(imit, s, sp.oo)
+        
+    else:
+        # remoción parcial
+        k_inf = sp.simplify(sp.expand(imit)).subs(s, - sp.Abs(sigma_zero) )
+
+
+    assert not k_inf.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
 
     # extraigo k_inf
     imit_r = sp.factor(sp.simplify(sp.expand(imit - k_inf)))
 
     return( [imit_r, k_inf] )
 
-def remover_valor_en_dc( imit ):
+def remover_valor_en_dc( imit, sigma_zero = None):
     '''
     Se removerá un valor constante en continua (s=0) de la imitancia ($I$) de forma 
     completa. 
@@ -647,9 +659,17 @@ def remover_valor_en_dc( imit ):
         Valor del residuo en infinito
     '''
 
-    # remoción total
-    k0 = sp.limit(imit, s, 0)
+
+    if sigma_zero is None:
+        # remoción total
+        k0 = sp.limit(imit, s, 0)
         
+    else:
+        # remoción parcial
+        k0 = sp.simplify(sp.expand(imit)).subs(s, - sp.Abs(sigma_zero) )
+
+    assert not k0.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
+    
     # extraigo k0
     imit_r = sp.factor(sp.simplify(sp.expand(imit - k0)))
 
