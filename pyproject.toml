@@ -33,6 +33,7 @@ pandas = "^2.0.0"
 spyder = "^5.4.3"
 # tuve problemas con jupyter-notebook
 traitlets = "5.9.0"
+jupyterlab-language-pack-es-es = "^4.0.post3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
