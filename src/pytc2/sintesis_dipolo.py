@@ -19,8 +19,6 @@ from .remociones import remover_polo_infinito, remover_valor_en_infinito, remove
 
 from .general import s
 
-
-
 def cauer_RC( imm, remover_en_inf=True ):
     '''
     Description
