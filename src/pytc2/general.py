@@ -139,6 +139,31 @@ def a_equal_b_latex_s( a, b):
     
     return('$' + a_str + '=' + sp.latex(b) + '$')
 
+def expr_simb_expr( a, b, symbol = '='):
+    '''
+    Convierte un símbolo en un string formateado para visualizarse en LaTex 
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+
+    if isinstance(a, sp.Basic ):
+        a_str = sp.latex(a)
+    elif isinstance(a, str):
+        a_str = a
+    else:
+        a_str = '??'
+    
+    return('$' + a_str + symbol + sp.latex(b) + '$')
+
 def to_latex( unsimbolo ):
     '''
     Convierte un símbolo en un string formateado para visualizarse en LaTex 

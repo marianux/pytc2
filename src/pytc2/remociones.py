@@ -249,48 +249,6 @@ def modsq2mod( aa ):
 #%% Bloque de funciones para la síntesis gráfica de imitancias #
 ################################################################
 
-def is_hurwitz(poly_hur):
-    '''
-    Description
-    -----------
-    Check if poly_hur is a Hurwitz polynomial.
-
-    Parameters
-    ----------
-    poly_hur : symbolic expression
-        El polinomio a checkear.
-
-    Returns
-    -------
-    A boolean with TRUE value if poly_hur is Hurwitz.
-
-    Ejemplo
-    -------
-    
-
-    '''   
-    
-    poly_coeffs = poly_hur.as_poly(s).all_coeffs()
-    
-    n = len(poly_coeffs) - 1  # Grado del polinomio
-    
-    matriz_coeffs = sp.zeros(n, n)
-
-    for i in range(n):
-        matriz_coeffs[0, i] = poly_coeffs[i + 1]
-    
-    for i in range(1, n):
-        for j in range(n):
-            matriz_coeffs[i, j] = matriz_coeffs[i - 1, (j + 1) % n]
-
-    valores_propios = sp.Matrix(matriz_coeffs).eigenvals()
-    partes_reales = [sp.re(valor) for valor in valores_propios]
-
-    if all(re < 0 for re in partes_reales):
-        return True
-    else:
-        return False
-
 
 def isFRP( Imm ):
     '''
