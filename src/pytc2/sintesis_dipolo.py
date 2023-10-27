@@ -10,16 +10,14 @@ import numpy as np
 
 import sympy as sp
 
-from .remociones import remover_polo_infinito, remover_valor_en_infinito, remover_polo_dc, remover_valor_en_dc, trim_func_s
+from .remociones import isFRP, remover_polo_infinito, remover_valor_en_infinito, remover_polo_dc, remover_valor_en_dc, trim_func_s
 
 
 ##########################################
 #%% Variables para el análisis simbólico #
 ##########################################
 
-from .general import s
-
-
+from .general import s, expr_simb_expr, print_console_alert, print_latex
 
 def isFRP( ff ):
     '''
@@ -102,42 +100,63 @@ def cauer_RC( imm, remover_en_inf=True ):
             bRemoverPolo = True
 
     
+    if isFRP(rem):
         
-    while not(rem.is_zero) and not(koi.is_zero):
+        bFRP = True
         
-        ko += [koi]
-        rem = 1/rem
-
-        if remover_en_inf:
+        while bFRP and not(rem.is_zero) and not(koi.is_zero):
             
-            if bRemoverPolo:
-                rem, koi = remover_polo_infinito(rem)
-                bRemoverPolo = False
-            else:
-                rem, koi = remover_valor_en_infinito(rem)
-                bRemoverPolo = True
-        else:
             
-            if bRemoverPolo:
-                rem, koi = remover_polo_dc(rem)
-                bRemoverPolo = False
-            else:
-                rem, koi = remover_valor_en_dc(rem)
-                bRemoverPolo = True
-
-
-    if koi.is_zero:
-        # deshago para entender al resto de la misma 
-        # naturaleza que el último elemento que retiró.
-        rem = 1/rem
-    else:
-        ko += [koi]
-
-    imm_as_cauer = koi
+            ko += [koi]
+            rem = 1/rem
     
-    for ii in np.flipud(np.arange(len(ko)-1)):
+            if remover_en_inf:
+                
+                if bRemoverPolo:
+                    rem_aux, koi = remover_polo_infinito(rem)
+                    bRemoverPolo = False
+                else:
+                    rem_aux, koi = remover_valor_en_infinito(rem)
+                    bRemoverPolo = True
+            else:
+                
+                if bRemoverPolo:
+                    rem_aux, koi = remover_polo_dc(rem)
+                    bRemoverPolo = False
+                else:
+                    rem_aux, koi = remover_valor_en_dc(rem)
+                    bRemoverPolo = True
 
-        imm_as_cauer = ko[ii] + 1/imm_as_cauer
+            bFRP = isFRP(rem_aux)
+
+            if bFRP:
+                rem = rem_aux
+   
+            
+        if koi.is_zero:
+            # deshago para entender al resto de la misma 
+            # naturaleza que el último elemento que retiró.
+            rem = 1/rem
+        else:
+            if bFRP:
+                ko += [koi]
+    
+        imm_as_cauer = ko[-1]
+        
+        for ii in np.flipud(np.arange(len(ko)-1)):
+    
+            imm_as_cauer = ko[ii] + 1/imm_as_cauer
+
+    else:
+        # no se pudo hacer ninguna remoción
+        imm_as_cauer = imm
+        ko = [0]
+        rem = 0
+            
+    if not (sp.simplify(sp.expand(imm_as_cauer - imm))).is_zero:
+        # error
+        print_console_alert('Fallo la expansión')
+        print_latex(expr_simb_expr(imm, imm_as_cauer, ' \\neq '))
         
     return(ko, imm_as_cauer, rem)
 
@@ -177,37 +196,60 @@ def cauer_LC( imm, remover_en_inf = True ):
     rem = trim_func_s(sp.simplify(sp.expand(rem)))
 
     if remover_en_inf:
-        rem, koi = remover_polo_infinito(rem)
+        rem_aux, koi = remover_polo_infinito(rem)
     else:
-        rem, koi = remover_polo_dc(rem)
+        rem_aux, koi = remover_polo_dc(rem)
+
+    bFRP = isFRP(rem_aux)
+
+    if bFRP:
         
+        rem = rem_aux
     
-    while not(rem.is_zero) and not(koi.is_zero):
-        
-        ko += [koi]
-        rem = 1/rem
+        while bFRP and not(rem.is_zero) and not(koi.is_zero):
+            
+            ko += [koi]
+            rem = 1/rem
+    
+            # a veces por problemas numéricos no hay cancelaciones de los términos 
+            # de mayor o menor orden y quedan coeficientes muy bajos.
+            rem = trim_func_s(sp.simplify(sp.expand(rem)))
+    
+            if remover_en_inf:
+                rem_aux, koi = remover_polo_infinito(rem)
+            else:
+                rem_aux, koi = remover_polo_dc(rem)
+    
+            bFRP = isFRP(rem_aux)
 
-        # a veces por problemas numéricos no hay cancelaciones de los términos 
-        # de mayor o menor orden y quedan coeficientes muy bajos.
-        rem = trim_func_s(sp.simplify(sp.expand(rem)))
+            if bFRP:
+                rem = rem_aux
 
-        if remover_en_inf:
-            rem, koi = remover_polo_infinito(rem)
+        if koi.is_zero:
+            # deshago para entender al resto de la misma 
+            # naturaleza que el último elemento que retiró.
+            rem = 1/rem
         else:
-            rem, koi = remover_polo_dc(rem)
+            if bFRP:
+                # si no salimos por rem NO FRP
+               ko += [koi]
+    
+        imm_as_cauer = ko[-1] + rem
+    
+        for ii in np.flipud(np.arange(len(ko)-1)):
+            
+            imm_as_cauer = ko[ii] + 1/imm_as_cauer
 
-    if koi.is_zero:
-        # deshago para entender al resto de la misma 
-        # naturaleza que el último elemento que retiró.
-        rem = 1/rem
     else:
-        ko += [koi]
-
-    imm_as_cauer = ko[-1] + rem
-
-    for ii in np.flipud(np.arange(len(ko)-1)):
+        # no se pudo hacer ninguna remoción
+        imm_as_cauer = imm
+        ko = [0]
+        rem = 0
         
-        imm_as_cauer = ko[ii] + 1/imm_as_cauer
+    if not (sp.simplify(sp.expand(imm_as_cauer - imm))).is_zero:
+        # error
+        print_console_alert('Fallo la expansión')
+        print_latex(expr_simb_expr(imm, imm_as_cauer, ' \\neq '))
         
     return(ko, imm_as_cauer, rem)
 
@@ -375,6 +417,11 @@ def foster( imm ):
     
     if ii == 0:
         ki = None
+
+    if not (sp.simplify(sp.expand(foster_form - imm))).is_zero:
+        # error
+        print_console_alert('Fallo la expansión')
+        print_latex(expr_simb_expr(imm, foster_form, ' \\neq '))
 
     return([k0, koo, ki, kk, foster_form])
 

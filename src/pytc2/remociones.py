@@ -16,7 +16,16 @@ import sympy as sp
 
 from .general import s
 
+# versión simbólica de sigma
+sig = sp.symbols('sig', real=True)
 
+# versión simbólica de sigma positivo
+sig_pos = sp.symbols('sig_pos', real=True, positive = True)
+
+
+##########################################
+#%% Funciones generales para la remoción #
+##########################################
 
 
 def tanque_z( doska, omegasq ):
@@ -236,9 +245,63 @@ def modsq2mod( aa ):
     return np.flip(np.real(np.polynomial.polynomial.polyfromroots(bb)))
 
 
-'''
-    Bloque de funciones para la síntesis gráfica de imitancias
-'''
+################################################################
+#%% Bloque de funciones para la síntesis gráfica de imitancias #
+################################################################
+
+
+def isFRP( Imm ):
+    '''
+    Description
+    -----------
+    Check if Imm is a function is positive real function (FRP).
+
+    Parameters
+    ----------
+    Imm : symbolic rational function
+        La inmitancia a checkear.
+
+    Returns
+    -------
+    A boolean with TRUE value if ff is FRP.
+
+    Ejemplo
+    -------
+    
+    # Sea la siguiente función de excitación
+    Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)
+    
+    # Implementaremos Imm mediante Cauer 1 o remociones continuas en infinito
+    if isFRP( ff ):
+        print('Es FRP')
+    else:
+        print('No es FRP, revisar!')
+
+    '''   
+
+    # F(s) should give real values for all real values of s.
+    
+    if  (sp.simplify(sp.expand(sp.im(Imm.subs(s,sig))))).is_zero and  \
+        (sp.simplify(sp.expand(sp.re(Imm.subs(s,sig_pos))))).is_nonnegative:
+
+        return(True)
+    
+    else:
+        return(False)
+   
+        # num, den = Imm.as_numer_denom()
+        
+        # if is_hurwitz(num) and is_hurwitz(den):
+            
+            
+
+        
+    # If we substitute s = jω then on separating the real and imaginary parts, the real part of the function should be greater than or equal to zero, means it should be non negative. This most important condition and we will frequently use this condition in order to find out the whether the function is positive real or not.
+    # On substituting s = jω, F(s) should posses simple poles and the residues should be real and positive.
+    
+    
+    
+    
 
 def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zero = None ):
     '''
@@ -582,7 +645,7 @@ def remover_valor( imit, sigma_zero):
     '''
 
     # remoción parcial
-    k_prima = sp.simplify(sp.expand(imit)).subs(s, -sigma_zero)
+    k_prima = sp.simplify(sp.expand(imit)).subs(s, -sp.Abs(sigma_zero))
     
     # extraigo k_prima
     imit_r = sp.factor(sp.simplify(sp.expand(imit - k_prima)))
