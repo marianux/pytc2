@@ -18,7 +18,7 @@ author = u"Mariano Llamedo Soria"
 Sphinx = "^5.3.0"
 docutils = "^0.18.1"
 
-needs_extensions = {'myst_nb': '1.5'}
+# needs_extensions = {'myst_nb': '1.5'}
 
 extensions = [
     "myst_nb",
