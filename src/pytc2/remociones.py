@@ -14,7 +14,7 @@ import sympy as sp
 #%% Variables para el análisis simbólico #
 ##########################################
 
-from .general import s
+from .general import s, a_equal_b_latex_s, print_latex, print_console_alert
 
 # versión simbólica de sigma
 sig = sp.symbols('sig', real=True)
@@ -647,8 +647,28 @@ def remover_valor( imit, sigma_zero):
     # remoción parcial
     k_prima = sp.simplify(sp.expand(imit)).subs(s, -sp.Abs(sigma_zero))
     
-    # extraigo k_prima
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_prima)))
+    rem_aux = imit - k_prima
+    
+    bFRP = isFRP(rem_aux)
+    
+    if bFRP:
+        
+        rem = rem_aux
+
+        # extraigo k_prima
+        imit_r = sp.factor(sp.simplify(sp.expand( rem )))
+        
+    else:    
+        # falla la remoción        
+        # error
+        print_console_alert('Fallo la remoción')
+
+        print( 'Se intentó remover el valor:')
+        
+        print_latex(a_equal_b_latex_s('k', k_prima))
+
+        imit_r = imit
+        k_prima = s*0
 
     return( [imit_r, k_prima] )
 
@@ -690,8 +710,27 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
 
     assert not k_inf.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
 
-    # extraigo k_inf
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_inf)))
+    rem_aux = imit - k_inf
+    
+    bFRP = isFRP(rem_aux)
+    
+    if bFRP:
+
+        rem = rem_aux
+        # extraigo k_inf
+        imit_r = sp.factor(sp.simplify(sp.expand( rem )))
+
+    else:    
+        # falla la remoción        
+        # error
+        print_console_alert('Fallo la remoción en infinito')
+
+        print( 'Se intentó remover el valor:')
+        
+        print_latex(a_equal_b_latex_s('k_{\infty}', k_inf))
+
+        imit_r = imit
+        k_inf = s*0
 
     return( [imit_r, k_inf] )
 

@@ -81,7 +81,6 @@ def dibujar_Tee(ZZ, return_components = False):
     
     if(return_components):
         return([Za,Zb,Zc])
-    
 
 def dibujar_Pi(YY, return_components = False):
     '''
@@ -140,7 +139,6 @@ def dibujar_Pi(YY, return_components = False):
 
     if(return_components):
         return([Ya, Yb, Yc])
-
 
 def dibujar_lattice(ZZ=None, return_components = False):
     '''
@@ -227,8 +225,6 @@ def dibujar_lattice(ZZ=None, return_components = False):
 
     if(return_components):
         return([Za, Zb])
-
-
 
 def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
     '''
@@ -346,7 +342,6 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
     else:    
         
         print('Nada para dibujar')
-
 
 def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
     '''
@@ -468,8 +463,6 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
         
         print('Nada para dibujar')
 
-
-
 def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc = None):
     '''
     Description
@@ -588,7 +581,6 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
         
         print('Nada para dibujar')
 
-
 def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = None):
     '''
     Description
@@ -688,14 +680,9 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
         
         print('Nada para dibujar')
 
-
-
-
-
 ##################################################
 #%% Funciones para dibujar redes de forma bonita #
 ##################################################
-
 
 def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl = None):
     '''
@@ -794,7 +781,6 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
 
     return(d)
 
-
 def dibujar_espaciador( d ):
     '''
     Convierte una matriz de parámetros scattering (S) simbólica 
@@ -826,7 +812,6 @@ def dibujar_espaciador( d ):
     d.pop()
 
     return(d)
-
 
 def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_salida  = False, hacia_entrada  = False ):
     '''
@@ -987,7 +972,6 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
 
     return(d)
 
-
 def dibujar_espacio_derivacion(d):
     '''
     Convierte una matriz de parámetros scattering (S) simbólica 
@@ -1014,6 +998,35 @@ def dibujar_espacio_derivacion(d):
     d.pop()
 
     return(d)
+
+        
+def dibujar_cierre(d):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+
+    d += Line().right().length(d.unit*.5)
+    d.push()
+    d += Line().down()
+    d += Line().left().length(d.unit*.5)
+    d.pop()
+
+    return(d)
+
 
 def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     '''
@@ -1051,7 +1064,6 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     d.pop()
 
     return(d)
-
 
 def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
     '''
@@ -1265,54 +1277,6 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     d.pop()
 
     return(d)
-
-# def dibujar_tanque_RL_derivacion(d, sym_R_label='', inductor_lbl=''):
-    
-#     if isinstance(sym_R_label, sp.Basic ):
-#         sym_R_label = to_latex(sym_R_label)
-#     else:
-#         sym_R_label = str_to_latex(sym_R_label)
-    
-#     if isinstance(inductor_lbl, sp.Basic ):
-#         inductor_lbl = to_latex(inductor_lbl)
-#     else:
-#         inductor_lbl = str_to_latex(inductor_lbl)
-    
-#     d.push()
-#     d += Dot()
-#     d += Inductor().down().label(inductor_lbl, fontsize=16).length(d.unit*.5)
-#     d += Resistor().down().label(sym_R_label, fontsize=16).length(d.unit*.5)
-#     d += Dot()
-#     d.pop()
-
-#     return(d)
-
-# def dibujar_tanque_serie(d, inductor_lbl='', capacitor_lbl=''):
-    
-#     if isinstance(inductor_lbl, sp.Basic ):
-#         inductor_lbl = to_latex(inductor_lbl)
-#     else:
-#         inductor_lbl = str_to_latex(inductor_lbl)
-    
-#     if isinstance(capacitor_lbl, sp.Basic ):
-#         capacitor_lbl = to_latex(capacitor_lbl)
-#     else:
-#         capacitor_lbl = str_to_latex(capacitor_lbl)
-    
-#     d.push()
-#     d += Dot()
-#     d += Capacitor().right().label(capacitor_lbl, fontsize=16)
-#     d.pop()
-#     d += Line().up().length(d.unit*.5)
-#     d += Inductor().right().label(inductor_lbl, fontsize=16)
-#     d += Line().down().length(d.unit*.5)
-#     d += Dot()
-#     d.push()
-#     d += Gap().down().label( '' )
-#     d += Line().left()
-#     d.pop()
-
-#     return(d)
 
 def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
     '''

@@ -18,38 +18,6 @@ from .remociones import isFRP, remover_polo_infinito, remover_valor_en_infinito,
 ##########################################
 
 from .general import s, expr_simb_expr, print_console_alert, print_latex
-
-def isFRP( ff ):
-    '''
-    Description
-    -----------
-    Check if ff is a function is positive real function (FRP).
-
-    Parameters
-    ----------
-    ff : symbolic rational function
-        La inmitancia a checkear.
-
-    Returns
-    -------
-    A boolean with TRUE value if ff is FRP.
-
-    Ejemplo
-    -------
-    
-    # Sea la siguiente función de excitación
-    Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)
-    
-    # Implementaremos Imm mediante Cauer 1 o remociones continuas en infinito
-    if isFRP( ff ):
-        print('Es FRP')
-    else:
-        print('No es FRP, revisar!')
-
-    '''   
-    
-    
-    
     
 
 def cauer_RC( imm, remover_en_inf=True ):
@@ -150,8 +118,8 @@ def cauer_RC( imm, remover_en_inf=True ):
     else:
         # no se pudo hacer ninguna remoción
         imm_as_cauer = imm
-        ko = [0]
-        rem = 0
+        ko = [s*0]
+        rem = s*0
             
     if not (sp.simplify(sp.expand(imm_as_cauer - imm))).is_zero:
         # error
@@ -243,8 +211,8 @@ def cauer_LC( imm, remover_en_inf = True ):
     else:
         # no se pudo hacer ninguna remoción
         imm_as_cauer = imm
-        ko = [0]
-        rem = 0
+        ko = [s*0]
+        rem = s*0
         
     if not (sp.simplify(sp.expand(imm_as_cauer - imm))).is_zero:
         # error
