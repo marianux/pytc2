@@ -505,7 +505,9 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
 
     return( [imit_r, kk, L, C] )
 
-def remover_polo_dc( imit, omega_zero = None ):
+
+
+def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
     '''
     Se removerá el residuo en continua (s=0) de la imitancia ($I$) de forma 
     completa, o parcial en el caso que se especifique una omega_zero. 
@@ -519,13 +521,21 @@ def remover_polo_dc( imit, omega_zero = None ):
     $$ k_0=\lim\limits _{s\to0}I.s $$
     
     En cuanto se especifique omega_zero, la remoción parcial estará definida 
-    como
+    como, siempre que isSigma = False
 
     $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_z^{2}}=0=I-s.k_{0}^{'}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
     
     siendo 
     
     $$ k_{0}^{'}=I.s\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+
+    De lo contrario, con isSigma = True
+
+    $$ I_{R}\biggr\rfloor_{s=-\omega_z}=0=I-s.k_{0}^{'}\biggr\rfloor_{s=-\omega_z} $$
+    
+    siendo 
+    
+    $$ k_{0}^{'}=I.s\biggr\rfloor_{s=-\omega_z} $$
     
 
     Parameters
@@ -550,8 +560,14 @@ def remover_polo_dc( imit, omega_zero = None ):
         k_cero = sp.limit(imit*s, s, 0)
         
     else:
-        # remoción parcial
-        k_cero = sp.simplify(sp.expand(imit*s)).subs(s**2, -(omega_zero**2) )
+        # remoción parcial en el eje j\omega
+    	if isSigma is False:
+	        k_cero = sp.simplify(sp.expand(imit*s)).subs(s**2, -(omega_zero**2) )
+
+    	# remoción parcial en el eje \sigma
+        # Gracias David Moharos!
+    	else:
+	        k_cero = sp.simplify(sp.expand(imit*s)).subs(s, -omega_zero )
 
     k_cero = k_cero/s
     
@@ -560,7 +576,8 @@ def remover_polo_dc( imit, omega_zero = None ):
 
     return( [imit_r, k_cero] )
 
-def remover_polo_infinito( imit, omega_zero = None ):
+
+def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
     '''
     Se removerá el residuo en infinito de la imitancia ($I$) de forma 
     completa, o parcial en el caso que se especifique una omega_zero. 
@@ -574,13 +591,21 @@ def remover_polo_infinito( imit, omega_zero = None ):
     $$ k_{\infty}=\lim\limits _{s\to\infty}I.\nicefrac{1}{s} $$
     
     En cuanto se especifique omega_zero, la remoción parcial estará definida 
-    como
+    como, siempre que isSigma = False
 
     $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_z^{2}}=0=I-s.k_{\infty}^{'}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
     
     siendo 
     
     $$ k_{\infty}^{'}=I.\nicefrac{1}{s}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+
+    De lo contrario, con isSigma = True
+
+    $$ I_{R}\biggr\rfloor_{s=-\omega_z}=0=I-s.k_{\infty}^{'}\biggr\rfloor_{s=-\omega_z} $$
+    
+    siendo 
+    
+    $$ k_{\infty}^{'}=I.\nicefrac{1}{s}\biggr\rfloor_{s=-\omega_z} $$
     
 
     Parameters
@@ -591,6 +616,9 @@ def remover_polo_infinito( imit, omega_zero = None ):
         diferencia de grados entre num y den será exactamente 1.
     omega_zero : Symbolic
         Frecuencia a la que la imitancia será cero luego de la remoción.
+    isSigma : Boolean
+	Indica si la remoción parcial se realiza en el eje j\omega ( isSigma = False )
+	o bien sobre el eje \sigma ( isSigma = True )
 
     Returns
     -------
@@ -605,8 +633,14 @@ def remover_polo_infinito( imit, omega_zero = None ):
         k_inf = sp.limit(imit/s, s, sp.oo)
         
     else:
-        # remoción parcial
-        k_inf = sp.simplify(sp.expand(imit/s)).subs(s**2, -(omega_zero**2) )
+        # remoción parcial en el eje j\omega
+        if isSigma is False:
+        	k_inf = sp.simplify(sp.expand(imit/s)).subs(s**2, -(omega_zero**2) )
+	
+    	# remoción parcial en el eje \sigma
+        # Gracias David Moharos!
+        else:
+        	k_inf = sp.simplify(sp.expand(imit/s)).subs(s, -omega_zero )		
 
     k_inf = k_inf * s
 
