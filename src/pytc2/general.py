@@ -15,16 +15,20 @@ import numpy as np
 
 from IPython.display import display, Math, Markdown
 
+  ##########################################
+ ## Variables para el análisis simbólico ##
 ##########################################
-#%% Variables para el análisis simbólico #
-##########################################
-
 # Laplace complex variable. s = σ + j.ω
 s = sp.symbols('s', complex=True)
 # Fourier real variable ω 
 w = sp.symbols('w', complex=False)
 
-
+#%%
+  #########################
+ ## Funciones generales ##
+#########################
+#%%
+  
 def pp(z1, z2):
     '''
     Asocia en paralelo dos impedancias o en serie dos admitancias.
@@ -45,11 +49,56 @@ def pp(z1, z2):
 
     return(z1*z2/(z1+z2))
 
-#########################
-#%% Funciones generales #
-#########################
+#%%
+  ##################################
+ ## Funciones para uso simbólico ##
+##################################
 
-def print_console_alert(strAux):
+#%%
+
+
+def simplify_n_monic(tt):
+    '''
+    Simplifica un polinomio de fracciones en forma monica.
+
+    Parameters
+    ----------
+    tt : Expr
+        Polinomio de fracciones a simplificar.
+
+    Returns
+    -------
+    Expr
+        Polinomio simplificado en forma monica.
+
+    Example
+    -------
+    >>> from sympy import symbols
+    >>> s = symbols('s')
+    >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
+    >>> simplified_tt = simplify_n_monic(tt)
+    >>> print(simplified_tt)
+    (s + 1)/(2*s + 1)
+
+    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
+    '''
+    
+    # Obtener el numerador y el denominador de la expresión y convertirlos en polinomios
+    num, den = sp.fraction(sp.simplify(sp.expand(tt)))
+    num = sp.poly(num, s)
+    den = sp.poly(den, s)
+    
+    # Calcular el coeficiente principal del numerador y el denominador
+    k = num.LC() / den.LC()
+    
+    # Convertir el numerador y el denominador a forma monica
+    num = num.monic()
+    den = den.monic()
+
+    # Devolver el polinomio simplificado en forma monica
+    return sp.Mul(k, num/den, evaluate=False)
+
+def Chebyshev_polynomials(nn):
     '''
     Convierte una matriz de parámetros scattering (S) simbólica 
     al modelo de parámetros transferencia de scattering (Ts).
@@ -66,52 +115,25 @@ def print_console_alert(strAux):
 
     '''
     
-    strAux = '# ' + strAux + ' #\n'
-    strAux1 =  '#' * (len(strAux)-1) + '\n' 
+    Cn_pp = 1
+    Cn_p = w
     
-    print( '\n\n' + strAux1 + strAux + strAux1 )
+    if nn > 1:
+        
+        for ii in range(nn-1):
+            
+            Cn = 2 * w * Cn_p - Cn_pp
     
-def print_console_subtitle(strAux):
-    '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+            Cn_pp = Cn_p
+            Cn_p = Cn
 
-    Parameters
-    ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
-
-    Returns
-    -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
-
-    '''
-    
-    strAux = strAux + '\n'
-    strAux1 =  '-' * (len(strAux)-1) + '\n' 
-    
-    print( '\n\n' + strAux + strAux1 )
-    
-def print_subtitle(strAux):
-    '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
-
-    Parameters
-    ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
-
-    Returns
-    -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
-
-    '''
-    
-    display(Markdown('#### ' + strAux))
-
+    elif nn == 1:
+        Cn = Cn_p
+        
+    else:
+        Cn = 1
+            
+    return(sp.simplify(sp.expand(Cn)))
 
 def a_equal_b_latex_s( a, b):
     '''
@@ -200,8 +222,6 @@ def str_to_latex( unstr):
     
     return('$'+ unstr + '$')
 
-
-
 def print_latex(strAux):
     '''
     Convierte una matriz de parámetros scattering (S) simbólica 
@@ -221,7 +241,14 @@ def print_latex(strAux):
     
     display(Math(strAux))
 
-def Chebyshev_polynomials(nn):
+#%%
+  ###############################################
+ ## funciones para presentación de resultados ##
+###############################################
+
+#%%
+ 
+def print_console_alert(strAux):
     '''
     Convierte una matriz de parámetros scattering (S) simbólica 
     al modelo de parámetros transferencia de scattering (Ts).
@@ -238,34 +265,59 @@ def Chebyshev_polynomials(nn):
 
     '''
     
-    Cn_pp = 1
-    Cn_p = w
+    strAux = '# ' + strAux + ' #\n'
+    strAux1 =  '#' * (len(strAux)-1) + '\n' 
     
-    if nn > 1:
-        
-        for ii in range(nn-1):
-            
-            Cn = 2 * w * Cn_p - Cn_pp
+    print( '\n\n' + strAux1 + strAux + strAux1 )
     
-            Cn_pp = Cn_p
-            Cn_p = Cn
+def print_console_subtitle(strAux):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
 
-    elif nn == 1:
-        Cn = Cn_p
-        
-    else:
-        Cn = 1
-            
-    return(sp.simplify(sp.expand(Cn)))
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
 
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
 
+    '''
+    
+    strAux = strAux + '\n'
+    strAux1 =  '-' * (len(strAux)-1) + '\n' 
+    
+    print( '\n\n' + strAux + strAux1 )
+    
+def print_subtitle(strAux):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
 
-'''
-  ################################################
- ## Bloque de funciones para parametros imagen ##
-################################################
-'''
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
 
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+    
+    display(Markdown('#### ' + strAux))
+
+#%%
+
+  ###########################################
+ ## funciones para conversión de unidades ##
+###########################################
+
+#%%
 
 def db2nepper(at_en_db):
     '''
