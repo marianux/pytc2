@@ -58,11 +58,6 @@ def tfcascade(tfa, tfb):
     :func:`pretty_print_lti`
 
 
-    Notes
-    -----
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
-
-
     Examples
     --------
     >>> from scipy.signal import TransferFunction
@@ -71,6 +66,11 @@ def tfcascade(tfa, tfb):
     >>> tfc = tfcascade(tfa, tfb)
     >>> print(tfc)
     TransferFunction([1, 2], [1, 7, 14, 8])
+
+
+    Notes
+    -----
+    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
         
     """
     if not isinstance(tfa, TransferFunction) or not isinstance(tfb, TransferFunction):
@@ -110,6 +110,11 @@ def tfadd(tfa, tfb):
     ValueError
         Si 'tfa' o 'tfb' no son instancias de TransferFunction.
 
+    See Also
+    -----------
+    :func:`tfcascade`
+    :func:`pretty_print_lti`
+
     Examples
     --------
     >>> from scipy.signal import TransferFunction
@@ -117,10 +122,6 @@ def tfadd(tfa, tfb):
     >>> tfb = TransferFunction([5, 6], [7, 8])
     >>> tfadd(tfa, tfb)
 
-    See Also
-    -----------
-    :func:`tfcascade`
-    :func:`pretty_print_lti`
     
     """
 
@@ -156,20 +157,31 @@ def sos2tf_analog(mySOS):
     
     .. math:: T_i = (a_{1i} \, s^2 + a_{2i} \, s + a_{3i})/(b_{1i} \, s^2 + b_{2i} \, s + b_{3i})
 
+
     Parameters
     -----------
     mySOS : array_like
         Matriz que define las secciones de segundo orden (SOS) del sistema.
+
 
     Returns
     --------
     TransferFunction
         Función de transferencia analógica resultante.
 
+
     Raises
     ------
     ValueError
         Si 'mySOS' no es una matriz 2D o si las filas de la matriz no tienen exactamente 6 elementos.
+
+
+    See Also
+    -----------
+    :func:`tf2sos_analog`
+    :func:`pretty_print_SOS`
+    :func:`pretty_print_lti`
+
 
     Examples
     --------
@@ -183,11 +195,7 @@ def sos2tf_analog(mySOS):
     dt: None
     )
 
-    See Also
-    -----------
-    :func:`tf2sos_analog`
-    :func:`pretty_print_SOS`
-    :func:`pretty_print_lti`
+
 
     Nota
     ----
@@ -238,6 +246,7 @@ def tf2sos_analog(num, den=[]):
     
     .. math:: T_i = (a_{1i} \, s^2 + a_{2i} \, s + a_{3i})/(b_{1i} \, s^2 + b_{2i} \, s + b_{3i})
 
+
     Parameters
     -----------
     num : array_like, TransferFunction
@@ -245,15 +254,25 @@ def tf2sos_analog(num, den=[]):
     den : array_like, opcional
         Coeficientes denóminos de la función de transferencia.
 
+
     Returns
     --------
     array_like
         Matriz que define las secciones de segundo orden (SOS) del sistema analógico.
 
+
     Raises
     ------
     ValueError
         Si 'num' o 'den' no son instancias de arrays de numpy.
+
+
+    See Also
+    -----------
+    :func:`sos2tf_analog`
+    :func:`pretty_print_SOS`
+    :func:`pretty_print_lti`
+
 
     Examples
     --------
@@ -263,11 +282,6 @@ def tf2sos_analog(num, den=[]):
     >>> print(sos_analog)
     [[1. 2. 3. 4. 5. 6.]]
 
-    See Also
-    -----------
-    :func:`sos2tf_analog`
-    :func:`pretty_print_SOS`
-    :func:`pretty_print_lti`
 
     Nota
     ----
@@ -341,6 +355,15 @@ def zpk2sos_analog(zz, pp, kk):
     ValueError
         Si la factorización de la función de transferencia es incorrecta.
 
+
+    See Also
+    -----------
+    :func:`sos2tf_analog`
+    :func:`pretty_print_SOS`
+    :func:`pretty_print_lti`
+    :mod:`scipy.signal`
+
+
     Examples
     --------
     >>> zz = [1, 2, 3]
@@ -350,11 +373,6 @@ def zpk2sos_analog(zz, pp, kk):
     >>> print(sos_analog)
     [[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]]
 
-    See Also
-    -----------
-    :func:`sos2tf_analog`
-    :func:`pretty_print_SOS`
-    :func:`pretty_print_lti`
 
     Nota
     ----
@@ -532,10 +550,12 @@ def pretty_print_lti(num, den=None, displaystr=True):
     displaystr : bool, opcional
         Indica si mostrar el resultado como salida o devolverlo como una cadena de texto. Por defecto es True.
 
+
     Returns
     --------
     None or str
         Si displaystr es True, muestra la cadena formateada, si no, devuelve la cadena.
+
 
     Raises
     ------
@@ -543,6 +563,7 @@ def pretty_print_lti(num, den=None, displaystr=True):
         Si los coeficientes numéricos no son de tipo array_like, lista, o un objeto TransferFunction.
         Si los coeficientes del denominador son proporcionados pero no son de tipo array_like.
         Si el argumento displaystr no es de tipo bool.
+
 
     See Also
     -----------
@@ -583,12 +604,14 @@ def parametrize_sos(num, den):
     '''
     Parametriza una función de transferencia de segundo orden en función de sus coeficientes.
 
+
     Parameters
     -----------
     num : Poly
         Coeficientes del numerador.
     den : Poly
         Coeficientes del denominador.
+
 
     Returns
     --------
@@ -614,6 +637,13 @@ def parametrize_sos(num, den):
     ValueError
         Si los coeficientes numéricos no son de tipo Poly.
         Si los coeficientes del denominador no son proporcionados o no son de tipo Poly.
+
+
+    See Also
+    -----------
+    :func:`pretty_print_bicuad_omegayq`
+    :func:`pretty_print_SOS`
+
 
     Examples
     --------
@@ -646,10 +676,6 @@ def parametrize_sos(num, den):
     >>> num = sp.Poly((b*s),s)
     >>> sos_6, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
 
-    See Also
-    -----------
-    :func:`pretty_print_bicuad_omegayq`
-    :func:`pretty_print_SOS`
 
     Nota
     ----
@@ -816,6 +842,7 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
     Genera una representación matemática de un sistema de segundo orden en función de su frecuencia natural (omega) y su factor de calidad (Q).
 
     Esta función toma los coeficientes del numerador y, opcionalmente, los del denominador de un sistema de segundo orden y genera una representación matemática en función de la frecuencia natural (omega) y el factor de calidad (Q). Los parámetros opcionales permiten especificar si se debe mostrar o devolver la cadena formateada.
+
     
     Parameters
     -----------
@@ -826,10 +853,12 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
     displaystr : bool, opcional
         Indica si mostrar el resultado como salida o devolverlo como una cadena de texto. Por defecto es True.
 
+
     Returns
     --------
     None or str
         Si displaystr es True, muestra la cadena formateada, si no, devuelve la cadena.
+
 
     Raises
     ------
@@ -837,10 +866,12 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
         Si los coeficientes numéricos no son proporcionados.
         Si los coeficientes numéricos no tienen una longitud de 3 elementos.
 
+
     See Also
     -----------
     :func:`pretty_print_SOS`
     :func:`_build_omegayq_str`
+
 
     Examples
     --------
@@ -920,6 +951,13 @@ def pretty_print_SOS(mySOS, mode='default', displaystr=True):
     displaystr : bool, opcional
         Indica si mostrar el resultado como salida o devolverlo como una cadena de texto. Por defecto es True.
 
+
+    Returns
+    --------
+    None or str
+        Si displaystr es True, muestra la cadena formateada, si no, devuelve la cadena.
+
+
     Raises
     ------
     ValueError
@@ -928,16 +966,20 @@ def pretty_print_SOS(mySOS, mode='default', displaystr=True):
         Si mySOS no tiene exactamente 6 columnas.
         Si displaystr no es un booleano.
 
+
     See Also
     -----------
     :func:`parametrize_sos`
     :func:`pretty_print_lti`
     :func:`pretty_print_bicuad_omegayq`
 
-    Returns
+
+    Examples
     --------
-    None or str
-        Si displaystr es True, muestra la cadena formateada, si no, devuelve la cadena.
+    >>> mySOS = array([[1, 2, 1, 1, 1, 1], [1, 3, 1, 1, 4, 1]])
+    >>> pretty_print_SOS(mySOS)
+    [latex output]
+    
     '''
 
     if not isinstance(mySOS, np.ndarray):
@@ -990,6 +1032,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     
     Esta función toma un sistema lineal (ya sea una lista de objetos TransferFunction o una matriz que define una cascada de secciones de segundo orden) y realiza un análisis completo del comportamiento del sistema, incluyendo trazado de gráficos de Bode, mapa de polos y ceros, y gráfico de retardo de grupo. Los parámetros opcionales permiten personalizar el análisis según las necesidades del usuario.
     
+    
     Parameters
     -----------
     all_sys : lista o matriz (Nx6)
@@ -1007,6 +1050,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     fs : valor real, opcional
         La frecuencia de muestreo del sistema digital o la norma para xaxis igual a "norm". Solo es válido si digital es True. Por defecto es None (definido en 1/dlti.dt).
     
+    
     Raises
     ------
     ValueError
@@ -1015,15 +1059,23 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
         Si all_sys no es una lista o una matriz.
         Si xaxis no es válido.
 
+
     Returns
     --------
     return_values : lista
         Lista con tres pares de manijas de figuras y ejes de cada gráfico mostrado.
 
+
+    See Also
+    -----------
+    :func:`pretty_print_bicuad_omegayq`
+    :func:`bodePlot`
+    :func:`pzmap`
+
+
     Examples
     --------
-    Analiza un sistema con w0 = 1 rad/s y Q = sqrt(2)/2
-
+    >>> # Analiza un sistema con w0 = 1 rad/s y Q = sqrt(2)/2
     >>> import numpy as np
     >>> from scipy import signal as sig
     >>> from pytc2.sistemas_lineales import analyze_sys, pretty_print_bicuad_omegayq
@@ -1034,9 +1086,8 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     >>> H1 = sig.TransferFunction(num, den)
     >>> pretty_print_bicuad_omegayq(num, den)
     >>> analyze_sys(H1, sys_name='mi Example')
-
-    Compara el sistema anterior con otros dos con valores diferentes de Q
-
+    >>> 
+    >>> # Compara el sistema anterior con otros dos con valores diferentes de Q
     >>> Q = 5
     >>> w0 = 1
     >>> num = np.array([w0**2])
@@ -1044,11 +1095,6 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     >>> H2 = sig.TransferFunction(num, den)
     >>> analyze_sys([H1, H2], sys_name=['H1', 'H2'])
 
-    See Also
-    -----------
-    :func:`pretty_print_bicuad_omegayq`
-    :func:`bodePlot`
-    :func:`pzmap`
 
     """
 
@@ -1236,13 +1282,6 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
     fs : float, opcional
         Frecuencia de muestreo. El valor predeterminado es 2*pi.
 
-    Raises
-    ------
-    ValueError
-        Si `fig_id` no es un string o un entero.
-        Si `axes_hdl` no es un string o una handle  de eje válida.
-        Si `digital` no es un booleano.
-        Si `fs` no es un valor numérico.
 
     Returns
     --------
@@ -1251,15 +1290,27 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
     axes_hdl : axes handle
         handle  del eje utilizado para el gráfico.
 
-    Examples
-    --------
-    >>> fig_id, ax_hdl = pzmap(myFilter, annotations=True, filter_description='Filtro Pasabajos')
-    
+
+    Raises
+    ------
+    ValueError
+        Si `fig_id` no es un string o un entero.
+        Si `axes_hdl` no es un string o una handle  de eje válida.
+        Si `digital` no es un booleano.
+        Si `fs` no es un valor numérico.
+
+
     See Also
     -----------
     :func:`analyze_sys`
     :func:`bodePlot`
     :func:`pzmap`
+
+
+    Examples
+    --------
+    >>> fig_id, ax_hdl = pzmap(myFilter, annotations=True, filter_description='Filtro Pasabajos')
+    
     
     """
     
@@ -1493,6 +1544,7 @@ def group_delay(freq, phase):
     """
     Calcula el retardo de grupo para una función de fase.
 
+
     Parameters
     -----------
     freq : array_like
@@ -1500,17 +1552,21 @@ def group_delay(freq, phase):
     phase : array_like
         La fase de la función para la cual se calcula el retardo de grupo.
 
-    Raises
-    ------
-    ValueError
-        Si `freq` y `phase` no tienen la misma longitud.
-        Si `freq` o `phase` no son arreglos NumPy.
+
 
     Returns
     --------
     gd : array_like
         Estimación del retardo de grupo, que es la derivada de la fase
         respecto a la frecuencia cambiada de signo.
+
+
+    Raises
+    ------
+    ValueError
+        Si `freq` y `phase` no tienen la misma longitud.
+        Si `freq` o `phase` no son arreglos NumPy.
+
 
     Examples
     --------
@@ -1536,6 +1592,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
     """
     Calcula y grafica el retardo de grupo de un filtro.
 
+
     Parameters
     -----------
     myFilter : array_like o scipy.signal.TransferFunction
@@ -1553,6 +1610,15 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
     fs : float, opcional
         Frecuencia de muestreo. Por defecto es 2*pi.
 
+
+    Returns
+    --------
+    fig_id : int
+        Identificador de la figura.
+    axes_hdl : Axes
+        Manejador de ejes de la figura.
+
+
     Raises
     ------
     ValueError
@@ -1562,22 +1628,18 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         Si digital no es un booleano.
         Si xaxis no es uno de los valores permitidos: 'omega', 'freq', 'norm'.
         Si fs no es un número.
-    Returns
-    --------
-    fig_id : int
-        Identificador de la figura.
-    axes_hdl : Axes
-        Manejador de ejes de la figura.
 
-    Example
-    --------
-    fig_id, axes_hdl = GroupDelay(myFilter, fig_id=1, filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
     
     See Also
     -----------
     :func:`analyze_sys`
     :func:`bodePlot`
     :func:`pzmap`
+
+
+    Example
+    --------
+    >>> fig_id, axes_hdl = GroupDelay(myFilter, fig_id=1, filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
     
     """
 
@@ -1772,23 +1834,25 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         Manejadores de ejes de la figura.
 
 
-    Example
-    --------
-    >>> fig_id, axes_hdl = bodePlot(myFilter, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
-
-
     Raises
     ------
     ValueError
         Si myFilter no es un array NumPy ni un objeto TransferFunction.
         Si los argumentos fig_id o axes_hdl no son válidos.
         Si xaxis no es uno de los valores permitidos: 'omega', 'freq', 'norm'.
-    
+
+
     See Also
     -----------
     :func:`analyze_sys`
     :func:`GroupDelay`
     :func:`pzmap`
+
+
+    Example
+    --------
+    >>> fig_id, axes_hdl = bodePlot(myFilter, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+
     
     """
 
@@ -2000,21 +2064,22 @@ def plot_plantilla(filter_type='', fpass=0.25, ripple=0.5, fstop=0.6, attenuatio
     --------
     None
 
-    
-    Example
-    --------
-    >>> plot_plantilla(filter_type='bandpass', fpass=(0.2, 0.4), ripple=0.3, fstop=(0.1, 0.5), attenuation=50, fs=2)
-
 
     Raises
     ------
     ValueError
         Si los argumentos no son del tipo o valor correcto.
     
+
     See Also
     -----------
     :func:`analyze_sys`
-   
+
+    
+    Example
+    --------
+    >>> plot_plantilla(filter_type='bandpass', fpass=(0.2, 0.4), ripple=0.3, fstop=(0.1, 0.5), attenuation=50, fs=2)
+
     """
 
     if not isinstance(fpass, (tuple, np.ndarray, Integral, Real)):
@@ -2130,18 +2195,11 @@ def _nearest_real_complex_idx(fro, to, which):
     which : {'real', 'complex'}
         Especifica si se busca el elemento real o complejo más cercano.
 
+
     Returns
     --------
     int
         Índice del elemento más cercano en el arreglo de partida.
-
-    
-    Example
-    --------
-    >>> fro = np.array([1, 2, 3, 4])
-    >>> to = 2.5
-    >>> nearest_idx = _nearest_real_complex_idx(fro, to, 'real')
-    >>> print("El índice del elemento real más cercano a", to, "es:", nearest_idx)
 
 
     Raises
@@ -2153,6 +2211,15 @@ def _nearest_real_complex_idx(fro, to, which):
     See Also
     -----------
     :func:`zpk2sos_analog`
+
+    
+    Example
+    --------
+    >>> fro = np.array([1, 2, 3, 4])
+    >>> to = 2.5
+    >>> nearest_idx = _nearest_real_complex_idx(fro, to, 'real')
+    >>> print("El índice del elemento real más cercano a", to, "es:", nearest_idx)
+
 
     Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
 
@@ -2197,9 +2264,17 @@ def _cplxreal(z, tol=None):
         Elementos reales de `z` (aquellos que tienen parte imaginaria menor que
         `tol` veces su magnitud), ordenados por valor.
 
+
+    Raises
+    ------
+    ValueError
+        Si hay números complejos en `z` para los cuales no se puede encontrar un conjugado.
+    
+
     See Also
     ---------
     :func:`zpk2sos_analog`
+
 
     Exampless
     ---------
@@ -2210,11 +2285,6 @@ def _cplxreal(z, tol=None):
     >>> print(zr)
     [ 1.  3.  4.]
 
-    Raises
-    ------
-    ValueError
-        Si hay números complejos en `z` para los cuales no se puede encontrar un conjugado.
-    
     Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     """
 
@@ -2278,10 +2348,6 @@ def _one_sos2tf(mySOS):
     mySOS : array_like
         Vector que define una sección de segundo orden (SOS) del sistema.
 
-    Raises
-    ------
-    ValueError
-        Si la entrada no es un vector con al menos 6 elementos.
 
     Returns
     --------
@@ -2289,6 +2355,18 @@ def _one_sos2tf(mySOS):
         Coeficientes del numerador de la función de transferencia.
     den : ndarray
         Coeficientes del denominador de la función de transferencia.
+
+
+    Raises
+    ------
+    ValueError
+        Si la entrada no es un vector con al menos 6 elementos.
+
+
+    See Also
+    -----------
+    :func:`sos2tf_analog`
+
 
     Examples
     --------
@@ -2298,10 +2376,6 @@ def _one_sos2tf(mySOS):
     [1, -1.9, 1]
     >>> print(den)
     [1, -1.6, 0.64]
-
-    See Also
-    -----------
-    :func:`sos2tf_analog`
 
     Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     """
@@ -2336,15 +2410,24 @@ def _build_poly_str(this_poly):
     this_poly : ndarray
         Coeficientes del polinomio.
 
-    Raises
-    ------
-    ValueError
-        Si `this_poly` no es un array de numpy.
 
     Returns
     --------
     str
         Cadena de caracteres que representa el polinomio.
+
+
+    Raises
+    ------
+    ValueError
+        Si `this_poly` no es un array de numpy.
+
+
+    See Also
+    -----------
+    :func:`pretty_print_lti`
+    :func:`pretty_print_bicuad_omegayq`
+
 
     Examples
     --------
@@ -2353,10 +2436,6 @@ def _build_poly_str(this_poly):
     >>> print(poly_str)
     's^2 - 2 s + 3'
 
-    See Also
-    -----------
-    :func:`pretty_print_lti`
-    :func:`pretty_print_bicuad_omegayq`
 
     Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     """
@@ -2387,6 +2466,7 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
     """
     Construye una cadena de caracteres que representa omega y Q.
 
+
     Parameters
     -----------
     this_quad_poly : ndarray
@@ -2394,16 +2474,24 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
     den : ndarray, opcional
         Coeficientes del denominador. El valor predeterminado es np.array([]).
 
+
     Raises
     ------
     ValueError
         Si `this_quad_poly` no es un array de numpy.
         Si `den` no es un array de numpy.
+
         
     Returns
     --------
     str
         Cadena de caracteres que representa omega y Q.
+
+
+    See Also
+    -----------
+    :func:`pretty_print_bicuad_omegayq`
+
 
     Examples
     --------
@@ -2413,9 +2501,6 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
     >>> print(omegaq_str)
     's\,0.08333\,\frac{2}{0.1667}'
 
-    See Also
-    -----------
-    :func:`pretty_print_bicuad_omegayq`
 
     Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     """
@@ -2457,24 +2542,29 @@ def _complementaryColor(my_hex):
     my_hex : str
         Código hexadecimal del color.
 
+
     Raises
     ------
     ValueError
         Si `my_hex` no es una cadena de caracteres válida o no tiene la longitud correcta.
+
 
     Returns
     --------
     str
         Código hexadecimal del color complementario.
 
+
+    See Also
+    -----------
+    :func:`pzmap`
+
+
     Examples
     --------
     >>> _complementaryColor('FFFFFF')
     '000000'
 
-    See Also
-    -----------
-    :func:`pzmap`
 
     Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     """
