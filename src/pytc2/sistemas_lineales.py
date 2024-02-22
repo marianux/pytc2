@@ -939,7 +939,7 @@ def pretty_print_SOS(mySOS, mode='default', displaystr=True):
     
     donde cada sección o línea de `mySOS` significa matemáticamente
     
-    .. math:: T_i = (a_{1i} \, s^2 + a_{2i} \, s + a_{3i})/(b_{1i} \, s^2 + b_{2i} \, s + b_{3i})
+    .. math:: T_i = \\frac{a_{1i} \\, s^2 + a_{2i} \\, s + a_{3i}}{b_{1i} \\, s^2 + b_{2i} \\, s + b_{3i}}
             
     
     Parameters

@@ -28,243 +28,290 @@ from .general import s, to_latex, str_to_latex
 #%% Funciones para dibujar cuadripolos #
 ########################################
 
-def dibujar_Tee(ZZ, return_components = False):
+def dibujar_Tee(ZZ, return_components=False):
     '''
     Dibuja una red Tee a partir de la matriz Z.
 
     Parameters
     ----------
-    Ymai : Symbolic Matrix
-        Matriz admitancia indefinida.
-    nodes2del : list or integer
-        Nodos que se van a eliminar.
+    ZZ : sympy.Matrix
+        Matriz de impedancia Z.
+    return_components : bool, optional
+        Indica si se deben devolver los componentes individuales de la red (Za, Zb, Zc). Por defecto es False.
 
     Returns
     -------
-    YY : Symbolic Matrix
-        Matriz admitancia 
+    list or None
+        Si return_components es True, devuelve una lista con los componentes individuales de la red (Za, Zb, Zc). 
+        Si return_components es False, no devuelve nada.
+
+    Raises
+    ------
+    TypeError
+        Si ZZ no es una instancia de sympy.Matrix.
+
+    Examples
+    --------
+    >>> dibujar_Tee(sp.Matrix([[1, 2], [3, 4]]))
+    # ... dibujo de la red Tee ...
 
     '''
-    
-    # Dibujo la red Tee
-    
-    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
-    
-    d = dibujar_puerto_entrada(d, port_name = '' )
 
-    bSymbolic = isinstance(ZZ, sp.Basic)
+    if not isinstance(ZZ, sp.Matrix):
+        raise TypeError("ZZ debe ser una instancia de sympy.Matrix.")
+
+    # Dibujo la red Tee
+    d = Drawing(unit=4)
+
+    d = dibujar_puerto_entrada(d, port_name='')
+
+    Za = ZZ[0, 0] - ZZ[0, 1]
+    Zb = ZZ[0, 1]
+    Zc = ZZ[1, 1] - ZZ[0, 1]
     
-    Za = ZZ[0,0] - ZZ[0,1]
-    Zb = ZZ[0,1]
-    Zc = ZZ[1,1] - ZZ[0,1]
-    
-    if bSymbolic:
-        
+    if isinstance(ZZ, sp.Basic):
         Za = sp.simplify(sp.expand(Za))
         Zb = sp.simplify(sp.expand(Zb))
         Zc = sp.simplify(sp.expand(Zc))
 
-    
-    if( not Za.is_zero ):
-        d = dibujar_elemento_serie(d, ResistorIEC, Za )
+    if not Za.is_zero:
+        d = dibujar_elemento_serie(d, ResistorIEC, Za)
 
-    if( not Zb.is_zero ):
-        d = dibujar_elemento_derivacion(d, ResistorIEC, Zb )
-    
-    if( not Zc.is_zero ):
-        d = dibujar_elemento_serie(d, ResistorIEC, Zc )
-        
-    
-    d = dibujar_puerto_salida(d, port_name = '')
+    if not Zb.is_zero:
+        d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
 
-    display(d)        
-    
-    if(return_components):
-        return([Za,Zb,Zc])
+    if not Zc.is_zero:
+        d = dibujar_elemento_serie(d, ResistorIEC, Zc)
 
-def dibujar_Pi(YY, return_components = False):
+    d = dibujar_puerto_salida(d, port_name='')
+
+    display(d)
+
+    if return_components:
+        return [Za, Zb, Zc]
+    
+    
+def dibujar_Pi(YY, return_components=False):
     '''
     Dibuja una red Pi a partir de la matriz Y.
 
+    Breve descripción de la función
+
     Parameters
     ----------
-    Ymai : Symbolic Matrix
-        Matriz admitancia indefinida.
-    nodes2del : list or integer
-        Nodos que se van a eliminar.
+    YY : Symbolic Matrix
+        Matriz de admitancia Y.
+    return_components : bool, optional
+        Indica si se deben devolver los componentes individuales de la red (Ya, Yb, Yc). Por defecto es False.
 
     Returns
     -------
-    YY : Symbolic Matrix
-        Matriz admitancia 
+    None or list
+        Si return_components es True, devuelve una lista con los componentes individuales de la red (Ya, Yb, Yc). 
+        Si return_components es False, no devuelve nada.
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:``
+
+    Examples
+    --------
+    >>> dibujar_Pi(sp.Matrix([[2, -1], [-1, 3]]))
+    [dibujo del red]
+    >>> Ya, Yb, Yc = dibujar_Pi(sp.Matrix([[1, 0], [0, 1]]), return_components=True)
+    [dibujo del red]
 
     '''
-    
-    # Dibujo la red Tee
-    
-    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
-    
-    d = dibujar_puerto_entrada(d, port_name = '')
-    
-    Ya = YY[0,0] + YY[0,1]
-    Yb = -YY[0,1]
-    Yc = YY[1,1] + YY[0,1]
-    
-    bSymbolic = isinstance(YY[0,0], sp.Basic)
-    
+
+    # Comprobar el tipo de dato de YY
+    if not isinstance(YY, sp.Matrix):
+        raise TypeError("YY debe ser una matriz simbólica.")
+
+    # Dibujo la red Pi
+    d = Drawing(unit=4)
+
+    d = dibujar_puerto_entrada(d, port_name='')
+
+    Ya = YY[0, 0] + YY[0, 1]
+    Yb = -YY[0, 1]
+    Yc = YY[1, 1] + YY[0, 1]
+
+    bSymbolic = isinstance(YY[0, 0], sp.Basic)
+
     if bSymbolic:
-        
         Za = sp.simplify(sp.expand(1/Ya))
         Zb = sp.simplify(sp.expand(1/Yb))
         Zc = sp.simplify(sp.expand(1/Yc))
-        
     else:
-
         Za = 1/Ya
         Zb = 1/Yb
         Zc = 1/Yc
+
+    if (bSymbolic and (not Ya.is_zero) or (not bSymbolic) and Ya != 0):
+        d = dibujar_elemento_derivacion(d, ResistorIEC, Za)
+
+    if (bSymbolic and (not Yb.is_zero) or (not bSymbolic) and Yb != 0):
+        d = dibujar_elemento_serie(d, ResistorIEC, Zb)
+
+    if (bSymbolic and (not Yc.is_zero) or (not bSymbolic) and Yc != 0):
+        d = dibujar_elemento_derivacion(d, ResistorIEC, Zc)
+
+    d = dibujar_puerto_salida(d, port_name='')
+
+    display(d)
+
+    if return_components:
+        return [Ya, Yb, Yc]
     
-    if( bSymbolic and (not Ya.is_zero) or (not bSymbolic) and Ya != 0 ):
-        d = dibujar_elemento_derivacion(d, ResistorIEC, Za )
-
-    if( bSymbolic and (not Yb.is_zero) or (not bSymbolic) and Yb != 0 ):
-        d = dibujar_elemento_serie(d, ResistorIEC, Zb )
-
-    if( bSymbolic and (not Yc.is_zero) or (not bSymbolic) and Yc != 0 ):
-        d = dibujar_elemento_derivacion(d, ResistorIEC, Zc )
-    
-    d = dibujar_puerto_salida(d, port_name = '')
-    
-    display(d)        
-
-    if(return_components):
-        return([Ya, Yb, Yc])
-
-def dibujar_lattice(ZZ=None, return_components = False):
+def dibujar_lattice(ZZ, return_components=False):
     '''
-    Draws a lattice network from the Z parameters of a network.
-
+    Dibuja una red Lattice a partir de una matriz de parámetros Z.
+    
     Parameters
     ----------
-    ZZ : Symbolic Matrix
-        Z parameters.
-    return_components : boolean
-        Returns the components of the symmetric lattice network (Za and Zb).
+    ZZ : Matriz simbólica, opcional
+        Parámetros Z de la red. Si no se proporciona, solo se genera el dibujo. El valor predeterminado es None.
+    return_components : bool, opcional
+        Indica si se deben devolver los componentes de la red Lattice simétrica (Za y Zb). El valor predeterminado es False.
 
     Returns
     -------
-    Za, Zb : Symbolic
-        (Optional) Impedances of of the symmetric lattice network.
+    list or None
+        Si return_components es True, devuelve una lista con los componentes Za y Zb de la red Lattice simétrica.
+        Si return_components es False, devuelve None.
 
+    Raises
+    ------
+    ValueError
+        Si ZZ no es una instancia de sympy.Matrix.
+        Si ZZ no es de 2x2
+
+    See Also
+    --------
+    :func:``
+
+    Ejemplos
+    --------
+    >>> dibujar_lattice()
+    >>> dibujar_lattice(sp.Matrix([[1, 0], [0, 1]]), return_components=True)
     '''
 
-    if ZZ is None    :
-        # sin valores, solo el dibujo
+    if not isinstance(ZZ, (sp.Matrix, np.ndarray)):
+        raise ValueError("ZZ debe ser una instancia de Symbolic Matrix")
+    
+    # Verificar que Spar tenga el formato correcto
+    if ZZ.shape != (2, 2):
+        raise ValueError("ZZ debe tener el formato [ [Z11, Z12], [Z21, Z22] ]")
+
+    if ZZ is None:
+        # Sin valores, solo el dibujo
         Za_lbl = 'Za'
         Zb_lbl = 'Zb'
-        
         Za = 1
         Zb = 1
         bSymbolic = False
-        
     else:
-        # calculo los valores de la matriz Z
+        # Calculo los valores de la matriz Z
         # z11 - z12
-        Za = ZZ[0,0] - ZZ[0,1]
-        Zb = ZZ[0,0] + ZZ[0,1]
-        
-        bSymbolic = isinstance(ZZ[0,0], sp.Basic)
+        Za = ZZ[0, 0] - ZZ[0, 1]
+        Zb = ZZ[0, 0] + ZZ[0, 1]
+        bSymbolic = isinstance(ZZ[0, 0], sp.Basic)
         
         if bSymbolic:
-            
             Za = sp.simplify(Za)
             Zb = sp.simplify(Zb)
-    
             Za_lbl = to_latex(Za)
             Zb_lbl = to_latex(Zb)
-            
         else:
-                
             Za_lbl = str_to_latex('{:3.3f}'.format(Za))
             Zb_lbl = str_to_latex('{:3.3f}'.format(Zb))
 
-    # Dibujo la red Lattice    
-    
+    # Dibujo la red Lattice
     with Drawing() as d:
-        
         d.config(fontsize=16, unit=4)
+        d = dibujar_puerto_entrada(d, port_name='')
 
-        d = dibujar_puerto_entrada(d, port_name = '' )
-
-        if( bSymbolic and (not Za.is_zero) or (not bSymbolic) and Za != 0 ):
+        if (bSymbolic and (not Za.is_zero) or (not bSymbolic) and Za != 0):
             d += (Za_d := ResistorIEC().right().label(Za_lbl).dot().idot())
         else:
             d += (Za_d := Line().right().dot())
 
         d.push()
-        
         d += Gap().down().label('')
-
         d += (line_down := Line(ls='dotted').left().dot().idot())
-
         cross_line_vec = line_down.end - Za_d.end
+        d += Line(ls='dotted').endpoints(Za_d.end, Za_d.end + 0.25*cross_line_vec)
+        d += Line(ls='dotted').endpoints(Za_d.end + 0.6*cross_line_vec, line_down.end)
 
-        d += Line(ls='dotted').endpoints(Za_d.end, Za_d.end + 0.25*cross_line_vec )
-
-        d += Line(ls='dotted').endpoints(Za_d.end + 0.6*cross_line_vec, line_down.end )
-
-        if( bSymbolic and (not Zb.is_zero) or (not bSymbolic) and Zb != 0 ):
+        if (bSymbolic and (not Zb.is_zero) or (not bSymbolic) and Zb != 0):
             d += (Zb_d := ResistorIEC().label(Zb_lbl).endpoints(Za_d.start, line_down.start).dot())
         else:
             d += (Zb_d := Line().endpoints(Za_d.start, line_down.start).dot())
-            
+
         d.pop()
+        d = dibujar_puerto_salida(d, port_name='')
 
-        d = dibujar_puerto_salida(d, port_name = '' )
-
-
-    if(return_components):
-        return([Za, Zb])
-
+    if return_components:
+        return [Za, Zb]
+    
 def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
     '''
-    Description
-    -----------
-    Draws a parallel non-disipative admitance following Foster synthesis method.
+    Dibuja una red disipativa escalera (RC-RL) a partir de una expansión en 
+    fracciones continuas (Método de Cauer). Dependiendo se especifique `z_exc`
+    o `y_exc` y el tipo de residuos de `ki` se dibujará la red correspondiente.
+    En caso que se trate de redes RC, la forma matemática será:
 
-        YorZ = ki / s +  1 / ( ki_i / s + koo_i * s ) 
-    
+    .. math:: Z_{RC}(s)= \\frac{1}{s.C_1} + \\frac{1}{ \\frac{1}{R_1} + \\frac{1}{ \\frac{1}{s.C_2} + \\cdots } } = 
+         R_1 + \\frac{1}{ s.C_1 + \\frac{1}{ R_2 + \\cdots } } 
+
+    .. math:: Y_{RC}(s)= s.C_1 + \\frac{1}{ R_1 + \\frac{1}{ s.C_2 + \\cdots } } = 
+         \\frac{1}{R_1} + \\frac{1}{ s.C_1 + \\frac{1}{ \\frac{1}{R_2} + \\cdots } } 
+
     Parameters
     ----------
-    ki : symbolic positive real number. The residue value at DC or s->0.
-        
-    koo : symbolic positive real number. The residue value at inf or s->oo.
-        
-    ki : symbolic positive real array of numbers. A list of residue pairs at 
-         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
-         is the ki_i value (capacitor), while the other is the koo_i (inductor)
-         value.
+    ki : lista con expresiones simbólicas
+        Será una lista que contenga los residuos [k0, ki, koo ] como expresiones 
+        simbólicas. Esta lista la provee la función :func:`cauer_RC`. El valor 
+        predeterminado es None. Siendo:
+
+        * k0  : Residuo de la función en DC o :math:`\\sigma \\to 0`.
+        * koo : Residuo de la función en infinito o :math:`\\sigma \\to \\infty`.
+        * ki  : Residuo de la función en :math:`\\sigma_i` o :math:`\\sigma \\to -\\sigma_i`
 
     Returns
     -------
-    The drawing object.
-    
-    Ejemplo
-    -------
+    None
 
-    # Sea la siguiente función de excitación
-    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
-    
-    # Implementaremos Imm mediante Foster
-    ki, koo, ki = tc2.foster(Imm)
-    
-    # Tratamos a nuestra función imitancia como una Z
-    tc2.dibujar_foster_derivacion(ki, koo, ki, y_exc = Imm)
+    Raises
+    ------
+    ValueError
+        Si y_exc y z_exc no son una instancia de sympy.Expr.
+
+    See Also
+    --------
+    :func:`cauer_RC`
+    :func:`foster_zRC2yRC`
+    :func:`dibujar_cauer_LC`
+
+    Examples
+    --------
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Sea la siguiente función de excitación
+    >>> ZRC = (s**2 + 4*s + 3)/(s**2 + 2*s)
+    >>> # Implementaremos FF mediante Cauer 1 o remociones continuas en infinito
+    >>> koo, ZRC_cauer_oo, rem = cauer_RC(ZRC, remover_en_inf=True)
+    >>> # Tratamos a nuestra función inmitancia como una Z
+    >>> dibujar_cauer_RC_RL(koo, z_exc = ZRC_cauer_oo)
+    >>> # Tratamos a nuestra función inmitancia como una Y
+    >>> dibujar_cauer_RC_RL(koo, y_exc = ZRC_cauer_oo)
 
     '''    
-    if y_exc is None and z_exc is None:
-
-        assert('Hay que definir si se trata de una impedancia o admitancia')
+    if not ( isinstance(y_exc , sp.Expr) and isinstance(z_exc , sp.Expr)):
+        raise ValueError("'Hay que definir la función de excitación y_exc o z_exc como una expresión simbólica.'")
 
     if not(ki is None) or len(ki) > 0:
         # si hay algo para dibujar ...
@@ -347,38 +394,62 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
     '''
     Description
     -----------
-    Draws a parallel non-disipative admitance following Foster synthesis method.
+    Dibuja una red disipativa escalera no disipativa a partir de una expansión en 
+    fracciones continuas (Método de Cauer). Dependiendo se especifique `z_exc`
+    o `y_exc` y el tipo de residuos de `ki` se dibujará la red correspondiente.
+    La forma matemática será:
 
-        YorZ = ki / s +  1 / ( ki_i / s + koo_i * s ) 
-    
+    .. math:: Z(s)= \\frac{1}{s.C_1} + \\frac{1}{ \\frac{1}{s.L_1} + \\frac{1}{ \\frac{1}{s.C_2} + \\cdots } } = 
+             s.L_1 + \\frac{1}{ s.C_1 + \\frac{1}{ s.L_2 + \\cdots } } 
+
+    .. math:: Y(s)= \\frac{1}{s.L_1} + \\frac{1}{ \\frac{1}{s.C_1} + \\frac{1}{ \\frac{1}{s.L_2} + \\cdots } } = 
+             s.C_1 + \\frac{1}{ s.L_1 + \\frac{1}{ s.C_2 + \\cdots } }  
+
     Parameters
     ----------
-    ki : symbolic positive real number. The residue value at DC or s->0.
-        
-    koo : symbolic positive real number. The residue value at inf or s->oo.
-        
-    ki : symbolic positive real array of numbers. A list of residue pairs at 
-         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
-         is the ki_i value (capacitor), while the other is the koo_i (inductor)
-         value.
+    ki : lista con expresiones simbólicas
+        Será una lista que contenga los residuos [k0, ki, koo ] como expresiones 
+        simbólicas. Esta lista la provee la función :func:`cauer`. 
+        El valor predeterminado es None. Siendo:
+
+        * k0  : Residuo de la función en DC o :math:`s \\to 0`.
+        * koo : Residuo de la función en infinito o :math:`s \\to \\infty`.
+        * ki  : Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`
+    
 
     Returns
     -------
-    The drawing object.
-    
-    Ejemplo
-    -------
+    None
 
-    # Sea la siguiente función de excitación
-    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
-    
-    # Implementaremos Imm mediante Foster
-    ki, koo, ki = tc2.foster(Imm)
-    
-    # Tratamos a nuestra función imitancia como una Z
-    tc2.dibujar_foster_derivacion(ki, koo, ki, y_exc = Imm)
+    Raises
+    ------
+    ValueError
+        Si y_exc y z_exc no son una instancia de sympy.Expr.
 
+    See Also
+    --------
+    :func:`cauer_RC`
+    :func:`foster_zRC2yRC`
+    :func:`dibujar_cauer_LC`
+
+    
+    Examples
+    --------
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Sea la siguiente función de excitación
+    >>> FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    >>> # Implementaremos FF mediante Cauer 1 o remociones continuas en infinito
+    >>> koo, F_cauer_oo, rem = cauer_LC(FF, remover_en_inf=True)
+    >>> print_latex(a_equal_b_latex_s(a_equal_b_latex_s('F(s)', FF)[1:-1], F_cauer_oo ))
+    >>> # Tratamos a nuestra función inmitancia como una Z
+    >>> dibujar_cauer_LC(koo, z_exc = F_cauer_oo)
+    >>> # Tratamos a nuestra función inmitancia como una Y
+    >>> dibujar_cauer_LC(koo, y_exc = F_cauer_oo)
     '''    
+    if not ( isinstance(y_exc , sp.Expr) and isinstance(z_exc , sp.Expr)):
+        raise ValueError("'Hay que definir la función de excitación y_exc o z_exc como una expresión simbólica.'")
+
+    
     if y_exc is None and z_exc is None:
 
         assert('Hay que definir si se trata de una impedancia o admitancia')
