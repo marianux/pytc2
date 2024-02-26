@@ -303,6 +303,14 @@ def S2Tabcd_s(Spar, Z0=sp.Rational('1')):
         Si Spar no tiene el formato correcto [ [S11, S12], [S21, S22] ].
         Si Spar[1, 0] es nulo.
 
+
+    See Also
+    --------
+    :func:`Tabcd2S_s`
+    :func:`Y2Tabcd_s`
+    :func:`Model_conversion`
+
+
     Examples
     --------
     >>> Spar = sp.Matrix([[sp.symbols('S11'), sp.symbols('S12')],
@@ -1301,6 +1309,19 @@ def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=sp.Rational('1')):
     :func:`TabcdLZY`
 
 
+    Examples
+    --------
+    >>> Zexc = sp.symbols('Yexc')
+    >>> Y01 = sp.symbols('Y01')
+    >>> Y02 = sp.symbols('Y02')
+    >>> SparY = SparZ_s(Yexc, Y01, Y02)
+    >>> print(SparY)
+    Matrix([[Zexc, 2*Z01], [2*Z01, Zexc]])
+
+    Notes
+    -----
+    - Esta función está diseñada para trabajar con admitancias simbólicas utilizando el módulo SymPy.
+
     '''
     # Verificar si Yexc, Y01 y Y02 son instancias de Symbolic
     if not isinstance(Yexc, sp.Symbol):
@@ -1444,6 +1465,13 @@ def TabcdZ_s(Zexc):
     ------
     ValueError
         Si Zexc no es una instancia de Symbolic.
+
+
+    See Also
+    --------
+    :func:`SparZ_s`
+    :func:`TabcdLYZ_s`
+    :func:`TabcdY_s`
 
     '''
     # Verificar si Zexc es una instancia de Symbolic
