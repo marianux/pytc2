@@ -392,8 +392,6 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
 
 def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
     '''
-    Description
-    -----------
     Dibuja una red disipativa escalera no disipativa a partir de una expansión en 
     fracciones continuas (Método de Cauer). Dependiendo se especifique `z_exc`
     o `y_exc` y el tipo de residuos de `ki` se dibujará la red correspondiente.
@@ -404,6 +402,7 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
 
     .. math:: Y(s)= \\frac{1}{s.L_1} + \\frac{1}{ \\frac{1}{s.C_1} + \\frac{1}{ \\frac{1}{s.L_2} + \\cdots } } = 
              s.C_1 + \\frac{1}{ s.L_1 + \\frac{1}{ s.C_2 + \\cdots } }  
+
 
     Parameters
     ----------
@@ -421,10 +420,12 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
     -------
     None
 
+
     Raises
     ------
     ValueError
         Si y_exc y z_exc no son una instancia de sympy.Expr.
+
 
     See Also
     --------
@@ -446,7 +447,7 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
     >>> # Tratamos a nuestra función inmitancia como una Y
     >>> dibujar_cauer_LC(koo, y_exc = F_cauer_oo)
     '''    
-    if not ( isinstance(y_exc , sp.Expr) and isinstance(z_exc , sp.Expr)):
+    if not ( isinstance(y_exc , sp.Expr) or isinstance(z_exc , sp.Expr)):
         raise ValueError("'Hay que definir la función de excitación y_exc o z_exc como una expresión simbólica.'")
 
     
@@ -536,42 +537,72 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
 
 def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc = None):
     '''
-    Description
-    -----------
-    Draws a parallel non-disipative admitance following Foster synthesis method.
+    Dibuja una red no disipativa a partir de una expansión en fracciones simples 
+    (Método de Foster). La forma matemática es:
 
-        Y = k0 / s + koo * s +  1 / ( k0_i / s + koo_i * s ) 
-    
+    .. math:: Y(s)= \\frac{k_0}{s} + k_\\infty.s + \\sum_{i=1}^N\\frac{2.k_i.s}{s^2+\\omega_i^2}  
+
+    Esta función provee una interpretación circuital al resultado de la función 
+    :func:`foster`.
+
+
     Parameters
     ----------
-    k0 : symbolic positive real number. The residue value at DC or s->0.
-        
-    koo : symbolic positive real number. The residue value at inf or s->oo.
-        
-    ki : symbolic positive real array of numbers. A list of residue pairs at 
-         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
-         is the k0_i value (capacitor), while the other is the koo_i (inductor)
-         value.
+    k0:  simbólica, opcional
+        Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es None.
+    koo:  simbólica, opcional
+        Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es None.
+    ki:  simbólica, opcional
+        Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es None.
+    kk:  simbólica, opcional
+        Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es None.
+    
 
     Returns
     -------
-    The drawing object.
-    
-    Ejemplo
-    -------
+    None
 
-    # Sea la siguiente función de excitación
-    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    Raises
+    ------
+    ValueError
+        Si cualquiera de los argumentos no son una instancia de sympy.Expr.
+
+
+    See Also
+    --------
+    :func:`foster`
+    :func:`foster_zRC2yRC`
+    :func:`dibujar_foster_serie`
+
     
-    # Implementaremos Imm mediante Foster
-    k0, koo, ki = tc2.foster(Imm)
-    
-    # Tratamos a nuestra función imitancia como una Z
-    tc2.dibujar_foster_derivacion(k0, koo, ki, y_exc = Imm)
+    Examples
+    --------
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Sea la siguiente función de excitación
+    >>> FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    >>> # Se expande FF a la Foster
+    >>> k0, koo, ki_wi, _, FF_foster = foster(FF)
+    >>> # Tratamos a nuestra función imitancia como una Z
+    >>> dibujar_foster_derivacion(k0, koo, ki_wi, y_exc = FF)
 
     '''    
 
     if not(k0 is None and koo is None and ki is None and kk is None):
+        
+        if not isinstance(y_exc , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
+        
+        if not isinstance(k0 , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación k0 como una expresión simbólica.')
+        
+        if not isinstance(koo , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación koo como una expresión simbólica.')
+        
+        if not isinstance(ki , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación ki como una expresión simbólica.')
+        
+        if not isinstance(kk , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
         
         if kk is None:
             bDisipativo = False
@@ -654,43 +685,73 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
 
 def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = None):
     '''
-    Description
-    -----------
-    Draws a series non-disipative impedance following Foster synthesis method.
+    Dibuja una red no disipativa a partir de una expansión en fracciones simples 
+    (Método de Foster). La forma matemática es:
 
-        Z = k0 / s + koo * s +  1 / ( k0_i / s + koo_i * s ) 
-    
+    .. math:: Z(s)= \\frac{k_0}{s} + k_\\infty.s + \\sum_{i=1}^N\\frac{2.k_i.s}{s^2+\\omega_i^2}  
+
+    Esta función provee una interpretación circuital al resultado de la función 
+    :func:`foster`.
+
+
     Parameters
     ----------
-    k0 : symbolic positive real number. The residue value at DC or s->0.
-        
-    koo : symbolic positive real number. The residue value at inf or s->oo.
-        
-    ki : symbolic positive real array of numbers. A list of residue pairs at 
-         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
-         is the k0_i value (inductor), while the other is the koo_i (capacitor)
-         value.
+    k0:  simbólica, opcional
+        Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es None.
+    koo:  simbólica, opcional
+        Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es None.
+    ki:  simbólica, opcional
+        Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es None.
+    kk:  simbólica, opcional
+        Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es None.
+    
 
     Returns
     -------
-    The drawing object.
-    
-    Ejemplo
-    -------
+    None
 
-    # Sea la siguiente función de excitación
-    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
-    
-    # Implementaremos Imm mediante Foster
-    k0, koo, ki = tc2.foster(Imm)
-    
-    # Tratamos a nuestra función imitancia como una Z
-    tc2.dibujar_foster_serie(k0, koo, ki, z_exc = Imm)
 
+    Raises
+    ------
+    ValueError
+        Si cualquiera de los argumentos no son una instancia de sympy.Expr.
+
+
+    See Also
+    --------
+    :func:`foster`
+    :func:`foster_zRC2yRC`
+    :func:`dibujar_foster_serie`
+
+    
+    Examples
+    --------
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Sea la siguiente función de excitación
+    >>> FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    >>> # Se expande FF a la Foster
+    >>> k0, koo, ki_wi, _, FF_foster = foster(FF)
+    >>> # Tratamos a nuestra función imitancia como una Z
+    >>> dibujar_foster_serie(k0, koo, ki_wi, z_exc = FF)
+    
     '''    
 
     if not(k0 is None and koo is None and ki is None and kk is None):
         
+        if not isinstance(z_exc , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
+        
+        if not isinstance(k0 , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación k0 como una expresión simbólica.')
+        
+        if not isinstance(koo , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación koo como una expresión simbólica.')
+        
+        if not isinstance(ki , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación ki como una expresión simbólica.')
+        
+        if not isinstance(kk , sp.Expr):
+            raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
         
         if kk is None:
             bDisipativo = False
@@ -757,34 +818,65 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
 
 def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl = None):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un puerto de entrada a una red eléctrica diagramada mediante 
+    :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    port_name:  string, opcional
+        Nombre del puerto. El valor predeterminado es None.
+    voltage_lbl:  string, opcional
+        Etiqueta o nombre para la tensión del puerto. El valor predeterminado es None.
+    current_lbl:  string, opcional
+        Etiqueta o nombre para la corrientedel puerto. El valor predeterminado es None.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_abajo`
+    :func:`dibujar_elemento_serie`
+    :func:`dibujar_puerto_salida`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
     
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
     d += Dot(open=True)
     
-    if voltage_lbl is None:
+    if isinstance(voltage_lbl , str):
+        d += Gap().down().label( voltage_lbl, fontsize=16)
+    elif voltage_lbl is None:
         d += Gap().down().label( '' )
     else:
-        d += Gap().down().label( voltage_lbl, fontsize=16)
+        raise ValueError('El argumento voltage_lbl debe ser un string u omitirse.')
     
     d.push()
 
-    if not(port_name is None):
+    if isinstance(port_name , str):
         d += Gap().left().label( '' ).length(d.unit*.35)
         d += Gap().up().label( port_name, fontsize=22)
         d.pop()
@@ -794,11 +886,11 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
     d += Gap().up().label( '' )
     d.push()
     
-    if current_lbl is None:
-        d += Line().left().length(d.unit*.5)
-    else:
+    if isinstance(port_name , str):
         d += Line().left().length(d.unit*.25)
         d += Arrow(reverse=True).left().label( current_lbl, fontsize=16).length(d.unit*.25)
+    else:
+        d += Line().left().length(d.unit*.5)
     
     d.pop()
 
@@ -806,40 +898,73 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
 
 def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl = None):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un puerto de salida a una red eléctrica diagramada mediante 
+    :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    port_name:  string, opcional
+        Nombre del puerto. El valor predeterminado es None.
+    voltage_lbl:  string, opcional
+        Etiqueta o nombre para la tensión del puerto. El valor predeterminado es None.
+    current_lbl:  string, opcional
+        Etiqueta o nombre para la corrientedel puerto. El valor predeterminado es None.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_abajo`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_puerto_entrada`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
     
-    if current_lbl is None:
-        d += Line().right().length(d.unit*.5)
-    else:
+    if isinstance(current_lbl , str):
         d += Line().right().length(d.unit*.25)
         d += Arrow(reverse=True).right().label( current_lbl, fontsize=16).length(d.unit*.25)
+    elif current_lbl is None:
+        d += Line().right().length(d.unit*.5)
+    else:
+        raise ValueError('El argumento current_lbl debe ser un string u omitirse.')
     
     d += Dot(open=True)
     
     d.push()
 
-    if voltage_lbl is None:
+
+    if isinstance(voltage_lbl , str):
+        d += Gap().down().label( voltage_lbl, fontsize=16)
+    elif voltage_lbl is None:
         d += Gap().down().label( '' )
     else:
-        d += Gap().down().label( voltage_lbl, fontsize=16)
+        raise ValueError('El argumento voltage_lbl debe ser un string u omitirse.')
 
-
-    if not(port_name is None):
+    if isinstance(port_name , str):
         d.push()
         d += Gap().right().label( '' ).length(d.unit*.35)
         d += Gap().up().label( port_name, fontsize=22)
@@ -854,20 +979,41 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
 
 def dibujar_espaciador( d ):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un espacio horizontal en un esquema dibujado mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_abajo`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_puerto_entrada`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -886,20 +1032,60 @@ def dibujar_espaciador( d ):
 
 def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_salida  = False, hacia_entrada  = False ):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja una ecuación correspondiente a la función de excitación definida en 
+    un dipolo de una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    func_label:  string
+        Etiqueta o nombre de la función de excitación.
+    sym_func:  string, np.floating, symbolic expr.
+        Un valor o expresión simbólica de la función `func_label` a indicar.
+    k_gap_width:  np.floating, opcional
+        Anchura del espacio destinado para la expresión proporcional a la escala del esquemático.
+        El valor predeterminado es `0.5*d.unit`.
+    hacia_salida:  boolean, opcional
+        Booleano para indicar si la función se mide hacia la salida. El valor predeterminado es False.
+    hacia_entrada:  string, opcional
+        Booleano para indicar si la función se mide hacia la entrada. El valor predeterminado es False.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    lbl: schemdraw.label
+        Handle a la etiqueta visualizado.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_arriba`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RC_serie`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d, _ = dibujar_funcion_exc_abajo(d, 
+    >>>                                  'Y',  
+    >>>                                  y_exc, 
+    >>>                                  hacia_salida = True)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -913,7 +1099,7 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     
     if isinstance(sym_func, sp.Basic ):
         sym_func = '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $'
-    elif isinstance(sym_func, np.number):
+    elif isinstance(sym_func, np.floating):
         sym_func =  '$ ' + func_label + ' = ' + '{:3.3f}'.format(sym_func) + ' $'
     elif isinstance(sym_func, str):
         sym_func = '$ ' + func_label + ' = ' +  sym_func + ' $'
@@ -946,20 +1132,60 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
 
 def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_salida = False, hacia_entrada = False ):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja una ecuación correspondiente a la función de excitación definida en 
+    un dipolo de una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    func_label:  string
+        Etiqueta o nombre de la función de excitación.
+    sym_func:  string, np.floating, symbolic expr.
+        Un valor o expresión simbólica de la función `func_label` a indicar.
+    k_gap_width:  np.floating, opcional
+        Anchura del espacio destinado para la expresión proporcional a la escala del esquemático.
+        El valor predeterminado es `0.5*d.unit`.
+    hacia_salida:  boolean, opcional
+        Booleano para indicar si la función se mide hacia la salida. El valor predeterminado es False.
+    hacia_entrada:  string, opcional
+        Booleano para indicar si la función se mide hacia la entrada. El valor predeterminado es False.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    lbl: schemdraw.label
+        Handle a la etiqueta visualizado.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_arriba`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RC_serie`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d, _ = dibujar_funcion_exc_arriba(d, 
+    >>>                                  'Y',  
+    >>>                                  y_exc, 
+    >>>                                  hacia_salida = True)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
@@ -1007,20 +1233,52 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
 
 def dibujar_elemento_serie(d, elemento, sym_label=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un elemento en serie para una red eléctrica diagramada mediante 
+    :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    elemento:  schemdraw.elements
+        Un elemento a dibujar implementado en :mod:`schemdraw`. Ej. Resistor, 
+        ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow.
+    sym_label:  string, np.floating, symbolic expr.
+        Un valor o expresión simbólica del elemento a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_arriba`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RC_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d, _ = dibujar_funcion_exc_arriba(d, 
+    >>>                                  'Y',  
+    >>>                                  y_exc, 
+    >>>                                  hacia_salida = True)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -1045,20 +1303,49 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
 
 def dibujar_espacio_derivacion(d):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un espacio enb una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_cierre`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RC_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d, _ = dibujar_funcion_exc_arriba(d, 
+    >>>                                  'Y',  
+    >>>                                  y_exc, 
+    >>>                                  hacia_salida = True)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
@@ -1073,20 +1360,49 @@ def dibujar_espacio_derivacion(d):
         
 def dibujar_cierre(d):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un cierre entre el conductor superior e inferior en una red eléctrica 
+    diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_espacio_derivacion`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RC_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d, _ = dibujar_funcion_exc_arriba(d, 
+    >>>                                  'Y',  
+    >>>                                  y_exc, 
+    >>>                                  hacia_salida = True)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_cierre(d)
+    
+    '''    
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
@@ -1101,20 +1417,52 @@ def dibujar_cierre(d):
 
 def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un elemento en derivación para una red eléctrica diagramada mediante 
+    :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    elemento:  schemdraw.elements
+        Un elemento a dibujar implementado en :mod:`schemdraw`. Ej. Resistor, 
+        ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow.
+    sym_label:  string, np.floating, symbolic expr.
+        Un valor o expresión simbólica del elemento a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_arriba`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RC_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d, _ = dibujar_funcion_exc_arriba(d, 
+    >>>                                  'Y',  
+    >>>                                  y_exc, 
+    >>>                                  hacia_salida = True)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
     
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -1138,20 +1486,47 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
 
 def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un tanque RC (resistor y capacitor en paralelo) conectado en serie 
+    a una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    sym_R_label:  string o symbolic expr.
+        Un valor o expresión simbólica del resistor a dibujar.
+    capacitor_lbl:  string o symbolic expr.
+        Un valor o expresión simbólica del capacitor a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_arriba`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RC_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_tanque_RC_serie(d, "R_a", "C_a")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
     
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -1183,20 +1558,47 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
 
 def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un tanque RC (resistor y capacitor en serie) conectado en derivación
+    a una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    sym_R_label:  string o symbolic expr.
+        Un valor o expresión simbólica del resistor a dibujar.
+    capacitor_lbl:  string o symbolic expr.
+        Un valor o expresión simbólica del capacitor a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_tanque_RC_serie`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_funcion_exc_arriba`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_tanque_RC_derivacion(d, "R_b", "C_b")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -1222,20 +1624,47 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
 
 def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un tanque RL (resistor e inductor en paralelo) conectado en serie 
+    a una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    sym_R_label:  string o symbolic expr.
+        Un valor o expresión simbólica del resistor a dibujar.
+    sym_ind_label:  string o symbolic expr.
+        Un valor o expresión simbólica del inductor a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_arriba`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RL_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_tanque_RL_serie(d, "R_a", "L_a")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -1267,20 +1696,47 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
 
 def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un tanque RL (resistor e inductor en serie) conectado en derivación
+    a una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    sym_R_label:  string o symbolic expr.
+        Un valor o expresión simbólica del resistor a dibujar.
+    sym_ind_label:  string o symbolic expr.
+        Un valor o expresión simbólica del inductor a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_tanque_RL_serie`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_funcion_exc_arriba`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_tanque_RL_derivacion(d, "R_b", "L_b")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -1306,20 +1762,47 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
 
 def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un tanque LC (inductor y capacitor en paralelo) conectado en serie 
+    a una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    sym_ind_label:  string o symbolic expr.
+        Un valor o expresión simbólica del inductor a dibujar.
+    sym_cap_label:  string o symbolic expr.
+        Un valor o expresión simbólica del capacitor a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_funcion_exc_arriba`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RL_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_tanque_serie(d, "L_a", "C_a")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
@@ -1351,20 +1834,47 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
 
 def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Dibuja un tanque LC (inductor y capacitor en serie) conectado en derivación
+    a una red eléctrica diagramada mediante :mod:`schemdraw`.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
+    sym_ind_label:  string o symbolic expr.
+        Un valor o expresión simbólica del inductor a dibujar.
+    capacitor_lbl:  string o symbolic expr.
+        Un valor o expresión simbólica del capacitor a dibujar.
+    
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    d:  schemdraw.Drawing
+        Objeto Drawing del módulo :mod:`schemdraw`.
 
-    '''
+
+    Raises
+    ------
+    None
+
+    See Also
+    --------
+    :func:`dibujar_tanque_serie`
+    :func:`dibujar_elemento_derivacion`
+    :func:`dibujar_tanque_RL_derivacion`
+
+    
+    Examples
+    --------
+    >>> d = Drawing(unit=4)
+    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_tanque_serie(d, "L_a", "C_a")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_puerto_salida(d, port_name='')
+    
+    '''    
 
     if not isinstance(d, Drawing):
         d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads

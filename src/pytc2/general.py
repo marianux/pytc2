@@ -209,7 +209,7 @@ def a_equal_b_latex_s(a, b):
     ----------
     a : Symbolic or str
         Símbolo o cadena para el lado izquierdo de la igualdad.
-    b : Symbolic or str
+    b : Symbolic, str o lista de ambas
         Símbolo o cadena para el lado derecho de la igualdad.
 
     Returns
@@ -238,7 +238,7 @@ def a_equal_b_latex_s(a, b):
 
     '''
 
-    if not (isinstance(a, (sp.Expr, str)) and isinstance(b, sp.Expr)):
+    if not (isinstance(a, (sp.Expr, str)) and isinstance(b, (list, sp.Expr))):
         raise TypeError("a debe ser un símbolo o una cadena y b debe ser un símbolo.")
     
     a_str = sp.latex(a) if isinstance(a, sp.Basic) else a
