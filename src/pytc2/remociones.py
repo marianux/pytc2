@@ -9,6 +9,7 @@ Created on Thu Mar  2 14:12:53 2023
 import numpy as np
 
 import sympy as sp
+from numbers import Real
 
 ##########################################
 #%% Variables para el análisis simbólico #
@@ -16,11 +17,20 @@ import sympy as sp
 
 from .general import s, a_equal_b_latex_s, print_latex, print_console_alert
 
-# versión simbólica de sigma
-sig = sp.symbols('sig', real=True)
 
-# versión simbólica de sigma positivo
+sig = sp.symbols('sig', real=True)
+"""
+# versión simbólica de sigma, parte real de la variable compleja de Laplace
+# s = σ + j.ω
+# En caso de necesitar usarla, importar el símbolo desde este módulo.
+"""
+
 sig_pos = sp.symbols('sig_pos', real=True, positive = True)
+"""
+# versión simbólica de sigma, parte real positiva de la variable compleja 
+# de Laplace s = σ + j.ω
+# En caso de necesitar usarla, importar el símbolo desde este módulo.
+"""
 
 
 ##########################################
@@ -31,11 +41,16 @@ sig_pos = sp.symbols('sig_pos', real=True, positive = True)
 def tanque_z( doska, omegasq ):
     '''
     Calcula los valores de L y C que componen un tanque resonante LC 
-    (tanque Z), a partir del valor del residuo ($ k $) y la omega al cuadrado 
-    ($ \omega^2 $) de la expresión de impedancia dada por:
+    (tanque Z), a partir del valor del residuo (:math:`2.k`) y la omega al cuadrado 
+    (:math:`\\omega^2`) de la expresión de impedancia dada por:
         
-        $$ Z_{LC} = \frac{2.k.s}{(s^2+\omega^2)} $$
+    .. math:: Z_{LC} = \\frac{2.k_i.s}{(s^2+\\omega^2_i)} = \\frac{1}{(s.\\frac{1}{2.k_i} + \\frac{1}{s \\frac{2.k_i}{\\omega^2_i} })}
 
+    .. math:: C = \\frac{1}{2.k_i}
+        
+    .. math:: L = \\frac{2.k_i}{\\omega^2_i}
+
+        
     Parameters
     ----------
     doska : Symbolic
@@ -43,24 +58,63 @@ def tanque_z( doska, omegasq ):
     omegasq : Symbolic
         Cuadrado de la omega a la que el tanque resuena.
 
+
     Returns
     -------
     L : Symbolic
-        Valor de la admitancia
+        Valor del inductor
     C : Symbolic
-        Valor de la capacidad
+        Valor del capacitor
+
+
+    Raises
+    ------
+    ValueError
+        Si doska u omegasq no son una instancia de sympy.Expr.
+
+
+    See Also
+    --------
+    :func:`tanque_y`
+    :func:`trim_func_s`
+    :func:`isFRP`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import tanque_z
+    >>> k, o = sp.symbols('k, o')
+    >>> # Sea la siguiente función de excitación
+    >>> L, C = tanque_z( k, o )
+    >>> print_latex(a_equal_b_latex_s(sp.symbols('L'), L))
+    [LaTex formated equation] '$L=\\frac{k}{o}$'
+    >>> print_latex(a_equal_b_latex_s(sp.symbols('C'), C))
+    [LaTex formated equation] '$C=\\frac{1}{k}$'
 
     '''
     
-    return( [doska/omegasq, 1/doska] )
+    if not ( isinstance(doska , sp.Expr) or isinstance(omegasq , sp.Expr)):
+        raise ValueError('Hay que definir doska y omegasq como expresiones simbólicas.')
+    
+    L = doska/omegasq
+    C = 1/doska
+    
+    return( (L, C) )
 
 def tanque_y( doska, omegasq ):
     '''
     Calcula los valores de L y C que componen un tanque resonante LC 
-    (tanque Z), a partir del valor del residuo ($ k $) y la omega al cuadrado 
-    ($ \omega^2 $) de la expresión de impedancia dada por:
+    (tanque Y), a partir del valor del residuo (:math:`2.k`) y la omega al cuadrado 
+    (:math:`\\omega^2`) de la expresión de admitancia dada por:
         
-        $$ Y_{LC} = \frac{2.k.s}{(s^2+\omega^2)} $$
+    .. math:: Y_{LC} = \\frac{2.k_i.s}{(s^2+\\omega^2_i)} = \\frac{1}{(s.\\frac{1}{2.k_i} + \\frac{1}{s \\frac{2.k_i}{\\omega^2_i} })}
+
+    .. math:: L = \\frac{1}{2.k_i}
+        
+    .. math:: C = \\frac{2.k_i}{\\omega^2_i}
+
 
     Parameters
     ----------
@@ -69,35 +123,102 @@ def tanque_y( doska, omegasq ):
     omegasq : Symbolic
         Cuadrado de la omega a la que el tanque resuena.
 
+
     Returns
     -------
     L : Symbolic
-        Valor de la admitancia
+        Valor del inductor
     C : Symbolic
-        Valor de la capacidad
+        Valor del capacitor
+
+
+    Raises
+    ------
+    ValueError
+        Si doska u omegasq no son una instancia de sympy.Expr.
+
+
+    See Also
+    --------
+    :func:`tanque_z`
+    :func:`trim_func_s`
+    :func:`isFRP`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import tanque_y
+    >>> k, o = sp.symbols('k, o')
+    >>> # Sea la siguiente función de excitación
+    >>> L, C = tanque_y( k, o )
+    >>> print_latex(a_equal_b_latex_s(sp.symbols('L'), L))
+    [LaTex formated equation] '$C=\\frac{1}{k}$'
+    >>> print_latex(a_equal_b_latex_s(sp.symbols('C'), C))
+    [LaTex formated equation] '$L=\\frac{k}{o}$'
+
 
     '''
     
-    return( [1/doska, doska/omegasq] )
+    if not ( isinstance(doska , sp.Expr) or isinstance(omegasq , sp.Expr)):
+        raise ValueError('Hay que definir doska y omegasq como expresiones simbólicas.')
+    
+    C = doska/omegasq
+    L = 1/doska
+    
+    return( (L, C) )
 
 
 
 def trim_poly_s( this_poly, tol = 10**-6 ):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Descarta los coeficientes de un polinomio *this_poly* cuyos valores estén por debajo de 
+    *tol*.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    this_poly : Symbolic polynomial
+        Expresión simbólica del polinomio a ajustar.
+    tol : float
+        Mínimo valor permitido para un coeficiente.
+
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    poly_acc : Symbolic
+        Polinomio ajustado.
+
+
+    Raises
+    ------
+    ValueError
+        Si this_poly no es una instancia de sympy.Expr polinomial.
+        Si tol no es un flotante.
+
+
+    See Also
+    --------
+    :func:`trim_func_s`
+    :func:`modsq2mod_s`
+    :func:`isFRP`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s
+    >>> from pytc2.remociones import trim_poly_s
+    >>> this_poly = sp.poly( 1e-10*s**3 + 2*s**2 + s + 1 , s)
+    >>> trim_poly = trim_poly_s( this_poly )
+    >>> print(trim_poly)
+    2.0*s**2 + 1.0*s + 1.0
+
 
     '''
+    if not ( isinstance(this_poly , sp.polys.polytools.Poly) or isinstance(tol, Real)):
+        raise ValueError('Hay que definir this_poly como polinomio simbólico y tol como un flotante.')
 
     all_terms = this_poly.as_poly(s).all_terms()
     
@@ -114,20 +235,52 @@ def trim_poly_s( this_poly, tol = 10**-6 ):
 
 def trim_func_s( rat_func, tol = 10**-6 ):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Descarta los coeficientes de una función racional *rat_func* cuyos valores estén por debajo de 
+    *tol*.
+    
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    rat_func : Symbolic expresion
+        Expresión simbólica de la función racional a ajustar.
+    tol : float
+        Mínimo valor permitido para un coeficiente.
+
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    trim_func : Symbolic
+        Función racional ajustada.
+
+
+    Raises
+    ------
+    ValueError
+        Si rat_func no es una instancia de sympy.Expr.
+        Si tol no es un flotante.
+
+
+    See Also
+    --------
+    :func:`trim_poly_s`
+    :func:`isFRP`
+    :func:`trim_poly_s`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s
+    >>> from pytc2.remociones import trim_func_s
+    >>> rat_func = ( 1e-10*s**3 + 2*s**2 + s + 1)/( 4.3e-10*s**2 + 2*s + 5)
+    >>> trim_func = trim_func_s( rat_func )
+    >>> print(trim_func)
+    (2.0*s**2 + 1.0*s + 1.0)/(2.0*s + 5.0)
+
 
     '''
+    if not ( isinstance(rat_func , sp.Expr) or isinstance(tol, Real)):
+        raise ValueError('Hay que definir this_poly como una expresión simbólica y tol como un flotante.')
 
     num, den = rat_func.as_numer_denom()
     
@@ -136,24 +289,60 @@ def trim_func_s( rat_func, tol = 10**-6 ):
     
     return(num/den)
 
-def modsq2mod_s( aa ):
+def modsq2mod_s( this_func ):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Esta función halla una función de variable compleja T(s), cuyo módulo se 
+    expresa como la factorización:
+        
+    .. math:: \\vert T(j\\omega) \\vert^2 = T(j\\omega).T(-j\\omega)
+    
+    .. math:: T(s) = T(j\\omega)\\Big\\vert_{\\omega = s/j}
+    
+    Es decir que de todas la singularidades presentes en :math:`\\vert T(j\\omega) \\vert^2`, 
+    el factor :math:`T(s)` sólo contendrá aquellas que se encuentren en el semiplano izquierdo.
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    this_func : Symbolic expresion
+        Expresión simbólica de la función :math:`\\vert T(j\\omega) \\vert^2` a factorizar.
+
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    trim_func : Symbolic
+        Función :math:`T(s)` factorizada.
+
+
+    Raises
+    ------
+    ValueError
+        Si this_func no es una instancia de sympy.Expr.
+
+
+    See Also
+    --------
+    :func:`isFRP`
+    :func:`trim_func_s`
+    :func:`trim_poly_s`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s
+    >>> from pytc2.remociones import modsq2mod_s
+    >>> this_func = (  s**4 + 6*s**2 + 9)/( s**4 - 2*s**2 + 1)
+    >>> factor_func = modsq2mod_s( this_func )
+    >>> print(factor_func)
+    (s**2 + 3)/(s**2 + 2*s + 1)
 
     '''
+    # TODO: todavía la función no funciona correctamente. Probar el ejemplo.
+            
+    if not isinstance(this_func , sp.Expr):
+        raise ValueError('Hay que definir this_func como una expresión simbólica.')
 
-    num, den = sp.fraction(aa)
+    num, den = sp.fraction(this_func)
 
     k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
     
@@ -220,31 +409,6 @@ def modsq2mod_s( aa ):
     return(sp.simplify(sp.expand(sp.sqrt(k) * num/den))) 
 
 
-def modsq2mod( aa ):
-    '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
-
-    Parameters
-    ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
-
-    Returns
-    -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
-
-    '''
-    
-    rr = np.roots(aa)
-    bb = rr[np.real(rr) == 0]
-    bb = bb[ :(bb.size//2)]
-    bb = np.concatenate( [bb, rr[np.real(rr) < 0]])
-    
-    return np.flip(np.real(np.polynomial.polynomial.polyfromroots(bb)))
-
-
 ################################################################
 #%% Bloque de funciones para la síntesis gráfica de imitancias #
 ################################################################
@@ -252,32 +416,51 @@ def modsq2mod( aa ):
 
 def isFRP( Imm ):
     '''
-    Description
-    -----------
-    Check if Imm is a function is positive real function (FRP).
+    Chequear si la expresión simbólica Imm es una Función Real y Positiva (FRP).
+
 
     Parameters
     ----------
     Imm : symbolic rational function
-        La inmitancia a checkear.
+        La inmitancia a chequear si es FRP.
+
 
     Returns
     -------
-    A boolean with TRUE value if ff is FRP.
+    isFRP : boolean
+        A boolean with TRUE value if ff is FRP.
 
-    Ejemplo
-    -------
-    
-    # Sea la siguiente función de excitación
-    Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)
-    
-    # Implementaremos Imm mediante Cauer 1 o remociones continuas en infinito
-    if isFRP( ff ):
-        print('Es FRP')
-    else:
-        print('No es FRP, revisar!')
+
+    Raises
+    ------
+    ValueError
+        Si this_func no es una instancia de sympy.Expr.
+
+
+    See Also
+    --------
+    :func:`remover_polo_dc`
+    :func:`remover_polo_infinito`
+    :func:`remover_polo_jw`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s
+    >>> from pytc2.remociones import isFRP
+    >>> Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)
+    >>> print(isFRP( Imm ))
+    True
+    >>> Imm = (s**2 - 4*s + 3)/(s**2 - 2*s)
+    >>> print(isFRP( Imm ))
+    False
+
 
     '''   
+
+    if not isinstance(Imm , sp.Expr):
+        raise ValueError('Hay que definir Imm como una expresión simbólica.')
 
     # F(s) should give real values for all real values of s.
     
@@ -292,12 +475,14 @@ def isFRP( Imm ):
         # num, den = Imm.as_numer_denom()
         
         # if is_hurwitz(num) and is_hurwitz(den):
-            
-            
-
         
-    # If we substitute s = jω then on separating the real and imaginary parts, the real part of the function should be greater than or equal to zero, means it should be non negative. This most important condition and we will frequently use this condition in order to find out the whether the function is positive real or not.
-    # On substituting s = jω, F(s) should posses simple poles and the residues should be real and positive.
+    # If we substitute s = jω then on separating the real and imaginary parts, 
+    # the real part of the function should be greater than or equal to zero, 
+    # means it should be non negative. This most important condition and we will 
+    # frequently use this condition in order to find out the whether the function 
+    # is positive real or not.
+    # On substituting s = jω, F(s) should posses simple poles and the residues 
+    # should be real and positive.
     
     
     
@@ -305,43 +490,107 @@ def isFRP( Imm ):
 
 def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zero = None ):
     '''
-    Se removerá el residuo en sobre el eje $\sigma$ (sigma) de la impedancia (zz) 
-    o admitancia (yy) de forma completa, o parcial en el caso que se especifique una 
-    sigma_i.
-    Como resultado de la remoción, quedará otra función racional definida
+    Se removerá el residuo en sobre el eje :math:`\\sigma` (sigma) de la impedancia 
+    o admitancia (imm) de forma completa o parcial.
+    Como resultado de la remoción total, quedará otra función racional definida
     como:
         
-    $$ Z_{R}= Z - \frac{k_i}{s + \sigma_i} $$
+    .. math:: Z_{R} = Z - \\frac{k_i}{s + \\sigma_i}
     
     siendo 
 
-    $$ k=\lim\limits _{s\to -\sigma_i} Z (s + \sigma_i) $$
+    .. math:: k_i = \\lim\\limits _{s\\to -\\sigma_i} Z (s + \\sigma_i)
     
-    En cuanto se especifique sigma_i, la remoción parcial estará definida 
-    como
+    Cabe destacar que :math:`Z_{R}` ya no tiene un polo en :math:`\\sigma_i`.
+    
+    Sin embargo, en cuanto se especifique :math:`\\sigma_z`, la remoción parcial 
+    estará definida como:
 
-    $$ Z_{R}\biggr\rfloor_{s=-\sigma_i}= 0 = Z - \frac{k_i}{s + \sigma_i}\biggr\rfloor_{s=-\sigma_i} $$
+    .. math:: Z_{R}\\biggr\\rfloor_{s=-\\sigma_z}= 0 = Z - \\frac{k_i}{s + \\sigma_i}\\biggr\\rfloor_{s=-\\sigma_z}
     
     siendo 
     
-    $$ k = Z.(\frac{)s + \sigma_i)\biggr\rfloor_{s=-\sigma_i} $$
+    .. math:: k_i = Z.(s + \\sigma_i)\\biggr\\rfloor_{s=-\\sigma_z}
+    
+    Cabe destacar que, para la remoción parcial, :math:`Z_{R}` tendra un cero en 
+    :math:`\\sigma_z` y un polo en :math:`\\sigma_i`.
     
 
     Parameters
     ----------
-    zz o yy: Symbolic
-        Impedancia o admitancia que se utilizará para la remoción. Es una función racional 
-        simbólica que tendrá un polo de orden 1 en \omega.
-    omega_zero : Symbolic
-        Frecuencia a la que la imitancia será cero luego de la remoción.
+    imm: Symbolic
+        Inmitancia o función que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en :math:`\\sigma_i`.
+    sigma : float
+        Frecuencia :math:`\\sigma_i` a la que la inmitancia deberá tener un polo.
+    isImpedance : bool
+        Booleano que indica si la función imm es una impedancia o admitancia.
+    isRC : bool
+        Booleano que indica si la función imm es RC o RL.
+    sigma_zero : float
+        Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
+        de la remoción.
 
     Returns
     -------
     imit_r : Symbolic
         Imitancia luego de la remoción
-    k : Symbolic
-        Valor del residuo.
+    kk : Symbolic
+        Expresión completa del término removido :math:`\\frac{k_i}{s + \\sigma_i}`.
+    R : Symbolic
+        Valor del componente resistivo en la remoción.
+    CoL : Symbolic
+        Valor del componente capacitivo o inductivo en la remoción.
+    
+        
+    Raises
+    ------
+    ValueError
+        Si Imm no es una instancia de sympy.Expr.
+        Si sigma o sigma_zero no son flotantes.
+        Si isImpedance o isRC no son booleanos.
+
+
+    See Also
+    --------
+    :func:`remover_polo_dc`
+    :func:`remover_polo_infinito`
+    :func:`remover_polo_jw`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import remover_polo_sigma
+    >>> # Sea la siguiente función de excitación
+    >>> ZZ = (s**2 + 13*s + 32)/(2*(s+1)*(s+6))
+    >>> # removemos R1-C1
+    >>> sigma_R1C1 = -1
+    >>> Z4, ZR1C1, R1, C1 = remover_polo_sigma(ZZ, sigma = sigma_R1C1, isImpedance = True, isRC = True )
+    >>> print_latex(a_equal_b_latex_s('Z_3', ZR1C1))
+    '$Z_3=\\frac{2}{s + 1}$'
+    >>> print_latex(a_equal_b_latex_s('Z_4', Z4))
+    '$Z_4=\\frac{s + 8}{2 \\left(s + 6\\right)}$'
+    
+        
     '''
+
+    if not isinstance(imm , sp.Expr):
+        raise ValueError('Hay que definir imm como una expresión simbólica.')
+
+    if not isinstance(sigma , Real):
+        raise ValueError('Sigma debe ser un flotante.')
+
+    if not isinstance(isImpedance, bool):
+        raise ValueError('isImpedance debe ser un booleano.')
+
+    if not isinstance(isRC, bool):
+        raise ValueError('isImpedance debe ser un booleano.')
+
+    if not isinstance(sigma_zero , (Real, type(None))):
+        raise ValueError('sigma_zero debe ser un flotante o None.')
+
 
     if isImpedance:
         zz = imm
@@ -426,43 +675,101 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
 
 def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None ):
     '''
-    Se removerá el residuo en sobre el eje $j.\omega$ (omega) de la imitancia 
-    $I$ (imit) de forma completa, o parcial en el caso que se especifique una 
-    omega_zero.
-    Como resultado de la remoción, quedará otra función racional definida
+    Se removerá el residuo en sobre el eje :math:`j.\\omega` (jota-omega) de la 
+    impedancia o admitancia (imm) de forma completa o parcial.
+    Como resultado de la remoción total, quedará otra función racional definida
     como:
         
-    $$ I_{R}=I-\frac{2.k.s}{s^{2}+\omega^{2}} $$
+    .. math:: I_{R}=I-\\frac{2.k.s}{s^{2}+\\omega^{2}}
     
     siendo 
 
-    $$ k=\lim\limits _{s^2\to-\omega^2}I\frac{2.k.s}{s^{2}+\omega^{2}} $$
+    .. math:: 2.k=\\lim\\limits _{s^2\\to-\\omega^2}I\\frac{s^{2}+\\omega^{2}}{s}
     
-    En cuanto se especifique omega_zero, la remoción parcial estará definida 
-    como
+    Cabe destacar que :math:`I_{R}` ya no tendrá sendos polos complejos conjugados en en :math:`\pm\\omega`.
+    
+    Sin embargo, en cuanto se especifique :math:`\\omega_z`, la remoción parcial 
+    estará definida como:
 
-    $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_{z}^{2}}=0=I-\frac{2.k.s}{s^{2}+\omega^{2}}\biggr\rfloor_{s^{2}=-\omega_{z}^{2}} $$
+    .. math:: I_{R}\\biggr\\rfloor_{s^{2}=-\\omega_{z}^{2}}=0=I-\\frac{2.k^{'}.s}{s^{2}+\\omega^{2}}\\biggr\\rfloor_{s^{2}=-\\omega_{z}^{2}}
     
     siendo 
     
-    $$ 2.k^{'}=I.\frac{s^{2}+\omega^{2}}{s}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    .. math:: 2.k^{'}=I.\\frac{s^{2}+\\omega^{2}}{s}\\biggr\\rfloor_{s^{2}=-\\omega_z^{2}}
+    
+    Cabe destacar que, para la remoción parcial, :math:`I_{R}` tendra sendos ceros en 
+    :math:`\\pm j.\\omega_z` y sendos polos en :math:`\\pm j.\\omega`.
     
 
     Parameters
     ----------
-    imit : Symbolic
-        Imitancia que se utilizará para la remoción. Es una función racional 
-        simbólica que tendrá un polo de orden 1 en \omega.
-    omega_zero : Symbolic
-        Frecuencia a la que la imitancia será cero luego de la remoción.
+    imit: Symbolic
+        Inmitancia o función que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
+    omega : float
+        Frecuencia :math:`\\sigma_i` a la que la inmitancia deberá tener un polo.
+    isImpedance : bool
+        Booleano que indica si la función imm es una impedancia o admitancia.
+    omega_zero : float
+        Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
+        de la remoción.
 
     Returns
     -------
     imit_r : Symbolic
         Imitancia luego de la remoción
-    k_inf : Symbolic
-        Valor del residuo en infinito
+    kk : Symbolic
+        Expresión completa del término removido :math:`\\frac{2.k.s}{s^{2}+\\omega^{2}}`.
+    R : Symbolic
+        Valor del componente resistivo en la remoción.
+    CoL : Symbolic
+        Valor del componente capacitivo o inductivo en la remoción.
+    
+        
+    Raises
+    ------
+    ValueError
+        Si Imm no es una instancia de sympy.Expr.
+        Si sigma o sigma_zero no son flotantes.
+        Si isImpedance o isRC no son booleanos.
+
+
+    See Also
+    --------
+    :func:`remover_polo_dc`
+    :func:`remover_polo_infinito`
+    :func:`remover_polo_sigma`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import remover_polo_jw
+    >>> # Sea la siguiente función de excitación
+    >>> YY = (s * (3*s**2+7) )/((s**2+1)*(s**2+3))
+    >>> # removemos R1-C1
+    >>> omega_L2C2 = 1
+    >>> Y4, Yt2, L2, C2 = remover_polo_jw(YY, isImpedance = False, omega = omega_L2C2 )
+    >>> print_latex(a_equal_b_latex_s('Y_3(s)', Yt2))
+    '$Y_3(s)=\\frac{2 s}{s^{2} + 1}$'
+    >>> print_latex(a_equal_b_latex_s('Y_4(s)', Y4))
+    '$Y_4(s)=\\frac{s}{s^{2} + 3}$'
+
     '''
+
+    if not isinstance(imit , sp.Expr):
+        raise ValueError('Hay que definir imit como una expresión simbólica.')
+
+    if not isinstance(omega , (Real, type(None))):
+        raise ValueError('Sigma debe ser un flotante.')
+
+    if not isinstance(isImpedance, bool):
+        raise ValueError('isImpedance debe ser un booleano.')
+
+    if not isinstance(omega_zero , (Real, type(None))):
+        raise ValueError('sigma_zero debe ser un flotante o None.')
+
 
     if omega is None:
         # busco el primer polo finito en imit sobre el jw
@@ -509,51 +816,94 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
 
 def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
     '''
-    Se removerá el residuo en continua (s=0) de la imitancia ($I$) de forma 
-    completa, o parcial en el caso que se especifique una omega_zero. 
-    Como resultado de la remoción, quedará otra función racional definida
+    Se removerá el residuo en continua (:math:`j.0`) de la 
+    impedancia o admitancia (inmitancia o imit) de forma completa o parcial.
+    Como resultado de la remoción total, quedará otra función racional definida
     como:
         
-    $$ I_R = I - k_0/s  $$
+    .. math:: I_{R}=I-\\frac{k_0}{s}
     
     siendo 
 
-    $$ k_0=\lim\limits _{s\to0}I.s $$
+    .. math:: k_0=\\lim\\limits _{s\\to0}I.s
     
-    En cuanto se especifique omega_zero, la remoción parcial estará definida 
-    como, siempre que isSigma = False
+    Cabe destacar que :math:`I_{R}` ya no tendrá polo en :math:`j.0`.
+    
+    Sin embargo, en cuanto se especifique :math:`\\omega_z`, la remoción parcial 
+    estará definida como:
 
-    $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_z^{2}}=0=I-s.k_{0}^{'}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    .. math:: I_{R}\\biggr\\rfloor_{s^{2}=-\\omega_z^{2}}=0=I-\\frac{k_{0}^{'}}{s}\\biggr\\rfloor_{s^{2}=-\\omega_z^{2}}
     
     siendo 
     
-    $$ k_{0}^{'}=I.s\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
-
-    De lo contrario, con isSigma = True
-
-    $$ I_{R}\biggr\rfloor_{s=-\omega_z}=0=I-s.k_{0}^{'}\biggr\rfloor_{s=-\omega_z} $$
+    .. math:: k_{0}^{'}=I.s\\biggr\\rfloor_{s^{2}=-\\omega_z^{2}}
     
-    siendo 
-    
-    $$ k_{0}^{'}=I.s\biggr\rfloor_{s=-\omega_z} $$
+    Cabe destacar que, para la remoción parcial, :math:`I_{R}` tendra sendos ceros en 
+    :math:`\\pm j.\\omega_z` y un polo en :math:`j.0`.
     
 
     Parameters
     ----------
-    imit : Symbolic
-        Imitancia que se utilizará para la remoción. Es una función racional 
-        simbólica que tendrá un polo de orden 1 en 0, es decir la 
-        diferencia de grados entre num y den será exactamente -1.
-    omega_zero : Symbolic
-        Frecuencia a la que la imitancia será cero luego de la remoción.
+    imit: Symbolic
+        Inmitancia o función que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
+    isSigma : bool
+        Booleano que indica si la función imm es una impedancia o admitancia.
+    omega_zero : float
+        Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
+        de la remoción.
 
     Returns
     -------
     imit_r : Symbolic
         Imitancia luego de la remoción
-    k_inf : Symbolic
-        Valor del residuo en infinito
+    k_cero : Symbolic
+        Expresión completa del término removido :math:`\\frac{2.k.s}{s^{2}+\\omega^{2}}`.
+
+        
+    Raises
+    ------
+    ValueError
+        Si imit no es una instancia de sympy.Expr.
+        Si omega_zero no es flotante.
+        Si isSigma o isRC no son booleanos.
+
+
+    See Also
+    --------
+    :func:`remover_polo_jw`
+    :func:`remover_polo_infinito`
+    :func:`remover_polo_sigma`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import remover_polo_dc
+    >>> # Sea la siguiente función de excitación
+    >>> YY = 3*s*(s**2+sp.Rational(7,3))/(s**2+2)/(s**2+5)
+    >>> omega_L2C2 = 1
+    >>> Z2, Zc1 = remover_polo_dc(1/YY, omega_zero = omega_L2C2 )
+    >>> # Zc1 es la admitancia removida
+    >>> # extraigo C1
+    >>> C1 = 1/(s*Zc1)
+    >>> print_latex(a_equal_b_latex_s('Z_1(s)', Zc1))
+    $Z_1(s)=\\frac{1}{s}$
+    >>> print_latex(a_equal_b_latex_s('Z_2(s)', Z2))
+    $Z_2(s)=\\frac{\\left(s^{2} + 1\\right) \\left(s^{2} + 3\\right)}{s \\left(3 s^{2} + 7\\right)}$'
+
+        
     '''
+    if not isinstance(imit , sp.Expr):
+        raise ValueError('Hay que definir imit como una expresión simbólica.')
+
+    if not isinstance(isSigma, bool):
+        raise ValueError('isSigma debe ser un booleano.')
+
+    if not isinstance(omega_zero , (Real, type(None))):
+        raise ValueError('sigma_zero debe ser un flotante o None.')
+
 
     if omega_zero is None:
         # remoción total
@@ -565,7 +915,7 @@ def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
 	        k_cero = sp.simplify(sp.expand(imit*s)).subs(s**2, -(omega_zero**2) )
 
     	# remoción parcial en el eje \sigma
-        # Gracias David Moharos!
+        # Gracias a: David Moharos.
     	else:
 	        k_cero = sp.simplify(sp.expand(imit*s)).subs(s, -omega_zero )
 
@@ -579,54 +929,102 @@ def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
 
 def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
     '''
-    Se removerá el residuo en infinito de la imitancia ($I$) de forma 
-    completa, o parcial en el caso que se especifique una omega_zero. 
-    Como resultado de la remoción, quedará otra función racional definida
-    como:
+    Se removerá el residuo en infinito  de la impedancia o admitancia (inmitancia 
+    o imit) de forma completa o parcial. Como resultado de la remoción total, 
+    quedará otra función racional definida como:
         
-    $$ I_R = I - s.k_\infty  $$
+    .. math:: I_R = I - s.k_\\infty 
     
     siendo 
 
-    $$ k_{\infty}=\lim\limits _{s\to\infty}I.\nicefrac{1}{s} $$
+    .. math:: k_{\\infty}=\\lim\\limits _{s\\to\\infty}I.\\frac{1}{s}
     
-    En cuanto se especifique omega_zero, la remoción parcial estará definida 
-    como, siempre que isSigma = False
+    Cabe destacar que :math:`I_{R}` ya no tendrá polo en :math:`j.\\infty`.
+    
+    En cuanto se especifique :math:`\\omega_z`, la remoción parcial estará definida 
+    como: 
 
-    $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_z^{2}}=0=I-s.k_{\infty}^{'}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    .. math:: I_{R}\\biggr\\rfloor_{s^{2}=-\\omega_z^{2}}=0=I-s.k_{\\infty}^{'}\\biggr\\rfloor_{s^{2}=-\\omega_z^{2}}
     
     siendo 
     
-    $$ k_{\infty}^{'}=I.\nicefrac{1}{s}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    .. math:: k_{\\infty}^{'}=I.\\frac{1}{s}\\biggr\\rfloor_{s^{2}=-\\omega_z^{2}} 
 
-    De lo contrario, con isSigma = True
+    Cabe destacar que, para la remoción parcial, :math:`I_{R}` tendra sendos ceros en 
+    :math:`\\pm j.\\omega_z` y un polo en :math:`j.\\infty`. Lo anterior se cumple 
+    siempre que isSigma = False, de lo contrario
 
-    $$ I_{R}\biggr\rfloor_{s=-\omega_z}=0=I-s.k_{\infty}^{'}\biggr\rfloor_{s=-\omega_z} $$
+    .. math:: I_{R}\\biggr\\rfloor_{s=-\\omega_z}=0=I-s.k_{\\infty}^{'}\\biggr\\rfloor_{s=-\\omega_z}
     
     siendo 
     
-    $$ k_{\infty}^{'}=I.\nicefrac{1}{s}\biggr\rfloor_{s=-\omega_z} $$
+    .. math:: k_{\\infty}^{'}=I.\\frac{1}{s}\\biggr\\rfloor_{s=-\\omega_z}
+    
+    Al igual que antes, destacar que para la remoción parcial, :math:`I_{R}` tendrá
+    un cero en :math:`-\\sigma_z = \\omega_z` y un polo en :math:`j.\\infty`.
     
 
     Parameters
     ----------
-    imit : Symbolic
-        Imitancia que se utilizará para la remoción. Es una función racional 
-        simbólica que tendrá un polo de orden 1 en infinito, es decir la 
-        diferencia de grados entre num y den será exactamente 1.
-    omega_zero : Symbolic
-        Frecuencia a la que la imitancia será cero luego de la remoción.
-    isSigma : Boolean
-	Indica si la remoción parcial se realiza en el eje j\omega ( isSigma = False )
-	o bien sobre el eje \sigma ( isSigma = True )
+    imit: Symbolic
+        Inmitancia o función que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
+    isSigma : bool
+        Booleano que indica si la función imm es una impedancia o admitancia.
+    omega_zero : float
+        Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
+        de la remoción.
 
     Returns
     -------
     imit_r : Symbolic
         Imitancia luego de la remoción
     k_inf : Symbolic
-        Valor del residuo en infinito
+        Expresión completa del término removido :math:`s.k_\\infty `.
+
+        
+    Raises
+    ------
+    ValueError
+        Si imit no es una instancia de sympy.Expr.
+        Si omega_zero no es flotante.
+        Si isSigma o isRC no son booleanos.
+
+
+    See Also
+    --------
+    :func:`remover_polo_dc`
+    :func:`remover_polo_jw`
+    :func:`remover_polo_sigma`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import remover_polo_infinito
+    >>> # Sea la siguiente función de excitación
+    >>> YY = 3*s*(s**2+sp.Rational(7,3))/(s**2+2)/(s**2+5)
+    >>> Z2, Z1 = remover_polo_infinito(1/YY)
+    >>> # Z1 es la admitancia removida
+    >>> # extraigo L1
+    >>> L1 = Z1/s
+    >>> print_latex(a_equal_b_latex_s('Z_1(s)', Z1))
+    '$Z_1(s)=\\frac{s}{3}$'
+    >>> print_latex(a_equal_b_latex_s('Z_2(s)', Z2))
+    '$Z_2(s)=\\frac{2 \\cdot \\left(7 s^{2} + 15\\right)}{3 s \\left(3 s^{2} + 7\\right)}$'
+        
+        
     '''
+    if not isinstance(imit , sp.Expr):
+        raise ValueError('Hay que definir imit como una expresión simbólica.')
+
+    if not isinstance(isSigma, bool):
+        raise ValueError('isSigma debe ser un booleano.')
+
+    if not isinstance(omega_zero , (Real, type(None))):
+        raise ValueError('omega_zero debe ser un flotante o None.')
+
 
     if omega_zero is None:
         # remoción total
@@ -649,89 +1047,193 @@ def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
 
     return( [imit_r, k_inf] )
 
-def remover_valor( imit, sigma_zero):
-    '''
-    Se removerá un valor constante de la imitancia ($I$) de forma 
-    que al removerlo, la imitancia luego de la remoción ($I_R$) tenga 
-    un cero en sigma_zero. Es decir:
+# TODO: revisar la utilidad de la función "remover_valor". Podría ser removida.
 
-    $$ I_{R}\biggr\rfloor_{s = -\sigma_z} = 0 = (I - k_{\infty}^{'})\biggr\rfloor_{s = -\sigma_z} $$
-    
-    siendo 
-    
-    $$ k_{\infty}^{'}= I\biggr\rfloor_{s = -\sigma_z} $$
-
-    Parameters
-    ----------
-    imit : Symbolic
-        Imitancia que se utilizará para la remoción. Es una función racional 
-        simbólica que tendrá un valor constante en infinito (mayor a su valor en s=0).
+# def remover_valor( imit, sigma_zero):
+#     '''
+#     Se removerá un valor real de la impedancia o admitancia (inmitancia 
+#     o imit) de forma completa o parcial. Como resultado de la remoción total, 
+#     quedará otra función racional definida como:
         
-    omega_zero : Symbolic
-        Frecuencia a la que la imitancia será cero luego de la remoción.
-
-    Returns
-    -------
-    imit_r : Symbolic
-        Imitancia luego de la remoción
-    k_inf : Symbolic
-        Valor del residuo en infinito
-    '''
-
-    # remoción parcial
-    k_prima = sp.simplify(sp.expand(imit)).subs(s, -sp.Abs(sigma_zero))
+#     .. math:: I_R = I - k_\\infty 
     
-    rem_aux = imit - k_prima
+#     siendo 
+
+#     .. math:: k_{\\infty}=\\lim\\limits _{s\\to\\infty}I
     
-    bFRP = isFRP(rem_aux)
+#     En cuanto se especifique :math:`\\sigma_z`, la remoción parcial estará definida 
+#     como: 
+
+#     .. math:: I_{R}\\biggr\\rfloor_{s=-\\sigma_z}=0=I-k_{\\infty}^{'}\\biggr\\rfloor_{s=-\\sigma_z}
     
-    if bFRP:
+#     siendo 
+    
+#     .. math:: k_{\\infty}^{'}=I\\biggr\\rfloor_{s=-\\sigma_z} 
+
+#     Cabe destacar que, para la remoción parcial, :math:`I_{R}` tendra un cero en 
+#     :math:`-\\sigma_z` y un valor real en :math:`\\infty`. 
+
+#     Parameters
+#     ----------
+#     imit: Symbolic
+#         Inmitancia o función que se utilizará para la remoción. Es una función racional 
+#         simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
+#     sigma_zero : float
+#         Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
+#         de la remoción.
+
+#     Returns
+#     -------
+#     imit_r : Symbolic
+#         Imitancia luego de la remoción
+#     k_inf : Symbolic
+#         Expresión completa del término removido :math:`s.k_\\infty `.
+
         
-        rem = rem_aux
+#     Raises
+#     ------
+#     ValueError
+#         Si imit no es una instancia de sympy.Expr.
+#         Si sigma_zero no es flotante.
 
-        # extraigo k_prima
-        imit_r = sp.factor(sp.simplify(sp.expand( rem )))
+
+#     See Also
+#     --------
+#     :func:`remover_polo_dc`
+#     :func:``
+#     :func:``
+
+
+#     Examples
+#     --------
+#     >>> import sympy as sp
+#     >>> from pytc2.general import s, a_equal_b_latex_s, print_latex
+#     >>> from pytc2.remociones import remover_valor
+#     >>> # Sea la siguiente función de excitación
+#     >>> ZZ = (s**2 + 13*s + 32)/(3*s**2 + 27*s+ 44)
+#     >>> Z2, Z1 = remover_valor(ZZ)
+#     >>> print_latex(a_equal_b_latex_s('Z_1(s)', Z1))
+#     '$Z_1(s)=\\frac{s}{3}$'
+#     >>> print_latex(a_equal_b_latex_s('Z_2(s)', Z2))
+#     '$Z_2(s)=\\frac{2 \\cdot \\left(7 s^{2} + 15\\right)}{3 s \\left(3 s^{2} + 7\\right)}$'
         
-    else:    
-        # falla la remoción        
-        # error
-        print_console_alert('Fallo la remoción')
 
-        print( 'Se intentó remover el valor:')
+# print_latex(a_equal_b_latex_s('Y_B', YB))
+# print_latex(a_equal_b_latex_s('Y_6', Y6))
+    
+            
+#     '''
+
+#     if not isinstance(imit , sp.Expr):
+#         raise ValueError('Hay que definir imit como una expresión simbólica.')
+
+#     if not isinstance(sigma_zero , Real):
+#         raise ValueError('sigma_zero debe ser un flotante o None.')
+
+#     # remoción parcial
+#     k_prima = sp.simplify(sp.expand(imit)).subs(s, -sp.Abs(sigma_zero))
+    
+#     rem_aux = imit - k_prima
+    
+#     bFRP = isFRP(rem_aux)
+    
+#     if bFRP:
         
-        print_latex(a_equal_b_latex_s('k', k_prima))
+#         rem = rem_aux
 
-        imit_r = imit
-        k_prima = s*0
+#         # extraigo k_prima
+#         imit_r = sp.factor(sp.simplify(sp.expand( rem )))
+        
+#     else:    
+#         # falla la remoción        
+#         # error
+#         print_console_alert('Fallo la remoción')
 
-    return( [imit_r, k_prima] )
+#         print( 'Se intentó remover el valor:')
+        
+#         print_latex(a_equal_b_latex_s('k', k_prima))
+
+#         imit_r = imit
+#         k_prima = s*0
+
+#     return( [imit_r, k_prima] )
 
 def remover_valor_en_infinito( imit, sigma_zero = None ):
     '''
-    Se removerá un valor constante en infinito de la imitancia ($I$) de forma 
-    completa. 
-    Como resultado de la remoción, quedará otra función racional definida
-    como:
+    Se removerá un valor real de la impedancia o admitancia (inmitancia 
+    o imit) de forma completa o parcial. Como resultado de la remoción total, 
+    quedará otra función racional definida como:
         
-    $$ I_R = I - k_{\infty}  $$
+    .. math:: I_R = I - k_\\infty 
     
     siendo 
 
-    $$ k_{\infty}=\lim\limits _{s\to\infty}I $$
+    .. math:: k_{\\infty}=\\lim\\limits _{s\\to\\infty}I
+    
+    En cuanto se especifique :math:`\\sigma_z`, la remoción parcial estará definida 
+    como: 
+
+    .. math:: I_{R}\\biggr\\rfloor_{s=-\\sigma_z}=0=I-k_{\\infty}^{'}\\biggr\\rfloor_{s=-\\sigma_z}
+    
+    siendo 
+    
+    .. math:: k_{\\infty}^{'}=I\\biggr\\rfloor_{s=-\\sigma_z} 
+
+    Cabe destacar que, para la remoción parcial, :math:`I_{R}` tendra un cero en 
+    :math:`-\\sigma_z` y un valor real en :math:`\\infty`. 
 
     Parameters
     ----------
-    imit : Symbolic
-        Imitancia que se utilizará para la remoción. Es una función racional 
-        simbólica que tendrá un valor constante en infinito (mayor a su valor en s=0).
+    imit: Symbolic
+        Inmitancia o función que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
+    sigma_zero : float
+        Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
+        de la remoción.
 
     Returns
     -------
     imit_r : Symbolic
         Imitancia luego de la remoción
     k_inf : Symbolic
-        Valor del residuo en infinito
+        Expresión completa del término removido :math:`s.k_\\infty `.
+
+        
+    Raises
+    ------
+    ValueError
+        Si imit no es una instancia de sympy.Expr.
+        Si sigma_zero no es flotante.
+
+
+    See Also
+    --------
+    :func:`remover_valor_en_dc`
+    :func:`remover_polo_en_infinito`
+    :func:`remover_polo_en_dc`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import remover_valor_en_infinito
+    >>> # Sea la siguiente función de excitación
+    >>> ZZ = (s**2 + 13*s + 32)/(3*s**2 + 27*s+ 44)
+    >>> Z2, Z1 = remover_valor_en_infinito(ZZ)
+    >>> print_latex(a_equal_b_latex_s('Z_1(s)', Z1))
+    '$Z_1(s)=\\frac{1}{3}$'
+    >>> print_latex(a_equal_b_latex_s('Z_2(s)', Z2))
+    '$Z_2(s)=\\frac{4 \\cdot \\left(3 s + 13\\right)}{3 \\cdot \\left(3 s^{2} + 27 s + 44\\right)}$'
+    
+            
     '''
+    if not isinstance(imit , sp.Expr):
+        raise ValueError('Hay que definir imit como una expresión simbólica.')
+
+    if not isinstance(sigma_zero , (Real, type(None))):
+        raise ValueError('sigma_zero debe ser un flotante o None.')
+
 
     if sigma_zero is None:
         # remoción total
@@ -770,31 +1272,79 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
 
 def remover_valor_en_dc( imit, sigma_zero = None):
     '''
-    Se removerá un valor constante en continua (s=0) de la imitancia ($I$) de forma 
-    completa. 
-    Como resultado de la remoción, quedará otra función racional definida
+    Se removerá un valor constante en continua (s=0) de la imitancia (imit) de forma 
+    completa. Como resultado de la remoción, quedará otra función racional definida
     como:
         
-    $$ I_R = I - k_0  $$
+    .. math:: I_R = I - k_0 
     
     siendo 
 
-    $$ k_0 = \lim\limits _{s \to 0}I $$
+    .. math:: k_0 = \\lim\\limits _{s \\to 0}I 
     
+    En cuanto se especifique :math:`\\sigma_z`, la remoción parcial estará definida 
+    como: 
+
+    .. math:: I_{R}\\biggr\\rfloor_{s=-\\sigma_z}=0=I-k_{0}^{'}\\biggr\\rfloor_{s=-\\sigma_z}
+    
+    siendo 
+    
+    .. math:: k_{0}^{'}=I\\biggr\\rfloor_{s=-\\sigma_z} 
+
+    Cabe destacar que, para la remoción parcial, :math:`I_{R}` tendra un cero en 
+    :math:`-\\sigma_z` y un valor real en 0. 
+
     Parameters
     ----------
-    imit : Symbolic
-        Imitancia que se utilizará para la remoción. Es una función racional 
-        simbólica que tendrá un valor constante en infinito (mayor a su valor en s=0).
-        
+    imit: Symbolic
+        Inmitancia o función que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
+    sigma_zero : float
+        Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
+        de la remoción.
+
     Returns
     -------
     imit_r : Symbolic
         Imitancia luego de la remoción
-    k_inf : Symbolic
-        Valor del residuo en infinito
+    k_0 : Symbolic
+        Expresión completa del término removido :math:`k_0 `.
+
+        
+    Raises
+    ------
+    ValueError
+        Si imit no es una instancia de sympy.Expr.
+        Si sigma_zero no es flotante.
+
+
+    See Also
+    --------
+    :func:`remover_valor_en_infinito`
+    :func:`remover_polo_en_infinito`
+    :func:`remover_polo_en_dc`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, a_equal_b_latex_s, print_latex
+    >>> from pytc2.remociones import remover_valor_en_dc
+    >>> # Sea la siguiente función de excitación
+    >>> ZZ = (s**2 + 13*s + 32)/(3*s**2 + 27*s+ 44)
+    >>> Z2, Z1 = remover_valor_en_dc(ZZ)
+    >>> print_latex(a_equal_b_latex_s('Z_1(s)', Z1))
+    '$Z_1(s)=\\frac{8}{11}$'
+    >>> print_latex(a_equal_b_latex_s('Z_2(s)', Z2))
+    '$Z_2(s)=- \\frac{s \\left(13 s + 73\\right)}{11 \\cdot \\left(3 s^{2} + 27 s + 44\\right)}$'
+    
     '''
 
+    if not isinstance(imit , sp.Expr):
+        raise ValueError('Hay que definir imit como una expresión simbólica.')
+
+    if not isinstance(sigma_zero , (Real, type(None))):
+        raise ValueError('sigma_zero debe ser un flotante o None.')
 
     if sigma_zero is None:
         # remoción total

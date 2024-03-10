@@ -50,10 +50,23 @@ def dibujar_Tee(ZZ, return_components=False):
     TypeError
         Si ZZ no es una instancia de sympy.Matrix.
 
+
+    See Also
+    --------
+    :func:`dibujar_Pi`
+    :func:`dibujar_lattice`
+
+
     Examples
     --------
-    >>> dibujar_Tee(sp.Matrix([[1, 2], [3, 4]]))
-    # ... dibujo de la red Tee ...
+    >>> import sympy as sp
+    >>> from pytc2.dibujar import dibujar_Tee
+    >>> dibujar_Tee(sp.Matrix([[5, 2], [2, 6]]))
+    [dibujo de la red]
+    
+    
+    Ver el `tutorial de cuadripolos elementales <https://pytc2.readthedocs.io/en/latest/cuadripolos_elementales.html>`__ para
+    observar el resultado de ésta y otras funciones.
 
     '''
 
@@ -95,7 +108,6 @@ def dibujar_Pi(YY, return_components=False):
     '''
     Dibuja una red Pi a partir de la matriz Y.
 
-    Breve descripción de la función
 
     Parameters
     ----------
@@ -104,26 +116,36 @@ def dibujar_Pi(YY, return_components=False):
     return_components : bool, optional
         Indica si se deben devolver los componentes individuales de la red (Ya, Yb, Yc). Por defecto es False.
 
+
     Returns
     -------
     None or list
         Si return_components es True, devuelve una lista con los componentes individuales de la red (Ya, Yb, Yc). 
         Si return_components es False, no devuelve nada.
 
+
     Raises
     ------
-    None
+    TypeError
+        Si YY no es una instancia de sympy.Matrix.
+
 
     See Also
     --------
-    :func:``
+    :func:`dibujar_Tee`
+    :func:`dibujar_lattice`
+
 
     Examples
     --------
-    >>> dibujar_Pi(sp.Matrix([[2, -1], [-1, 3]]))
-    [dibujo del red]
-    >>> Ya, Yb, Yc = dibujar_Pi(sp.Matrix([[1, 0], [0, 1]]), return_components=True)
-    [dibujo del red]
+    >>> import sympy as sp
+    >>> from pytc2.dibujar import dibujar_Pi
+    >>> Ya, Yb, Yc = dibujar_Pi(sp.Matrix([[5, -2], [-2, 6]]), return_components=True)
+    [dibujo de la red]
+    
+    
+    Ver el `tutorial de cuadripolos elementales <https://pytc2.readthedocs.io/en/latest/cuadripolos_elementales.html>`__ para
+    observar el resultado de ésta y otras funciones.
 
     '''
 
@@ -170,6 +192,7 @@ def dibujar_Pi(YY, return_components=False):
 def dibujar_lattice(ZZ, return_components=False):
     '''
     Dibuja una red Lattice a partir de una matriz de parámetros Z.
+
     
     Parameters
     ----------
@@ -178,11 +201,13 @@ def dibujar_lattice(ZZ, return_components=False):
     return_components : bool, opcional
         Indica si se deben devolver los componentes de la red Lattice simétrica (Za y Zb). El valor predeterminado es False.
 
+
     Returns
     -------
     list or None
         Si return_components es True, devuelve una lista con los componentes Za y Zb de la red Lattice simétrica.
         Si return_components es False, devuelve None.
+
 
     Raises
     ------
@@ -190,14 +215,23 @@ def dibujar_lattice(ZZ, return_components=False):
         Si ZZ no es una instancia de sympy.Matrix.
         Si ZZ no es de 2x2
 
+
     See Also
     --------
-    :func:``
+    :func:`dibujar_Pi`
+    :func:`dibujar_Tee`
+
 
     Ejemplos
     --------
-    >>> dibujar_lattice()
-    >>> dibujar_lattice(sp.Matrix([[1, 0], [0, 1]]), return_components=True)
+    >>> import sympy as sp
+    >>> from pytc2.dibujar import dibujar_lattice
+    >>> Za, Zb = dibujar_lattice(sp.Matrix([[5, 2], [2, 6]]), return_components=True)
+    
+    
+    Ver el `tutorial de cuadripolos elementales <https://pytc2.readthedocs.io/en/latest/cuadripolos_elementales.html>`__ para
+    observar el resultado de ésta y otras funciones.
+    
     '''
 
     if not isinstance(ZZ, (sp.Matrix, np.ndarray)):
@@ -299,6 +333,9 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.sintesis_dipolo import cauer_RC
+    >>> from pytc2.dibujar import dibujar_cauer_RC_RL
     >>> s = sp.symbols('s ', complex=True)
     >>> # Sea la siguiente función de excitación
     >>> ZRC = (s**2 + 4*s + 3)/(s**2 + 2*s)
@@ -310,7 +347,7 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
     >>> dibujar_cauer_RC_RL(koo, y_exc = ZRC_cauer_oo)
 
     '''    
-    if not ( isinstance(y_exc , sp.Expr) and isinstance(z_exc , sp.Expr)):
+    if not ( isinstance(y_exc , sp.Expr) or isinstance(z_exc , sp.Expr)):
         raise ValueError("'Hay que definir la función de excitación y_exc o z_exc como una expresión simbólica.'")
 
     if not(ki is None) or len(ki) > 0:
@@ -392,8 +429,8 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
 
 def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
     '''
-    Dibuja una red disipativa escalera no disipativa a partir de una expansión en 
-    fracciones continuas (Método de Cauer). Dependiendo se especifique `z_exc`
+    Dibuja una red escalera no disipativa, a partir de la expansión en fracciones 
+    continuas (Método de Cauer). Dependiendo se especifique `z_exc`
     o `y_exc` y el tipo de residuos de `ki` se dibujará la red correspondiente.
     La forma matemática será:
 
@@ -429,23 +466,26 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
 
     See Also
     --------
-    :func:`cauer_RC`
+    :func:`cauer_LC`
     :func:`foster_zRC2yRC`
     :func:`dibujar_cauer_LC`
 
     
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.sintesis_dipolo import cauer_LC
+    >>> from pytc2.dibujar import dibujar_cauer_LC
     >>> s = sp.symbols('s ', complex=True)
     >>> # Sea la siguiente función de excitación
     >>> FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
     >>> # Implementaremos FF mediante Cauer 1 o remociones continuas en infinito
     >>> koo, F_cauer_oo, rem = cauer_LC(FF, remover_en_inf=True)
-    >>> print_latex(a_equal_b_latex_s(a_equal_b_latex_s('F(s)', FF)[1:-1], F_cauer_oo ))
     >>> # Tratamos a nuestra función inmitancia como una Z
     >>> dibujar_cauer_LC(koo, z_exc = F_cauer_oo)
     >>> # Tratamos a nuestra función inmitancia como una Y
     >>> dibujar_cauer_LC(koo, y_exc = F_cauer_oo)
+    
     '''    
     if not ( isinstance(y_exc , sp.Expr) or isinstance(z_exc , sp.Expr)):
         raise ValueError("'Hay que definir la función de excitación y_exc o z_exc como una expresión simbólica.'")
@@ -535,6 +575,7 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
         
         print('Nada para dibujar')
 
+# TODO: debería poder dibujar YRC/YRL
 def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc = None):
     '''
     Dibuja una red no disipativa a partir de una expansión en fracciones simples 
@@ -552,7 +593,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
         Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es None.
     koo:  simbólica, opcional
         Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es None.
-    ki:  simbólica, opcional
+    ki:  simbólica, list o tuple opcional
         Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es None.
     kk:  simbólica, opcional
         Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es None.
@@ -577,31 +618,34 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
     
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.sintesis_dipolo import foster
+    >>> from pytc2.dibujar import dibujar_foster_derivacion
     >>> s = sp.symbols('s ', complex=True)
     >>> # Sea la siguiente función de excitación
     >>> FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
     >>> # Se expande FF a la Foster
     >>> k0, koo, ki_wi, _, FF_foster = foster(FF)
     >>> # Tratamos a nuestra función imitancia como una Z
-    >>> dibujar_foster_derivacion(k0, koo, ki_wi, y_exc = FF)
+    >>> dibujar_foster_derivacion(k0 = k0, koo = koo, ki = ki_wi, y_exc = FF)
 
     '''    
 
     if not(k0 is None and koo is None and ki is None and kk is None):
         
-        if not isinstance(y_exc , sp.Expr):
+        if not isinstance(y_exc , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
         
-        if not isinstance(k0 , sp.Expr):
+        if not isinstance(k0 , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación k0 como una expresión simbólica.')
         
-        if not isinstance(koo , sp.Expr):
+        if not isinstance(koo , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación koo como una expresión simbólica.')
         
-        if not isinstance(ki , sp.Expr):
+        if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
             raise ValueError('Hay que definir la función de excitación ki como una expresión simbólica.')
         
-        if not isinstance(kk , sp.Expr):
+        if not isinstance(kk , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
         
         if kk is None:
@@ -683,6 +727,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
         
         print('Nada para dibujar')
 
+# TODO: debería poder dibujar ZRC/ZRL
 def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = None):
     '''
     Dibuja una red no disipativa a partir de una expansión en fracciones simples 
@@ -700,7 +745,7 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
         Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es None.
     koo:  simbólica, opcional
         Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es None.
-    ki:  simbólica, opcional
+    ki:  simbólica, list o tuple opcional
         Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es None.
     kk:  simbólica, opcional
         Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es None.
@@ -721,19 +766,22 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
     --------
     :func:`foster`
     :func:`foster_zRC2yRC`
-    :func:`dibujar_foster_serie`
+    :func:`dibujar_foster_paralelo`
 
     
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.sintesis_dipolo import foster
+    >>> from pytc2.dibujar import dibujar_foster_serie
     >>> s = sp.symbols('s ', complex=True)
     >>> # Sea la siguiente función de excitación
     >>> FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
     >>> # Se expande FF a la Foster
     >>> k0, koo, ki_wi, _, FF_foster = foster(FF)
     >>> # Tratamos a nuestra función imitancia como una Z
-    >>> dibujar_foster_serie(k0, koo, ki_wi, z_exc = FF)
-    
+    >>> dibujar_foster_serie(k0 = k0, koo = koo, ki = ki_wi, z_exc = FF)
+
     '''    
 
     if not(k0 is None and koo is None and ki is None and kk is None):
@@ -741,16 +789,16 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
         if not isinstance(z_exc , sp.Expr):
             raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
         
-        if not isinstance(k0 , sp.Expr):
+        if not isinstance(k0 , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación k0 como una expresión simbólica.')
         
-        if not isinstance(koo , sp.Expr):
+        if not isinstance(koo , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación koo como una expresión simbólica.')
         
-        if not isinstance(ki , sp.Expr):
+        if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
             raise ValueError('Hay que definir la función de excitación ki como una expresión simbólica.')
         
-        if not isinstance(kk , sp.Expr):
+        if not isinstance(kk , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
         
         if kk is None:
@@ -828,7 +876,7 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
         Objeto Drawing del módulo :mod:`schemdraw`.
     port_name:  string, opcional
         Nombre del puerto. El valor predeterminado es None.
-    voltage_lbl:  string, opcional
+    voltage_lbl:  string, tuple o list opcional
         Etiqueta o nombre para la tensión del puerto. El valor predeterminado es None.
     current_lbl:  string, opcional
         Etiqueta o nombre para la corrientedel puerto. El valor predeterminado es None.
@@ -853,12 +901,16 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
     
@@ -867,7 +919,7 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
     
     d += Dot(open=True)
     
-    if isinstance(voltage_lbl , str):
+    if isinstance(voltage_lbl , (str, tuple, list) ):
         d += Gap().down().label( voltage_lbl, fontsize=16)
     elif voltage_lbl is None:
         d += Gap().down().label( '' )
@@ -908,7 +960,7 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
         Objeto Drawing del módulo :mod:`schemdraw`.
     port_name:  string, opcional
         Nombre del puerto. El valor predeterminado es None.
-    voltage_lbl:  string, opcional
+    voltage_lbl:  string, tuple o list opcional
         Etiqueta o nombre para la tensión del puerto. El valor predeterminado es None.
     current_lbl:  string, opcional
         Etiqueta o nombre para la corrientedel puerto. El valor predeterminado es None.
@@ -933,12 +985,16 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
     if not isinstance(d, Drawing):
@@ -957,7 +1013,7 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
     d.push()
 
 
-    if isinstance(voltage_lbl , str):
+    if isinstance(voltage_lbl , (str, tuple, list) ):
         d += Gap().down().label( voltage_lbl, fontsize=16)
     elif voltage_lbl is None:
         d += Gap().down().label( '' )
@@ -1006,12 +1062,18 @@ def dibujar_espaciador( d ):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_espaciador, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_espaciador(d)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_espaciador(d)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 
@@ -1074,16 +1136,24 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     
     Examples
     --------
+    >>> import sympy as sp
+    >>> Za, Zb = sp.symbols('Za, Zb', complex=True)
+    >>> # Sea la siguiente función de excitación
+    >>> ZZ = Za+Zb
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_funcion_exc_abajo, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d, _ = dibujar_funcion_exc_abajo(d, 
-    >>>                                  'Y',  
-    >>>                                  y_exc, 
+    >>>                                  'Z',  
+    >>>                                  ZZ, 
     >>>                                  hacia_salida = True)
     >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
     >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 
@@ -1174,16 +1244,24 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
     
     Examples
     --------
+    >>> import sympy as sp
+    >>> Za, Zb = sp.symbols('Za, Zb', complex=True)
+    >>> # Sea la siguiente función de excitación
+    >>> ZZ = Za+Zb
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_funcion_exc_arriba, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d, _ = dibujar_funcion_exc_arriba(d, 
-    >>>                                  'Y',  
-    >>>                                  y_exc, 
+    >>>                                  'Z',  
+    >>>                                  ZZ, 
     >>>                                  hacia_salida = True)
     >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
     >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
     if not isinstance(d, Drawing):
@@ -1267,16 +1345,16 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d, _ = dibujar_funcion_exc_arriba(d, 
-    >>>                                  'Y',  
-    >>>                                  y_exc, 
-    >>>                                  hacia_salida = True)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 
@@ -1331,19 +1409,18 @@ def dibujar_espacio_derivacion(d):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_espacio_derivacion, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d, _ = dibujar_funcion_exc_arriba(d, 
-    >>>                                  'Y',  
-    >>>                                  y_exc, 
-    >>>                                  hacia_salida = True)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
-    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
     if not isinstance(d, Drawing):
@@ -1389,18 +1466,16 @@ def dibujar_cierre(d):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_cierre, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d, _ = dibujar_funcion_exc_arriba(d, 
-    >>>                                  'Y',  
-    >>>                                  y_exc, 
-    >>>                                  hacia_salida = True)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_cierre(d)
+    >>> display(d)
     
     '''    
     if not isinstance(d, Drawing):
@@ -1451,16 +1526,18 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_espacio_derivacion, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d, _ = dibujar_funcion_exc_arriba(d, 
-    >>>                                  'Y',  
-    >>>                                  y_exc, 
-    >>>                                  hacia_salida = True)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_espacio_derivacion(d)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
     
@@ -1519,12 +1596,16 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RC_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d = dibujar_tanque_RC_serie(d, "R_a", "C_a")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
     
@@ -1591,12 +1672,16 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RC_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
     >>> d = dibujar_tanque_RC_derivacion(d, "R_b", "C_b")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 
@@ -1657,12 +1742,16 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RL_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d = dibujar_tanque_RL_serie(d, "R_a", "L_a")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 
@@ -1729,12 +1818,16 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RL_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
     >>> d = dibujar_tanque_RL_derivacion(d, "R_b", "L_b")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 
@@ -1795,12 +1888,16 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d = dibujar_tanque_serie(d, "L_a", "C_a")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 
@@ -1867,12 +1964,16 @@ def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
     
     Examples
     --------
+    >>> from schemdraw import Drawing
+    >>> from schemdraw.elements import  ResistorIEC
+    >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_tanque_serie(d, "L_a", "C_a")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_tanque_derivacion(d, "L_a", "C_a")
+    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> display(d)
     
     '''    
 

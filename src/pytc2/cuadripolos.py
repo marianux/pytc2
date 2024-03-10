@@ -56,12 +56,13 @@ def S2Ts_s(Spar):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import S2Ts_s
     >>> Spar = sp.Matrix([[sp.symbols('Z11'), sp.symbols('Z12')],
     ...                   [sp.symbols('Z21'), sp.symbols('Z22')]])
     >>> Ts = S2Ts_s(Spar)
     >>> print(Ts)
-    Matrix([[1, -Z12], [Z11, Z22/Z21]])
-
+    Matrix([[1/Z21, -Z22/Z21], [Z11/Z21, -Z11*Z22/Z21 + Z12]])
 
     Notes
     -----
@@ -71,7 +72,7 @@ def S2Ts_s(Spar):
 
     """
     # Verificar si Spar es una instancia de Symbolic Matrix
-    if not isinstance(Spar, sp.Matrix):
+    if not isinstance(Spar, sp.MatrixBase):
         raise ValueError("Spar debe ser una instancia de Symbolic Matrix")
     
     # Verificar que Spar tenga el formato correcto
@@ -123,11 +124,14 @@ def Ts2S_s(Ts):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Ts2S_s
     >>> Ts = sp.Matrix([[sp.symbols('A'), sp.symbols('B')],
     ...                 [sp.symbols('C'), sp.symbols('D')]])
     >>> Spar = Ts2S_s(Ts)
     >>> print(Spar)
-    Matrix([[C, A], [B, -D]])
+    Matrix([[C/A, D - B*C/A], [1/A, -B/A]])
+
 
     Notes
     -----
@@ -137,7 +141,7 @@ def Ts2S_s(Ts):
 
     """
     # Verificar si Ts es una instancia de Symbolic Matrix
-    if not isinstance(Ts, sp.Matrix):
+    if not isinstance(Ts, sp.MatrixBase):
         raise ValueError("Ts debe ser una instancia de Symbolic Matrix")
     
     # Verificar que Ts tenga el formato correcto
@@ -192,13 +196,18 @@ def Ts2Tabcd_s(Ts, Z0=sp.Rational('1')):
 
     Examples
     --------
-    >>> Ts = sp.MatrixSymbol('Ts', 2, 2)
-    >>> Ts2Tabcd_s(Ts)
-    Tabcd
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Ts2Tabcd_s
+    >>> Z0 = sp.symbols('Z0')
+    >>> Ts = sp.Matrix([[sp.symbols('Ts_11'), sp.symbols('Ts_12')],
+    ...                 [sp.symbols('Ts_21'), sp.symbols('Ts_22')]])
+    >>> Tabcd = Ts2Tabcd_s(Ts, Z0)
+    >>> print(Tabcd)
+    Matrix([[Ts_11/2 - Ts_12/2 - Ts_21/2 + Ts_22/2, Z0*(Ts_11 - Ts_12 + Ts_21 - Ts_22)/2], [(Ts_11 + Ts_12 - Ts_21 - Ts_22)/(2*Z0), Ts_11/2 - Ts_12/2 - Ts_21/2 + Ts_22/2]])
 
     """
     # Check if Ts is an instance of sp.Matrix
-    if not isinstance(Ts, sp.Matrix):
+    if not isinstance(Ts, sp.MatrixBase):
         raise ValueError("Ts must be an instance of sp.Matrix.")
     
     # Check if Z0 is an instance of sp.Expr
@@ -206,7 +215,7 @@ def Ts2Tabcd_s(Ts, Z0=sp.Rational('1')):
         raise ValueError("Z0 must be an instance of sp.Expr.")
 
     # Convert Ts to S-parameter matrix and then to ABCD matrix
-    return sp.simplify(sp.expand(S2Tabcd_s(Ts2S_s(Ts), Z0)))
+    return sp.simplify(sp.expand(S2Tabcd_s(Ts2S_s(Ts), Z0=Z0)))
 
 def Tabcd2S_s(Tabcd, Z0=sp.Rational('1')):
     '''
@@ -242,11 +251,14 @@ def Tabcd2S_s(Tabcd, Z0=sp.Rational('1')):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Tabcd2S_s
     >>> Tabcd = sp.Matrix([[sp.symbols('A'), sp.symbols('B')],
     ...                    [sp.symbols('C'), sp.symbols('D')]])
     >>> Spar = Tabcd2S_s(Tabcd)
     >>> print(Spar)
-    Matrix([[C/A, 1/B], [A/D - B*C/(A*D), -1/D]])
+    Matrix([[(A + B - C - D)/(A + B + C + D), 2*(A*D - B*C)/(A + B + C + D)], [2/(A + B + C + D), (-A + B - C + D)/(A + B + C + D)]])
+
 
     Notes
     -----
@@ -256,7 +268,7 @@ def Tabcd2S_s(Tabcd, Z0=sp.Rational('1')):
 
     '''
     # Verificar si Tabcd es una instancia de Symbolic Matrix
-    if not isinstance(Tabcd, sp.Matrix):
+    if not isinstance(Tabcd, sp.MatrixBase):
         raise ValueError("Tabcd debe ser una instancia de Symbolic Matrix")
 
     # Verificar que Tabcd tenga el formato correcto
@@ -313,11 +325,14 @@ def S2Tabcd_s(Spar, Z0=sp.Rational('1')):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import S2Tabcd_s
     >>> Spar = sp.Matrix([[sp.symbols('S11'), sp.symbols('S12')],
     ...                   [sp.symbols('S21'), sp.symbols('S22')]])
     >>> Tabcd = S2Tabcd_s(Spar)
     >>> print(Tabcd)
-    Matrix([[(1 - S11)*(1 + S22) + S12*S21, Z0*((1 + S11)*(1 + S22) - S12*S21)], [1/Z0*((1 - S11)*(1 - S22) - S12*S21), (1 - S11)*(1 + S22) + S12*S21]])
+    Matrix([[(-S11*S22 - S11 + S12*S21 + S22 + 1)/(2*S21), (S11*S22 + S11 - S12*S21 + S22 + 1)/(2*S21)], [(S11*S22 - S11 - S12*S21 - S22 + 1)/(2*S21), (-S11*S22 - S11 + S12*S21 + S22 + 1)/(2*S21)]])
+
 
     Notes
     -----
@@ -327,7 +342,7 @@ def S2Tabcd_s(Spar, Z0=sp.Rational('1')):
 
     '''
     # Verificar si Spar es una instancia de Symbolic Matrix
-    if not isinstance(Spar, sp.Matrix):
+    if not isinstance(Spar, sp.MatrixBase):
         raise ValueError("Spar debe ser una instancia de Symbolic Matrix")
 
     # Verificar que Spar tenga el formato correcto
@@ -382,11 +397,14 @@ def Y2Tabcd_s(YY):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Y2Tabcd_s
     >>> YY = sp.Matrix([[sp.symbols('Y11'), sp.symbols('Y12')],
     ...                 [sp.symbols('Y21'), sp.symbols('Y22')]])
     >>> TT = Y2Tabcd_s(YY)
     >>> print(TT)
-    Matrix([[-Y22/Y21, -1/Y21], [-D/Y21, -Y22/Y21]])
+    Matrix([[-Y22/Y21, -1/Y21], [-(Y11*Y22 - Y12*Y21)/Y21, -Y22/Y21]])
+
 
     Notes
     -----
@@ -396,7 +414,7 @@ def Y2Tabcd_s(YY):
 
     """
     # Verificar si YY es una instancia de Symbolic Matrix
-    if not isinstance(YY, sp.Matrix):
+    if not isinstance(YY, sp.MatrixBase):
         raise ValueError("YY debe ser una instancia de Symbolic Matrix")
 
     # Verificar que YY tenga el formato correcto
@@ -450,11 +468,14 @@ def Z2Tabcd_s(ZZ):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Z2Tabcd_s
     >>> ZZ = sp.Matrix([[sp.symbols('Z11'), sp.symbols('Z12')],
     ...                 [sp.symbols('Z21'), sp.symbols('Z22')]])
     >>> TT = Z2Tabcd_s(ZZ)
     >>> print(TT)
-    Matrix([[Z11/Z21, Z12*Z22/Z21 - Z11], [1/Z21, Z22/Z21]])
+    Matrix([[Z11/Z21, (Z11*Z22 - Z12*Z21)/Z21], [1/Z21, Z22/Z21]])
+
 
     Notes
     -----
@@ -464,7 +485,7 @@ def Z2Tabcd_s(ZZ):
 
     '''
     # Verificar si ZZ es una instancia de Symbolic Matrix
-    if not isinstance(ZZ, sp.Matrix):
+    if not isinstance(ZZ, sp.MatrixBase):
         raise ValueError("ZZ debe ser una instancia de Symbolic Matrix")
 
     # Verificar que ZZ tenga el formato correcto
@@ -518,11 +539,14 @@ def Tabcd2Z_s(TT):
 
     Examples
     --------
-    >>> TT = sp.Matrix([[sp.symbols('T11'), sp.symbols('T12')],
-    ...                 [sp.symbols('T21'), sp.symbols('T22')]])
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Tabcd2Z_s
+    >>> TT = sp.Matrix([[sp.symbols('A'), sp.symbols('B')],
+    ...                 [sp.symbols('C'), sp.symbols('D')]])
     >>> ZZ = Tabcd2Z_s(TT)
     >>> print(ZZ)
-    Matrix([[Z11/Z21, DT/Z21], [1/Z21, Z22/Z21]])
+    Matrix([[A/C, (A*D - B*C)/C], [1/C, D/C]])
+
 
     Notes
     -----
@@ -532,7 +556,7 @@ def Tabcd2Z_s(TT):
 
     '''
     # Verificar si TT es una instancia de Symbolic Matrix
-    if not isinstance(TT, sp.Matrix):
+    if not isinstance(TT, sp.MatrixBase):
         raise ValueError("TT debe ser una instancia de Symbolic Matrix")
 
     # Verificar que TT tenga el formato correcto
@@ -586,11 +610,13 @@ def Tabcd2Y_s(TT):
 
     Examples
     --------
-    >>> TT = sp.Matrix([[sp.symbols('T11'), sp.symbols('T12')],
-    ...                 [sp.symbols('T21'), sp.symbols('T22')]])
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Tabcd2Y_s
+    >>> TT = sp.Matrix([[sp.symbols('A'), sp.symbols('B')],
+    ...                 [sp.symbols('C'), sp.symbols('D')]])
     >>> YY = Tabcd2Y_s(TT)
     >>> print(YY)
-    Matrix([[D/B, -DT/B], [-1/B, A/B]])
+    Matrix([[D/B, -(A*D - B*C)/B], [-1/B, A/B]])
 
     Notes
     -----
@@ -600,7 +626,7 @@ def Tabcd2Y_s(TT):
 
     '''
     # Verificar si TT es una instancia de Symbolic Matrix
-    if not isinstance(TT, sp.Matrix):
+    if not isinstance(TT, sp.MatrixBase):
         raise ValueError("TT debe ser una instancia de Symbolic Matrix")
 
     # Verificar que TT tenga el formato correcto
@@ -660,12 +686,15 @@ def I2Tabcd_s(gamma, z01, z02=None):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import I2Tabcd_s
     >>> gamma = sp.symbols('gamma')
     >>> z01 = sp.symbols('z01')
     >>> z02 = sp.symbols('z02')
     >>> TT = I2Tabcd_s(gamma, z01, z02)
     >>> print(TT)
-    Matrix([[cosh(gamma)*sqrt(z01/z02), sinh(gamma)*sqrt(z01*z02)], [sinh(gamma)/sqrt(z01*z02), cosh(gamma)*sqrt(z02/z01)]])
+    Matrix([[sqrt(z01/z02)*cosh(gamma), sqrt(z01*z02)*sinh(gamma)], [sinh(gamma)/sqrt(z01*z02), sqrt(z02/z01)*cosh(gamma)]])
+
 
     Notes
     -----
@@ -673,17 +702,16 @@ def I2Tabcd_s(gamma, z01, z02=None):
 
     '''
     # Verificar que gamma sea un número complejo
-    if not isinstance(gamma, sp.Expr) or not gamma.is_complex(): 
+    if not isinstance(gamma, sp.Expr): 
         raise ValueError("gamma debe ser un número complejo")
 
     # Verificar que z01 sea un símbolo o un número real positivo
-    if not (isinstance(z01, sp.Symbol) or (isinstance(z01, int) and z01 > 0) or (isinstance(z01, float) and z01 > 0)):
-        raise ValueError("z01 debe ser un símbolo o un número real positivo")
+    if not isinstance(z01, sp.Expr):
+        raise ValueError("z01 debe ser una expresión simbolólica de SymPy")
 
     # Verificar si z02 es proporcionado y, de serlo, que sea un símbolo o un número real positivo
-    if z02 is not None:
-        if not (isinstance(z02, sp.Symbol) or (isinstance(z02, int) and z02 > 0) or (isinstance(z02, float) and z02 > 0)):
-            raise ValueError("z02 debe ser un símbolo o un número real positivo")
+    if not isinstance(z02, (sp.Expr, type(None))):
+        raise ValueError("z02 debe ser una expresión simbolólica de SymPy")
 
     # Si z02 no es proporcionado, se asume z02 = z01
     if z02 is None:
@@ -738,6 +766,10 @@ def Model_conversion(src_model, dst_model):
     Example
     -------
     >>> import sympy as sp
+    >>> from pytc2.cuadripolos import Model_conversion
+    >>> v1, v2, i1, i2 = sp.symbols('v1, v2, i1, i2', complex=True)
+    >>> z11, z12, z21, z22 = sp.symbols('z11, z12, z21, z22', complex=True)
+    >>> Ai, Bi, Ci, Di = sp.symbols('Ai, Bi, Ci, Di', complex=True)
     >>> # Parámetros Z (impedancia - circuito abierto)
     >>> ZZ = sp.Matrix([[z11, z12], [z21, z22]])
     >>> # Variables dependientes
@@ -755,7 +787,8 @@ def Model_conversion(src_model, dst_model):
     >>> dst_model = {'model_name': 'T', 'matrix': TTi, 'dep_var': ti_dep, 'indep_var': ti_ind, 'neg_i2_current': True}
     >>> T_z = Model_conversion(src_model, dst_model)
     >>> print(T_z['matrix'])
-    Matrix([[cosh(gamma)*sqrt(z01/z02), sinh(gamma)*sqrt(z01*z02)], [sinh(gamma)/sqrt(z01*z02), cosh(gamma)*sqrt(z02/z01)]])
+    Matrix([[z22/z12, -\Delta/z12], [-1/z12, z11/z12]])
+
 
     Notes
     -----
@@ -779,7 +812,7 @@ def Model_conversion(src_model, dst_model):
 
     # Verificar que las variables independientes sean símbolos o números reales positivos
     for var in src_model['indep_var']:
-        if not (isinstance(var, sp.Symbol) or (isinstance(var, int) and var > 0) or (isinstance(var, float) and var > 0)):
+        if not (isinstance(var, sp.Expr) or (isinstance(var, int) and var > 0) or (isinstance(var, float) and var > 0)):
             raise ValueError("La variable independiente debe ser un símbolo o un número real positivo")
 
     # Si 'proxy_matrix' está presente en src_model, usarla como src_matrix; de lo contrario, usar src_model['matrix']
@@ -808,6 +841,143 @@ def Model_conversion(src_model, dst_model):
             QQ[jj - 1, kk - 1] = bb.subs(det_src_matrix, dd)
 
     return {'matrix': QQ, 'name': f"{dst_model['model_name']}_{src_model['model_name']}"}
+
+
+def y2mai(YY):
+    '''
+    Convierte una matriz de admitancia indefinida (YY) a una matriz admitancia indefinida (Ymai).
+
+    Parameters
+    ----------
+    YY : sympy.Matrix
+        Matriz admitancia indefinida.
+
+    Returns
+    -------
+    Ymai : sympy.Matrix
+        Matriz admitancia indefinida.
+
+    Raises
+    ------
+    ValueError
+        Si YY no es una instancia de sympy.Matrix.
+
+
+    See Also
+    --------
+    :func:`may2y`
+    :func:`Y2Tabcd`
+    :func:`I2Tabcd`
+
+
+    Example
+    -------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import y2mai
+    >>> YY = sp.Matrix([[sp.symbols('Y11'), sp.symbols('Y12')],
+    ...                 [sp.symbols('Y21'), sp.symbols('Y22')]])
+    >>> Ymai = y2mai(YY)
+    >>> print(Ymai)
+    Matrix([[Y11, Y12, -Y11 - Y12], [Y21, Y22, -Y21 - Y22], [-Y11 - Y21, -Y12 - Y22, Y11 + Y12 + Y21 + Y22]])
+
+
+    Notes
+    -----
+    - Esta función suma las corrientes de entrada y salida para obtener la matriz admitancia indefinida.
+    - Se espera que YY sea una instancia de sympy.Matrix.
+
+    '''
+    # Verificar si YY es una instancia de sympy.Matrix
+    if not isinstance(YY, sp.MatrixBase):
+        raise ValueError("YY debe ser una instancia de sympy.Matrix")
+
+    # Insertar filas y columnas para sumar las corrientes de entrada y salida
+    Ymai = YY.row_insert(YY.shape[0], sp.Matrix([-sum(YY[:, ii]) for ii in range(YY.shape[1])]).transpose())
+    Ymai = Ymai.col_insert(Ymai.shape[1], sp.Matrix([-sum(Ymai[ii, :]) for ii in range(Ymai.shape[0])]))
+    Ymai[-1] = sum(YY)
+
+    return Ymai
+
+def may2y(Ymai, nodes2del):
+    '''
+    Convierte una matriz admitancia indefinida (Ymai) a una matriz admitancia (YY) luego de eliminar filas y columnas indicadas en nodes2del.
+
+    Parameters
+    ----------
+    Ymai : sympy.Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Índices de las filas y columnas que se eliminarán.
+
+    Returns
+    -------
+    YY : sympy.Matrix
+        Matriz admitancia.
+
+    Raises
+    ------
+    ValueError
+        Si Ymai no es una instancia de sympy.Matrix.
+        Si nodes2del no es una lista o un entero.
+        Si los elementos de nodes2del no son enteros o están fuera del rango de índices de Ymai.
+
+
+    See Also
+    --------
+    :func:`y2mai`
+    :func:`Y2Tabcd`
+    :func:`I2Tabcd`
+
+
+    Example
+    -------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import may2y
+    >>> Ymai = sp.Matrix([[sp.symbols('Y11'), sp.symbols('Y12'), sp.symbols('Y13')],
+    ...                 [sp.symbols('Y21'), sp.symbols('Y22'), sp.symbols('Y23')],
+    ...                 [sp.symbols('Y31'), sp.symbols('Y32'), sp.symbols('Y33')]])
+    >>> nodes2del = [0, 2]
+    >>> YY = may2y(Ymai, nodes2del)
+    >>> print(YY)
+    Matrix([[Y22]])
+
+
+    Notes
+    -----
+    - Esta función elimina las filas y columnas indicadas en nodes2del de Ymai para obtener la matriz admitancia YY.
+    - Se espera que Ymai sea una instancia de sympy.Matrix.
+    - nodes2del puede ser una lista de índices o un solo entero.
+    - Los índices en nodes2del deben ser enteros y estar dentro del rango de índices de Ymai.
+
+    '''
+    # Verificar si Ymai es una instancia de sympy.Matrix
+    if not isinstance(Ymai, sp.MatrixBase):
+        raise ValueError("Ymai debe ser una instancia de sympy.Matrix")
+
+    # Verificar si nodes2del es una lista o un entero
+    if not isinstance(nodes2del, list) and not isinstance(nodes2del, int):
+        raise ValueError("nodes2del debe ser una lista o un entero")
+
+    # Convertir nodes2del a lista si es un entero
+    if isinstance(nodes2del, int):
+        nodes2del = [nodes2del]
+
+    # Verificar si los elementos de nodes2del son enteros
+    if not all(isinstance(node, int) for node in nodes2del):
+        raise ValueError("Los elementos de nodes2del deben ser enteros")
+
+    # Verificar si los elementos de nodes2del están dentro del rango de índices de Ymai
+    if not all(0 <= node < Ymai.rows for node in nodes2del):
+        raise ValueError("Los elementos de nodes2del están fuera del rango de índices de Ymai")
+
+    # Eliminar las filas y columnas indicadas en nodes2del
+    YY = Ymai.copy()
+    for node in sorted(nodes2del, reverse=True):
+        YY.row_del(node)
+        YY.col_del(node)
+
+    return YY
+
 
 #%%
    ############################################################################
@@ -845,12 +1015,19 @@ def Y2Tabcd(YY):
 
     Example
     -------
-    >>> YY = np.array([[Y11, Y12], [Y21, Y22]])
+    >>> import numpy as np
+    >>> from pytc2.cuadripolos import Y2Tabcd
+    >>> YY = np.array([[6.0, -3.0], [-3.0, 5.0]])
     >>> TT = Y2Tabcd(YY)
     >>> print(TT)
+    [[1.66666667 0.33333333]
+     [7.         2. ]]
+    
+    >>> # Recordar la conversión entre modelos:
     [[-Y22/Y21 -1/Y21]
-     [-D/Y21 -Y22/Y21]]
-
+     [-D/Y21 -Y11/Y21]]
+    
+    
     Notes
     -----
     - Esta función asume que YY tiene el formato [ [Y11, Y12], [Y21, Y22] ].
@@ -872,7 +1049,7 @@ def Y2Tabcd(YY):
     TT[0, 0] = -YY[1, 1] / YY[1, 0]
     TT[0, 1] = -1 / YY[1, 0]
     TT[1, 0] = -np.linalg.det(YY) / YY[1, 0]
-    TT[1, 1] = -YY[1, 1] / YY[1, 0]
+    TT[1, 1] = -YY[0, 0] / YY[1, 0]
 
     return TT
 
@@ -906,11 +1083,18 @@ def Z2Tabcd(ZZ):
 
     Example
     -------
-    >>> ZZ = np.array([[Z11, Z12], [Z21, Z22]])
+    >>> import numpy as np
+    >>> from pytc2.cuadripolos import Z2Tabcd
+    >>> ZZ = np.array([[6., 3.], [3., 5.]])
     >>> TT = Z2Tabcd(ZZ)
     >>> print(TT)
+    [[2.         7.        ]
+     [0.33333333 1.66666667]]
+    
+    >>> # Recordar la conversión entre modelos:
     [[Z11/Z21 DT/Z21]
      [1/Z21 Z22/Z21]]
+    
 
     Notes
     -----
@@ -967,9 +1151,15 @@ def Tabcd2Y(TT):
 
     Example
     -------
-    >>> TT = np.array([[A, B], [C, D]])
+    >>> import numpy as np
+    >>> from pytc2.cuadripolos import Tabcd2Y
+    >>> TT = np.array([[5./3., 1./3.], [7., 2.]])
     >>> YY = Tabcd2Y(TT)
     >>> print(YY)
+    [[ 6. -3.]
+     [-3.  5.]]    
+    
+    >>> # Recordar la conversión entre modelos:
     [[D/B -DT/B]
      [-1/B A/B]]
 
@@ -998,134 +1188,6 @@ def Tabcd2Y(TT):
 
     return YY
 
-def y2mai(YY):
-    '''
-    Convierte una matriz de admitancia indefinida (YY) a una matriz admitancia indefinida (Ymai).
-
-    Parameters
-    ----------
-    YY : sympy.Matrix
-        Matriz admitancia indefinida.
-
-    Returns
-    -------
-    Ymai : sympy.Matrix
-        Matriz admitancia indefinida.
-
-    Raises
-    ------
-    ValueError
-        Si YY no es una instancia de sympy.Matrix.
-
-
-    See Also
-    --------
-    :func:`may2y`
-    :func:`Y2Tabcd`
-    :func:`I2Tabcd`
-
-
-    Example
-    -------
-    >>> YY = sp.Matrix([[Y11, Y12], [Y21, Y22]])
-    >>> Ymai = y2mai(YY)
-    >>> print(Ymai)
-    [[Y11 Y12 -Y11 - Y12]
-     [Y21 Y22 -Y21 - Y22]
-     [-Y11 - Y21 Y11 + Y21]
-     [-Y12 - Y22 Y12 + Y22]]
-
-    Notes
-    -----
-    - Esta función suma las corrientes de entrada y salida para obtener la matriz admitancia indefinida.
-    - Se espera que YY sea una instancia de sympy.Matrix.
-
-    '''
-    # Verificar si YY es una instancia de sympy.Matrix
-    if not isinstance(YY, sp.Matrix):
-        raise ValueError("YY debe ser una instancia de sympy.Matrix")
-
-    # Insertar filas y columnas para sumar las corrientes de entrada y salida
-    Ymai = YY.row_insert(YY.shape[0], sp.Matrix([-sum(YY[:, ii]) for ii in range(YY.shape[1])]).transpose())
-    Ymai = Ymai.col_insert(Ymai.shape[1], sp.Matrix([-sum(Ymai[ii, :]) for ii in range(Ymai.shape[0])]))
-    Ymai[-1] = sum(YY)
-
-    return Ymai
-
-def may2y(Ymai, nodes2del):
-    '''
-    Convierte una matriz admitancia indefinida (Ymai) a una matriz admitancia (YY) luego de eliminar filas y columnas indicadas en nodes2del.
-
-    Parameters
-    ----------
-    Ymai : sympy.Matrix
-        Matriz admitancia indefinida.
-    nodes2del : list or integer
-        Índices de las filas y columnas que se eliminarán.
-
-    Returns
-    -------
-    YY : sympy.Matrix
-        Matriz admitancia.
-
-    Raises
-    ------
-    ValueError
-        Si Ymai no es una instancia de sympy.Matrix.
-        Si nodes2del no es una lista o un entero.
-        Si los elementos de nodes2del no son enteros o están fuera del rango de índices de Ymai.
-
-
-    See Also
-    --------
-    :func:`y2mai`
-    :func:`Y2Tabcd`
-    :func:`I2Tabcd`
-
-
-    Example
-    -------
-    >>> Ymai = sp.Matrix([[Y11, Y12, Y13], [Y21, Y22, Y23], [Y31, Y32, Y33]])
-    >>> nodes2del = [0, 2]
-    >>> YY = may2y(Ymai, nodes2del)
-    >>> print(YY)
-    [[Y22]]
-
-    Notes
-    -----
-    - Esta función elimina las filas y columnas indicadas en nodes2del de Ymai para obtener la matriz admitancia YY.
-    - Se espera que Ymai sea una instancia de sympy.Matrix.
-    - nodes2del puede ser una lista de índices o un solo entero.
-    - Los índices en nodes2del deben ser enteros y estar dentro del rango de índices de Ymai.
-
-    '''
-    # Verificar si Ymai es una instancia de sympy.Matrix
-    if not isinstance(Ymai, sp.Matrix):
-        raise ValueError("Ymai debe ser una instancia de sympy.Matrix")
-
-    # Verificar si nodes2del es una lista o un entero
-    if not isinstance(nodes2del, list) and not isinstance(nodes2del, int):
-        raise ValueError("nodes2del debe ser una lista o un entero")
-
-    # Convertir nodes2del a lista si es un entero
-    if isinstance(nodes2del, int):
-        nodes2del = [nodes2del]
-
-    # Verificar si los elementos de nodes2del son enteros
-    if not all(isinstance(node, int) for node in nodes2del):
-        raise ValueError("Los elementos de nodes2del deben ser enteros")
-
-    # Verificar si los elementos de nodes2del están dentro del rango de índices de Ymai
-    if not all(0 <= node < Ymai.rows for node in nodes2del):
-        raise ValueError("Los elementos de nodes2del están fuera del rango de índices de Ymai")
-
-    # Eliminar las filas y columnas indicadas en nodes2del
-    YY = Ymai.copy()
-    for node in sorted(nodes2del, reverse=True):
-        YY.row_del(node)
-        YY.col_del(node)
-
-    return YY
 
 def I2Tabcd(gamma, z01, z02=None):
     '''
@@ -1164,13 +1226,21 @@ def I2Tabcd(gamma, z01, z02=None):
 
     Examples
     --------
-    >>> gamma = 0.5 + 1j
-    >>> z01 = 50
-    >>> z02 = 75
+    >>> import numpy as np
+    >>> from pytc2.cuadripolos import I2Tabcd
+    >>> gamma = 0.5 + 1.j
+    >>> z01 = 50.
+    >>> z02 = 75.
     >>> TT = I2Tabcd(gamma, z01, z02)
     >>> print(TT)
-    [[ 1.2039728+0.82171471j  0.82171471+0.30545599j]
-     [ 0.30545599+0.82171471j  1.2039728+0.82171471j]]
+    [[4.97457816e-01+3.58022793e-01j 1.72412844e+01+5.81058484e+01j]
+     [4.59767584e-03+1.54948929e-02j 7.46186724e-01+5.37034190e-01j]]
+
+    
+    >>> # Recordar la conversión entre modelos:
+    TT = np.array([[np.cosh(gamma) * np.sqrt(z01 / z02), np.sinh(gamma) * np.sqrt(z01 * z02)],
+                   [np.sinh(gamma) / np.sqrt(z01 * z02), np.cosh(gamma) * np.sqrt(z02 / z01)]])
+
 
     Notes
     -----
@@ -1241,12 +1311,18 @@ def SparZ_s(Zexc, Z01=sp.Rational(1), Z02=sp.Rational(1)):
 
     Examples
     --------
-    >>> Zexc = sp.symbols('Zexc')
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import SparZ_s
+    >>> Zexc = sp.symbols('Z')
     >>> Z01 = sp.symbols('Z01')
     >>> Z02 = sp.symbols('Z02')
     >>> Spar = SparZ_s(Zexc, Z01, Z02)
     >>> print(Spar)
-    Matrix([[Zexc, 2*Z01], [2*Z01, Zexc]])
+    Matrix([[Z/(Z + 2*Z01), 2*Z01/(Z + 2*Z01)], [2*Z01/(Z + 2*Z01), Z/(Z + 2*Z01)]])
+    
+    >>> # Recordar la definición de los parámetros S de una Z en serie:
+    1/(Z + 2*Z01) * [[Z,     2*Z01], 
+                     [2*Z01, Z]])
 
     Notes
     -----
@@ -1254,11 +1330,11 @@ def SparZ_s(Zexc, Z01=sp.Rational(1), Z02=sp.Rational(1)):
 
     '''
     # Verificar si Zexc, Z01 y Z02 son instancias de Symbolic
-    if not isinstance(Zexc, sp.Symbol):
+    if not isinstance(Zexc, sp.Expr):
         raise ValueError("Zexc debe ser una instancia de Symbolic")
-    if not isinstance(Z01, sp.Symbol):
+    if not isinstance(Z01, sp.Expr):
         raise ValueError("Z01 debe ser una instancia de Symbolic")
-    if not isinstance(Z02, sp.Symbol):
+    if not isinstance(Z02, sp.Expr):
         raise ValueError("Z02 debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros de scattering
@@ -1311,12 +1387,18 @@ def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=sp.Rational('1')):
 
     Examples
     --------
-    >>> Zexc = sp.symbols('Yexc')
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import SparY_s
+    >>> Yexc = sp.symbols('Yexc')
     >>> Y01 = sp.symbols('Y01')
     >>> Y02 = sp.symbols('Y02')
-    >>> SparY = SparZ_s(Yexc, Y01, Y02)
+    >>> SparY = SparY_s(Yexc, Y01, Y02)
     >>> print(SparY)
-    Matrix([[Zexc, 2*Z01], [2*Z01, Zexc]])
+    Matrix([[-Yexc/(2*Y01 + Yexc), 2*Y01/(2*Y01 + Yexc)], [2*Y01/(2*Y01 + Yexc), -Yexc/(2*Y01 + Yexc)]])
+    
+    >>> # Recordar la definición de los parámetros S de una Y en derivación:
+    1/(Y + 2*Y01) * [[-Y,     2*Y01], 
+                     [2*Y01,  -Y]])
 
     Notes
     -----
@@ -1324,11 +1406,11 @@ def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=sp.Rational('1')):
 
     '''
     # Verificar si Yexc, Y01 y Y02 son instancias de Symbolic
-    if not isinstance(Yexc, sp.Symbol):
+    if not isinstance(Yexc, sp.Expr):
         raise ValueError("Yexc debe ser una instancia de Symbolic")
-    if not isinstance(Y01, sp.Symbol):
+    if not isinstance(Y01, sp.Expr):
         raise ValueError("Y01 debe ser una instancia de Symbolic")
-    if not isinstance(Y02, sp.Symbol):
+    if not isinstance(Y02, sp.Expr):
         raise ValueError("Y02 debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros de scattering
@@ -1377,11 +1459,21 @@ def TabcdLYZ_s(Yexc, Zexc):
     :func:`TabcdLZY`
 
 
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import TabcdLYZ_s
+    >>> Y = sp.symbols('Y')
+    >>> Z = sp.symbols('Z')
+    >>> TT = TabcdLYZ_s(Y, Z)
+    >>> print(TT)
+    Matrix([[1, Z], [Y, Y*Z + 1]])
+
     '''
     # Verificar si Yexc y Zexc son instancias de Symbolic
-    if not isinstance(Yexc, sp.Symbol):
+    if not isinstance(Yexc, sp.Expr):
         raise ValueError("Yexc debe ser una instancia de Symbolic")
-    if not isinstance(Zexc, sp.Symbol):
+    if not isinstance(Zexc, sp.Expr):
         raise ValueError("Zexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
@@ -1426,12 +1518,24 @@ def TabcdLZY_s(Zexc, Yexc):
     :func:`SparZ_s`
     :func:`TabcdLYZ_s`
     :func:`TabcdY_s`
+    
+    
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import TabcdLZY_s
+    >>> Y = sp.symbols('Y')
+    >>> Z = sp.symbols('Z')
+    >>> TT = TabcdLZY_s(Z, Y)
+    >>> print(TT)
+    Matrix([[Y*Z + 1, Z], [Y, 1]])
+    
 
     '''
     # Verificar si Zexc y Yexc son instancias de Symbolic
-    if not isinstance(Zexc, sp.Symbol):
+    if not isinstance(Zexc, sp.Expr):
         raise ValueError("Zexc debe ser una instancia de Symbolic")
-    if not isinstance(Yexc, sp.Symbol):
+    if not isinstance(Yexc, sp.Expr):
         raise ValueError("Yexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
@@ -1472,10 +1576,21 @@ def TabcdZ_s(Zexc):
     :func:`SparZ_s`
     :func:`TabcdLYZ_s`
     :func:`TabcdY_s`
+    
+    
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import TabcdZ_s
+    >>> Z = sp.symbols('Z')
+    >>> TT = TabcdZ_s(Z)
+    >>> print(TT)
+    Matrix([[1, Z], [0, 1]])
+    
 
     '''
     # Verificar si Zexc es una instancia de Symbolic
-    if not isinstance(Zexc, sp.Symbol):
+    if not isinstance(Zexc, sp.Expr):
         raise ValueError("Zexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
@@ -1509,9 +1624,26 @@ def TabcdY_s(Yexc):
     ValueError
         Si Yexc no es una instancia de Symbolic.
 
+
+    See Also
+    --------
+    :func:`SparZ_s`
+    :func:`TabcdLYZ_s`
+    :func:`TabcdY_s`
+    
+    
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.cuadripolos import TabcdY_s
+    >>> Y = sp.symbols('Y')
+    >>> TT = TabcdY_s(Y)
+    >>> print(TT)
+    Matrix([[1, 0], [Y, 1]])
+  
     '''
     # Verificar si Yexc es una instancia de Symbolic
-    if not isinstance(Yexc, sp.Symbol):
+    if not isinstance(Yexc, sp.Expr):
         raise ValueError("Yexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
@@ -1556,12 +1688,19 @@ def TabcdLYZ(Yexc, Zexc):
         Si Yexc no es una instancia de Symbolic.
         Si Zexc no es una instancia de Symbolic.
 
+
+    Examples
+    --------
+    >>> from pytc2.cuadripolos import TabcdLYZ
+    >>> TT = TabcdLYZ(Yexc=2., Zexc=3.)
+    >>> print(TT)
+    [[1 3]
+     [2 7]]
+    
+    >>> # Recordar la definición de la matriz como:
+    ([[1, Z], [Y, Y*Z + 1]])
+
     '''
-    # Verificar si Yexc y Zexc son instancias de Symbolic
-    if not isinstance(Yexc, sp.Symbol):
-        raise ValueError("Yexc debe ser una instancia de Symbolic")
-    if not isinstance(Zexc, sp.Symbol):
-        raise ValueError("Zexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
     Tpar = np.array([[0, 0], [0, 0]])
@@ -1599,12 +1738,20 @@ def TabcdLZY(Zexc, Yexc):
         Si Zexc no es una instancia de Symbolic.
         Si Yexc no es una instancia de Symbolic.
 
+
+    Examples
+    --------
+    >>> from pytc2.cuadripolos import TabcdLZY
+    >>> TT = TabcdLZY(Yexc=2., Zexc=3.)
+    >>> print(TT)
+    [[7. 3.]
+     [2. 1.]]
+
+    >>> # Recordar la definición de la matriz como:
+    [[Y*Z + 1, Z], [Y, 1]]
+
     '''
     # Verificar si Zexc y Yexc son instancias de Symbolic
-    if not isinstance(Zexc, sp.Symbol):
-        raise ValueError("Zexc debe ser una instancia de Symbolic")
-    if not isinstance(Yexc, sp.Symbol):
-        raise ValueError("Yexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
     Tpar = np.array([[0.0, 0], [0, 0]])
@@ -1638,10 +1785,20 @@ def TabcdZ(Zexc):
     ValueError
         Si Zexc no es una instancia de Symbolic.
 
+
+    Examples
+    --------
+    >>> from pytc2.cuadripolos import TabcdZ
+    >>> TT = TabcdZ(Zexc=3.)
+    >>> print(TT)
+    [[1. 3.]
+     [0. 1.]]
+    
+    >>> # Recordar la definición de la matriz como:
+    [[1, Z], 
+     [0, 1]]
+
     '''
-    # Verificar si Zexc es una instancia de Symbolic
-    if not isinstance(Zexc, sp.Symbol):
-        raise ValueError("Zexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
     Tpar = np.array([[0.0, 0.0], [0, 0]])
@@ -1675,10 +1832,21 @@ def TabcdY(Yexc):
     ValueError
         Si Yexc no es una instancia de Symbolic.
 
+
+    Examples
+    --------
+    >>> from pytc2.cuadripolos import TabcdY
+    >>> TT = TabcdY(Yexc=2.)
+    >>> print(TT)
+    [[1. 0.]
+     [2. 1.]]
+    
+    >>> # Recordar la definición de la matriz como:
+    [[1, 0], 
+     [Y, 1]]
+
+
     '''
-    # Verificar si Yexc es una instancia de Symbolic
-    if not isinstance(Yexc, sp.Symbol):
-        raise ValueError("Yexc debe ser una instancia de Symbolic")
 
     # Inicialización de la matriz de parámetros ABCD
     Tpar = np.array([[0.0, 0], [0, 0]])
@@ -1731,13 +1899,44 @@ def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
 
     Examples
     --------
-    >>> Ymai = sp.MatrixSymbol('Y', 4, 4)
-    >>> calc_MAI_ztransf_ij_mn(Ymai)
-    Tz
+    >>> # Para la siguiente red eléctrica:
+    >>> # Numeramos los polos de 0 a n=3
+    >>> # 
+    >>> #     0-------+--Y1----2---Y3--3---
+    >>> #                      |           /
+    >>> #                     Y2           / R
+    >>> #                      |           /
+    >>> #     1----------------+-------1----
+    >>> #  
+    >>> from pytc2.general import print_latex, a_equal_b_latex_s
+    >>> from pytc2.cuadripolos import calc_MAI_ztransf_ij_mn
+    >>> import sympy as sp
+    >>> input_port = [0, 1]
+    >>> output_port = [3, 1]
+    >>> Y1, Y2, Y3 = sp.symbols('Y1 Y2 Y3', complex=True)
+    >>> G = sp.symbols('G', real=True, positive=True)
+    >>> #      Nodos: 0      1        2        3
+    >>> Ymai = sp.Matrix([  
+    >>>                  [ Y1,    0,      -Y1,      0],
+    >>>                  [ 0,    Y2+G,    -Y2,     -G],
+    >>>                  [ -Y1,  -Y2,    Y1+Y2+Y3, -Y3],
+    >>>                  [ 0,    -G,      -Y3,      Y3+G ]
+    >>>                  ])
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Butter de 3er orden doblemente cargado
+    >>> Ymai = Ymai.subs(Y1, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y2, s*sp.Rational('2'))
+    >>> # con_detalles = False
+    >>> con_detalles = True
+    >>> # Calculo la Z en el puerto de entrada a partir de la MAI
+    >>> Zmai = calc_MAI_ztransf_ij_mn(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=con_detalles)
+    >>> print_latex(a_equal_b_latex_s('Z(s)', Zmai))
+    Zmai = -1/(2*G*s**2 + G + 2*s)
 
     """
     # Check if Ymai is an instance of sp.Matrix
-    if not isinstance(Ymai, sp.Matrix):
+    if not isinstance(Ymai, sp.MatrixBase):
         raise ValueError("Ymai must be an instance of sp.Matrix.")
 
     # Check if the indices are integers
@@ -1798,13 +1997,44 @@ def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
 
     Examples
     --------
-    >>> Ymai = sp.MatrixSymbol('Y', 4, 4)
-    >>> calc_MAI_vtransf_ij_mn(Ymai)
-    Av
+    >>> # Para la siguiente red eléctrica:
+    >>> # Numeramos los polos de 0 a n=3
+    >>> # 
+    >>> #     0-------+--Y1----2---Y3--3---
+    >>> #                      |           /
+    >>> #                     Y2           / R
+    >>> #                      |           /
+    >>> #     1----------------+-------1----
+    >>> #  
+    >>> from pytc2.general import print_latex, a_equal_b_latex_s
+    >>> from pytc2.cuadripolos import calc_MAI_vtransf_ij_mn
+    >>> import sympy as sp
+    >>> input_port = [0, 1]
+    >>> output_port = [3, 1]
+    >>> Y1, Y2, Y3 = sp.symbols('Y1 Y2 Y3', complex=True)
+    >>> G = sp.symbols('G', real=True, positive=True)
+    >>> #      Nodos: 0      1        2        3
+    >>> Ymai = sp.Matrix([  
+    >>>                  [ Y1,    0,      -Y1,      0],
+    >>>                  [ 0,    Y2+G,    -Y2,     -G],
+    >>>                  [ -Y1,  -Y2,    Y1+Y2+Y3, -Y3],
+    >>>                  [ 0,    -G,      -Y3,      Y3+G ]
+    >>>                  ])
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Butter de 3er orden doblemente cargado
+    >>> Ymai = Ymai.subs(Y1, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y2, s*sp.Rational('2'))
+    >>> # con_detalles = False
+    >>> con_detalles = True
+    >>> # Calculo la Z en el puerto de entrada a partir de la MAI
+    >>> Vmai = calc_MAI_vtransf_ij_mn(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=con_detalles)
+    >>> print_latex(a_equal_b_latex_s('T(s)', Vmai ))
+    Vmai = -1/(2*G*s + 2*s**2*(G*s + 1) + 1)
 
     """
     # Check if Ymai is an instance of sp.Matrix
-    if not isinstance(Ymai, sp.Matrix):
+    if not isinstance(Ymai, sp.MatrixBase):
         raise ValueError("Ymai must be an instance of sp.Matrix.")
 
     # Check if the indices are integers
@@ -1861,13 +2091,44 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
 
     Examples
     --------
-    >>> Ymai = sp.MatrixSymbol('Y', 4, 4)
-    >>> calc_MAI_impedance_ij(Ymai)
-    ZZ
+    >>> # Para la siguiente red eléctrica:
+    >>> # Numeramos los polos de 0 a n=3
+    >>> # 
+    >>> #     0-------+--Y1----2---Y3--3---
+    >>> #                      |           /
+    >>> #                     Y2           / R
+    >>> #                      |           /
+    >>> #     1----------------+-------1----
+    >>> #  
+    >>> from pytc2.general import print_latex, a_equal_b_latex_s
+    >>> from pytc2.cuadripolos import calc_MAI_impedance_ij
+    >>> import sympy as sp
+    >>> input_port = [0, 1]
+    >>> output_port = [3, 1]
+    >>> Y1, Y2, Y3 = sp.symbols('Y1 Y2 Y3', complex=True)
+    >>> G = sp.symbols('G', real=True, positive=True)
+    >>> #      Nodos: 0      1        2        3
+    >>> Ymai = sp.Matrix([  
+    >>>                  [ Y1,    0,      -Y1,      0],
+    >>>                  [ 0,    Y2+G,    -Y2,     -G],
+    >>>                  [ -Y1,  -Y2,    Y1+Y2+Y3, -Y3],
+    >>>                  [ 0,    -G,      -Y3,      Y3+G ]
+    >>>                  ])
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Butter de 3er orden doblemente cargado
+    >>> Ymai = Ymai.subs(Y1, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y2, s*sp.Rational('2'))
+    >>> # con_detalles = False
+    >>> con_detalles = True
+    >>> # Calculo la Z en el puerto de entrada a partir de la MAI
+    >>> Zmai = calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=con_detalles)
+    >>> print_latex(a_equal_b_latex_s('Z(s)', Zmai  ))
+    Zmai  = (2*G*s + 2*s**2*(G*s + 1) + 1)/(2*G*s**2 + G + 2*s)
 
     """
     # Check if Ymai is an instance of sp.Matrix
-    if not isinstance(Ymai, sp.Matrix):
+    if not isinstance(Ymai, sp.MatrixBase):
         raise ValueError("Ymai must be an instance of sp.Matrix.")
 
     # Check if ii and jj are integers

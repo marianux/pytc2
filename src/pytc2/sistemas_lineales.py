@@ -185,6 +185,8 @@ def sos2tf_analog(mySOS):
 
     Examples
     --------
+    >>> import numpy as np
+    >>> from pytc2.sistemas_lineales import sos2tf_analog
     >>> mySOS = np.array([[1, 0.5, 1, 1, 0.2, 1],
     ...                    [1, 1, 1, 1, 1, 1]])
     >>> tf_analog = sos2tf_analog(mySOS)
@@ -194,7 +196,6 @@ def sos2tf_analog(mySOS):
     array([1. , 1.5, 1.7, 1.5, 1.2, 1. ]),
     dt: None
     )
-
 
 
     Nota
@@ -276,6 +277,7 @@ def tf2sos_analog(num, den=[]):
 
     Examples
     --------
+    >>> from pytc2.sistemas_lineales import tf2sos_analog
     >>> num = [1, 2, 3]
     >>> den = [4, 5, 6]
     >>> sos_analog = tf2sos_analog(num, den)
@@ -366,6 +368,7 @@ def zpk2sos_analog(zz, pp, kk):
 
     Examples
     --------
+    >>> from pytc2.sistemas_lineales import zpk2sos_analog
     >>> zz = [1, 2, 3]
     >>> pp = [4, 5, 6]
     >>> kk = 2.5
@@ -572,10 +575,13 @@ def pretty_print_lti(num, den=None, displaystr=True):
 
     Examples
     --------
+    >>> from pytc2.sistemas_lineales import pretty_print_lti
     >>> num = [1, 2, 3]
     >>> den = [4, 5, 6]
     >>> pretty_print_lti(num, den)
-    # Devuelve la cadena formateada de la función de transferencia.
+    [Devuelve la cadena formateada en LaTex de la función de transferencia]
+    
+    
     """
     
     if not isinstance(num, (list, np.ndarray, TransferFunction)):
@@ -647,39 +653,26 @@ def parametrize_sos(num, den):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.sistemas_lineales import parametrize_sos
+    >>> from pytc2.general import s, print_latex, a_equal_b_latex_s
+    >>> a, b, c, d, e , f = sp.symbols('a, b, c, d, e , f', real=True, positive=True)
     >>> num = sp.Poly((a*s + b),s)
     >>> den = sp.Poly((c*s + d),s)
-    >>> sos_bili, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
-    >>> num = sp.Poly((a*s),s)
-    >>> sos_bili1, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
-    >>> num = sp.Poly((a),s)
-    >>> sos_bili2, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
+    >>> num_bili1, den_bili1, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+    >>> ￼print(num_bili1)
+    Poly(s + b/a, s, domain='ZZ(a,b)')
+    >>> ￼print(den_bili1)
+    Poly(s + d/c, s, domain='ZZ(c,d)')
     >>> num = sp.Poly((a*s**2 + b*s + c),s)
     >>> den = sp.Poly((d*s**2 + e*s + f),s)
-    >>> sos_1, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
-    >>> num = sp.Poly((a*s**2 + c**2),s)
-    >>> sos_2, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
-    >>> num = sp.Poly((a*s**2 + s*b),s)
-    >>> sos_3, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
-    >>> num = sp.Poly(a,s)
-    >>> sos_4, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
-    >>> num = sp.Poly(a*s**2 ,s)
-    >>> sos_5, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
-    >>> 
-    >>> num = sp.Poly((b*s),s)
-    >>> sos_6, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+    >>> num_sos1, den_sos1, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+    >>> print(w_on)
+    sqrt(c)/sqrt(a)
+    >>> print(Q_n)
+    sqrt(a)*sqrt(c)/b
 
 
-    Nota
-    ----
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     '''    
 
     w_od = sp.Rational('0')
@@ -875,8 +868,9 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
 
     Examples
     --------
+    >>> from pytc2.sistemas_lineales import pretty_print_bicuad_omegayq
     >>> pretty_print_bicuad_omegayq([1, 2, 1], [1, 1, 1])
-    # Devuelve la cadena formateada del sistema de segundo orden.
+    [ Expresión formateada en LaTex del sistema de segundo orden]
 
     """
 
@@ -976,10 +970,13 @@ def pretty_print_SOS(mySOS, mode='default', displaystr=True):
 
     Examples
     --------
-    >>> mySOS = array([[1, 2, 1, 1, 1, 1], [1, 3, 1, 1, 4, 1]])
+    >>> import numpy as np
+    >>> from pytc2.sistemas_lineales import pretty_print_SOS
+    >>> mySOS = np.array([[1, 2, 1, 1, 1, 1], [1, 3, 1, 1, 4, 1]])
     >>> pretty_print_SOS(mySOS)
-    [latex output]
-    
+    [ Expresión formateada en LaTex de las SOS ]
+
+
     '''
 
     if not isinstance(mySOS, np.ndarray):
@@ -1085,8 +1082,9 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     >>> den = np.array([1., w0 / Q, w0**2])
     >>> H1 = sig.TransferFunction(num, den)
     >>> pretty_print_bicuad_omegayq(num, den)
-    >>> analyze_sys(H1, sys_name='mi Example')
-    >>> 
+    [ Expresión formateada en LaTex ]
+    >>> analyze_sys([H1], sys_name='mi Example')
+    [ Tres gráficas: respuesta en frec (mód, fase y retardo) y pzmap ]
     >>> # Compara el sistema anterior con otros dos con valores diferentes de Q
     >>> Q = 5
     >>> w0 = 1
@@ -1309,7 +1307,16 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
 
     Examples
     --------
-    >>> fig_id, ax_hdl = pzmap(myFilter, annotations=True, filter_description='Filtro Pasabajos')
+    >>> # Analiza un sistema con w0 = 1 rad/s y Q = sqrt(2)/2
+    >>> import numpy as np
+    >>> from scipy import signal as sig
+    >>> from pytc2.sistemas_lineales import pzmap
+    >>> Q = np.sqrt(2)/2
+    >>> w0 = 1
+    >>> num = np.array([w0**2])
+    >>> den = np.array([1., w0 / Q, w0**2])
+    >>> H1 = sig.TransferFunction(num, den)
+    >>> fig_id, ax_hdl = pzmap(H1, annotations=True, filter_description='Filtro Pasabajos')
     
     
     """
@@ -1570,10 +1577,13 @@ def group_delay(freq, phase):
 
     Examples
     --------
-    >>> freq = np.linspace(0, 10, 100)
+    >>> from pytc2.sistemas_lineales import group_delay
+    >>> import numpy as np
+    >>> freq = np.linspace(0, 10, 10)
     >>> phase = np.sin(freq)
     >>> group_delay(freq, phase)
-    
+    array([-0.80657298,  0.09087493,  0.88720922,  0.69637424, -0.26929404,
+           -0.93532747, -0.56065199,  0.43784299,  0.94916411,  0.94916411])
     """
 
     # Chequeo de argumentos
@@ -1639,7 +1649,17 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
     Example
     --------
-    >>> fig_id, axes_hdl = GroupDelay(myFilter, fig_id=1, filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+    >>> # Analiza un sistema con w0 = 1 rad/s y Q = sqrt(2)/2
+    >>> import numpy as np
+    >>> from scipy import signal as sig
+    >>> from pytc2.sistemas_lineales import GroupDelay
+    >>> Q = np.sqrt(2)/2
+    >>> w0 = 1
+    >>> num = np.array([w0**2])
+    >>> den = np.array([1., w0 / Q, w0**2])
+    >>> H1 = sig.TransferFunction(num, den)
+    >>> fig_id, axes_hdl = GroupDelay(H1, fig_id=1, filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+    
     
     """
 
@@ -1851,7 +1871,16 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
     Example
     --------
-    >>> fig_id, axes_hdl = bodePlot(myFilter, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+    >>> # Analiza un sistema con w0 = 1 rad/s y Q = sqrt(2)/2
+    >>> import numpy as np
+    >>> from scipy import signal as sig
+    >>> from pytc2.sistemas_lineales import bodePlot
+    >>> Q = np.sqrt(2)/2
+    >>> w0 = 1
+    >>> num = np.array([w0**2])
+    >>> den = np.array([1., w0 / Q, w0**2])
+    >>> H1 = sig.TransferFunction(num, den)
+    >>> fig_id, axes_hdl = bodePlot(H1, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
 
     
     """
@@ -2078,7 +2107,19 @@ def plot_plantilla(filter_type='', fpass=0.25, ripple=0.5, fstop=0.6, attenuatio
     
     Example
     --------
-    >>> plot_plantilla(filter_type='bandpass', fpass=(0.2, 0.4), ripple=0.3, fstop=(0.1, 0.5), attenuation=50, fs=2)
+    >>> # Analiza un sistema con w0 = 1 rad/s y Q = sqrt(2)/2
+    >>> import numpy as np
+    >>> from scipy import signal as sig
+    >>> import matplotlib.pyplot as plt
+    >>> from pytc2.sistemas_lineales import bodePlot, plot_plantilla
+    >>> Q = np.sqrt(2)/2
+    >>> w0 = 1
+    >>> num = np.array([w0**2])
+    >>> den = np.array([1., w0 / Q, w0**2])
+    >>> H1 = sig.TransferFunction(num, den)
+    >>> fig_id, axes_hdl = bodePlot(H1, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+    >>> plt.sca(axes_hdl[0])
+    >>> plot_plantilla(filter_type='lowpass', fpass=1.0, ripple=3, fstop=3.0, attenuation=20, fs=2)
 
     """
 

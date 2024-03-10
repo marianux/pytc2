@@ -16,38 +16,63 @@ import shutil
 
 import time
 
+from numbers import Real
 
 ############################################
 #%% Variables para la interfaz con LTspice #
 ############################################
 
-# unidades para dibujar en la hoja de LTspice
 ltux = 16 
+"""
+Unidades X para dibujar en la hoja de LTspice
+"""
 ltuy = 16
+"""
+Unidades Y para dibujar en la hoja de LTspice
+"""
 
-# Archivo marco contenedor de las redes sintetizadas como 
-# ecualizadores/filtros
 filename_eq_base = 'ltspice_equalizador_base'
+"""
+Archivo marco contenedor de las redes sintetizadas como ecualizadores/filtros
+"""
 
-# enumeradores de los elementos pasivos
 cap_num = 1
+"""
+cuenta de capacitores
+"""
 res_num = 1
+"""
+cuenta de resistores
+"""
 ind_num = 1
+"""
+cuenta de inductores
+"""
 node_num = 1
+"""
+cuenta de nodos
+"""
 
 
-# cursor para la localización de componentes
 cur_x = 0
+"""
+cursor X para la localización de componentes
+"""
 cur_y = 0
+"""
+cursor Y para la localización de componentes
+"""
 
-# tamaño estandard del cable
 lt_wire_length = 4 # ltux/ltuy unidades normalizadas
+"""
+tamaño estandard del cable
+"""
 
 #####
 # Palabras clave del LTspice para disponer los componentes en el
 # esquemático.
 
-# elementos pasivos en derivacion
+# 
 
 res_der_str = [ 'SYMBOL res {:d} {:d} R0\n', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 48 43 Left 2\n', # posiciones relativas de etiquetas
@@ -55,6 +80,10 @@ res_der_str = [ 'SYMBOL res {:d} {:d} R0\n', # posición absoluta X-Y en el esqu
                 'SYMATTR InstName {:s}\n', # etiqueta que tendrá
                 'SYMATTR Value {:3.5f}\n' # valor que tendrá
                ]
+"""
+resistor en derivacion
+"""
+
 
 ind_der_str = [ 'SYMBOL ind {:d} {:d} R0\n', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 47 34 Left 2\n', # posiciones relativas de etiquetas
@@ -62,6 +91,9 @@ ind_der_str = [ 'SYMBOL ind {:d} {:d} R0\n', # posición absoluta X-Y en el esqu
                 'SYMATTR InstName {:s}\n', # etiqueta que tendrá
                 'SYMATTR Value {:3.5f}\n' # valor que tendrá
                ]
+"""
+inductor en derivacion
+"""
 
 cap_der_str = [ 'SYMBOL cap {:d} {:d} R0\n', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 48 18 Left 2\n', # posiciones relativas de etiquetas
@@ -69,8 +101,9 @@ cap_der_str = [ 'SYMBOL cap {:d} {:d} R0\n', # posición absoluta X-Y en el esqu
                 'SYMATTR InstName {:s}\n', # etiqueta que tendrá
                 'SYMATTR Value {:3.5f}\n' # valor que tendrá
                ]
-
-# elementos pasivos en serie
+"""
+capacitor en derivacion
+"""
 
 res_ser_str = [ 'SYMBOL res {:d} {:d} R90\n', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 -7 86 VBottom 2\n', # posiciones relativas de etiquetas
@@ -78,6 +111,9 @@ res_ser_str = [ 'SYMBOL res {:d} {:d} R90\n', # posición absoluta X-Y en el esq
                 'SYMATTR InstName {:s}\n', # etiqueta que tendrá
                 'SYMATTR Value {:3.5f}\n' # valor que tendrá
                ]
+"""
+resistor en serie
+"""
 
 ind_ser_str = [ 'SYMBOL ind {:d} {:d} R270\n', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 40 19 VTop 2\n', # posiciones relativas de etiquetas
@@ -85,6 +121,9 @@ ind_ser_str = [ 'SYMBOL ind {:d} {:d} R270\n', # posición absoluta X-Y en el es
                 'SYMATTR InstName {:s}\n', # etiqueta que tendrá
                 'SYMATTR Value {:3.5f}\n' # valor que tendrá
                ]
+"""
+inductor en serie
+"""
 
 cap_ser_str = [ 'SYMBOL cap {:d} {:d} R90\n', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 -8 55 VBottom 2\n', # posiciones relativas de etiquetas
@@ -92,8 +131,9 @@ cap_ser_str = [ 'SYMBOL cap {:d} {:d} R90\n', # posición absoluta X-Y en el esq
                 'SYMATTR InstName {:s}\n', # etiqueta que tendrá
                 'SYMATTR Value {:3.5f}\n' # valor que tendrá
                ]  
-
-
+"""
+capacitor en serie
+"""
 
 
 #############################################
@@ -102,20 +142,52 @@ cap_ser_str = [ 'SYMBOL cap {:d} {:d} R90\n', # posición absoluta X-Y en el esq
 
 def ltsp_nuevo_circuito(circ_name=None):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Se genera un circuito nuevo en LTspice de nombre *circ_name*.
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    circ_name : string
+        Nombre del circuito.
+
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    circ_hdl : archivo de texto
+        Handle al archivo de texto
+
+
+    Raises
+    ------
+    TypeError
+        Si ZZ no es una instancia de sympy.Matrix.
+
+
+    See Also
+    --------
+    :func:`ltsp_capa_derivacion`
+    :func:`ltsp_ind_serie`
+
+
+    Examples
+    --------
+    >>> from pytc2.ltspice import ltsp_nuevo_circuito, ltsp_etiquetar_nodo, ltsp_ind_serie, ltsp_capa_derivacion, ltsp_etiquetar_nodo
+    >>> circ_hdl = ltsp_nuevo_circuito('prueba1')
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vi')
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_capa_derivacion(circ_hdl, 2.0) 
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vo')
+    >>> R01 = 1.0
+    >>> R02 = 1.0
+    >>> circ_hdl.writelines('TEXT -48 304 Left 2 !.param RG={:3.3f} RL={:3.3f}'.format(R01, R02))
+    >>> circ_hdl.close()
+    [ Buscar el archivo "ltsp_prueba.asc" en LTspice ]
+
 
     '''
+    
+    if not isinstance(circ_name, (str, type(None)) ):
+        raise ValueError('El nombre del circuito debe ser un string u omitirse.')
 
     global cap_num, res_num, ind_num, cur_x, cur_y
 
@@ -157,20 +229,54 @@ def ltsp_nuevo_circuito(circ_name=None):
 
 def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Incorpora un capacitor en derivación a un circuito en LTspice.
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    circ_hdl : archivo de texto LTspice
+        Handle al archivo LTspice.
+    cap_value : float o numéro simbólico
+        Valor del capacitor.
+    cap_label : string o None
+        Etiqueta para identificar al capacitor en el circuito.
+
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    None
+
+
+    Raises
+    ------
+    ValueError
+        Si cap_value no es numérico o el valor no es positivo.
+
+
+    See Also
+    --------
+    :func:`ltsp_capa_derivacion`
+    :func:`ltsp_ind_serie`
+
+
+    Examples
+    --------
+    >>> from pytc2.ltspice import ltsp_nuevo_circuito, ltsp_etiquetar_nodo, ltsp_ind_serie, ltsp_capa_derivacion, ltsp_etiquetar_nodo
+    >>> circ_hdl = ltsp_nuevo_circuito('prueba1')
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vi')
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_capa_derivacion(circ_hdl, 2.0) 
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vo')
+    >>> R01 = 1.0
+    >>> R02 = 1.0
+    >>> circ_hdl.writelines('TEXT -48 304 Left 2 !.param RG={:3.3f} RL={:3.3f}'.format(R01, R02))
+    >>> circ_hdl.close()
+    [ Buscar el archivo "ltsp_prueba.asc" en LTspice ]
 
     '''
+    
+    if not ( isinstance(cap_value, (Real, sp.Number) ) and cap_value > 0 ):
+        raise ValueError('Se espera un valor numérico positivo para el capacitor.')
     
     global cap_der_str, cap_num
     
@@ -178,10 +284,6 @@ def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
         
         cap_label = 'C{:d}'.format(cap_num)
         cap_num += 1
-
-    assert isinstance(cap_value, np.number) or isinstance(cap_value, sp.Number ) , 'Se espera un valor numérico para el componente.'
-
-    assert cap_value > 0, 'Se necesita un valor positivo de componente.' 
 
     this_cap_str = cap_der_str.copy()
     
@@ -206,20 +308,54 @@ def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
 
 def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Incorpora un inductor en serie a un circuito en LTspice.
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    circ_hdl : archivo de texto LTspice
+        Handle al archivo LTspice.
+    ind_value : float o numéro simbólico
+        Valor del inductor.
+    ind_label : string o None
+        Etiqueta para identificar al inductor en el circuito.
+
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    None
+
+
+    Raises
+    ------
+    ValueError
+        Si cap_value no es numérico o el valor no es positivo.
+
+
+    See Also
+    --------
+    :func:`ltsp_capa_derivacion`
+    :func:`ltsp_ind_serie`
+
+
+    Examples
+    --------
+    >>> from pytc2.ltspice import ltsp_nuevo_circuito, ltsp_etiquetar_nodo, ltsp_ind_serie, ltsp_capa_derivacion, ltsp_etiquetar_nodo
+    >>> circ_hdl = ltsp_nuevo_circuito('prueba1')
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vi')
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_capa_derivacion(circ_hdl, 2.0) 
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vo')
+    >>> R01 = 1.0
+    >>> R02 = 1.0
+    >>> circ_hdl.writelines('TEXT -48 304 Left 2 !.param RG={:3.3f} RL={:3.3f}'.format(R01, R02))
+    >>> circ_hdl.close()
+    [ Buscar el archivo "ltsp_prueba.asc" en LTspice ]
 
     '''
+
+    if not ( isinstance(ind_value, (Real, sp.Number) ) and ind_value > 0 ):
+        raise ValueError('Se espera un valor numérico positivo para el inductor.')
     
     global ind_ser_str, cap_num, cur_x, cur_y
     
@@ -228,9 +364,6 @@ def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
         ind_label = 'C{:d}'.format(cap_num)
         cap_num += 1
 
-    assert isinstance(ind_value, np.number) or isinstance(ind_value, sp.Number ) , 'Se espera un valor numérico para el componente.'
-
-    assert ind_value > 0, 'Se necesita un valor positivo de componente.' 
 
     this_ind_str = ind_ser_str.copy()
     
@@ -261,18 +394,47 @@ def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
 
 def ltsp_etiquetar_nodo(circ_hdl, node_label=None):
     '''
-    Convierte una matriz de parámetros scattering (S) simbólica 
-    al modelo de parámetros transferencia de scattering (Ts).
+    Asigna una etiqueta a un nodo de un circuito en LTspice.
 
     Parameters
     ----------
-    Spar : Symbolic Matrix
-        Matriz de parámetros S.
+    circ_hdl : archivo de texto LTspice
+        Handle al archivo LTspice.
+    node_label : string o None
+        Etiqueta para identificar al nodo en el circuito.
+
 
     Returns
     -------
-    Ts : Symbolic Matrix
-        Matriz de parámetros de transferencia scattering.
+    None
+
+
+    Raises
+    ------
+    ValueError
+        Si cap_value no es numérico o el valor no es positivo.
+
+
+    See Also
+    --------
+    :func:`ltsp_capa_derivacion`
+    :func:`ltsp_ind_serie`
+
+
+    Examples
+    --------
+    >>> from pytc2.ltspice import ltsp_nuevo_circuito, ltsp_etiquetar_nodo, ltsp_ind_serie, ltsp_capa_derivacion, ltsp_etiquetar_nodo
+    >>> circ_hdl = ltsp_nuevo_circuito('prueba1')
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vi')
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_capa_derivacion(circ_hdl, 2.0) 
+    >>> ltsp_ind_serie(circ_hdl, 1.0) 
+    >>> ltsp_etiquetar_nodo(circ_hdl, node_label='vo')
+    >>> R01 = 1.0
+    >>> R02 = 1.0
+    >>> circ_hdl.writelines('TEXT -48 304 Left 2 !.param RG={:3.3f} RL={:3.3f}'.format(R01, R02))
+    >>> circ_hdl.close()
+    [ Buscar el archivo "ltsp_prueba.asc" en LTspice ]
 
     '''
     

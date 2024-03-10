@@ -19,10 +19,17 @@ from IPython.display import display, Math, Markdown
  ## Variables para el análisis simbólico ##
 ##########################################
 
-# Laplace complex variable. s = σ + j.ω
-s = sp.symbols('s', complex=True) # Laplace complex variable. s = σ + j.ω
-# Fourier real variable ω 
-w = sp.symbols('w', complex=False) # Fourier real variable ω 
+s = sp.symbols('s', complex=True) 
+"""
+Variable compleja de Laplace s = σ + j.ω
+En caso de necesitar usarla, importar el símbolo desde este módulo.
+"""
+
+w = sp.symbols('w', complex=False) 
+"""
+Fourier real variable ω 
+En caso de necesitar usarla, importar el símbolo desde este módulo.
+"""
 
 #%%
   #########################
@@ -33,6 +40,7 @@ w = sp.symbols('w', complex=False) # Fourier real variable ω
 def pp(z1, z2):
     """
     Asocia en paralelo dos impedancias o en serie dos admitancias.
+
     
     Parameters
     ----------
@@ -62,6 +70,8 @@ def pp(z1, z2):
     
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.general import pp
     >>> # Asociación en paralelo de dos impedancias
     >>> z1 = sp.symbols('z1')
     >>> z2 = sp.symbols('z2')
@@ -73,12 +83,13 @@ def pp(z1, z2):
     >>> y2 = 1/z2
     >>> yp = pp(y1, y2)
     >>> print(yp)
-    (y1 + y2)**(-1)
+    1/(z1*z2*(1/z2 + 1/z1))
     
     """
-    if not ((isinstance(z1, sp.Symbol) and isinstance(z2, sp.Symbol)) or
-            (isinstance(z1, (np.floating, np.complexfloating)) and isinstance(z2, (np.floating, np.complexfloating)))):
-        raise ValueError('z1 y z2 deben ser AMBOS de tipo Symbolic o np.floating')
+    if not ( (isinstance(z1, sp.Expr) and isinstance(z2, sp.Expr)) or
+              (isinstance(z1, (float, complex)) and isinstance(z2, (float, complex))) 
+            ):
+        raise ValueError('z1 y z2 deben ser AMBOS de tipo Symbolic o float')
         
     return(z1*z2/(z1+z2))
     
@@ -93,22 +104,26 @@ def pp(z1, z2):
 
 def simplify_n_monic(tt):
     '''
-    Simplifica un polinomio de fracciones en forma monica.
+    Simplifica un polinomio de fracciones en forma mónica.
+
 
     Parameters
     ----------
     tt : Expr
         Polinomio de fracciones a simplificar.
 
+
     Returns
     -------
     Expr
         Polinomio simplificado en forma monica.
 
+
     Raises
     ------
     TypeError
         Si la entrada no es una expresión simbólica.
+
 
     See Also
     --------
@@ -116,15 +131,17 @@ def simplify_n_monic(tt):
     :func:`to_latex`
     :func:`a_equal_b_latex_s`
 
+
     Examples
     --------
-    >>> from sympy import symbols
-    >>> s = symbols('s')
+    >>> import sympy as sp
+    >>> from pytc2.general import simplify_n_monic
+    >>> s = sp.symbols('s')
     >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
     >>> simplified_tt = simplify_n_monic(tt)
     >>> print(simplified_tt)
-    (s + 1)/(2*s + 1)
-
+    (s + 2)/(2*s + 3)
+    
     '''
     if not isinstance(tt, sp.Expr):
         raise TypeError("La entrada debe ser una expresión simbólica.")
@@ -148,20 +165,24 @@ def Chebyshev_polynomials(nn):
     '''
     Calcula el polinomio de Chebyshev de grado nn.
 
+
     Parameters
     ----------
     nn : int
         Grado del polinomio de Chebyshev.
+
 
     Returns
     -------
     Ts : Symbolic Matrix
         Matriz de parámetros de transferencia scattering.
 
+
     Raises
     ------
     ValueError
         Si nn no es un entero positivo.
+
 
     See Also
     --------
@@ -172,9 +193,10 @@ def Chebyshev_polynomials(nn):
 
     Examples
     --------
+    >>> from pytc2.general import Chebyshev_polynomials
     >>> Ts = Chebyshev_polynomials(3)
     >>> print(Ts)
-    4*w**3 - 3*w
+    w*(4*w**2 - 3)
 
     '''
     
@@ -201,9 +223,10 @@ def a_equal_b_latex_s(a, b):
     '''
     A partir de un string o expresión de SymPy (a), y otra expresión de SymPy (b):
     
-    a = b
+    .. math:: a = b
     
     en un nuevo string formateado para visualizarse en LaTeX.
+
 
     Parameters
     ----------
@@ -212,10 +235,12 @@ def a_equal_b_latex_s(a, b):
     b : Symbolic, str o lista de ambas
         Símbolo o cadena para el lado derecho de la igualdad.
 
+
     Returns
     -------
-    str
+    str: string
         String formateado en LaTeX representando la igualdad.
+
 
     Raises
     ------
@@ -223,18 +248,24 @@ def a_equal_b_latex_s(a, b):
         Si a no es un símbolo ni una cadena.
         Si b no es un símbolo.
 
+
     See Also
     --------
     :func:`expr_simb_expr`
     :func:`print_latex`
     :func:`to_latex`
 
+
     Examples
     --------
-    >>> print(a_equal_b_latex_s(sp.symbols('x'), sp.symbols('y')))
-    $x=y$
-    >>> print(a_equal_b_latex_s('a', sp.symbols('b')))
-    $a=b$
+    >>> import sympy as sp
+    >>> from pytc2.general import a_equal_b_latex_s, print_latex
+    >>> s = sp.symbols('s')
+    >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
+    >>> print(a_equal_b_latex_s(sp.symbols('tt'), tt))
+    'tt=\\frac{s^{2} + 3 s + 2}{2 s^{2} + 5 s + 3}$'
+    >>> print_latex(a_equal_b_latex_s(sp.symbols('tt'), tt))
+    [LaTex formated equation]
 
     '''
 
@@ -253,6 +284,7 @@ def expr_simb_expr(a, b, symbol='='):
     
     en un nuevo string formateado para visualizarse en LaTeX.
 
+
     Parameters
     ----------
     a : Symbolic or str
@@ -262,10 +294,12 @@ def expr_simb_expr(a, b, symbol='='):
     symbol : str, optional
         Símbolo de operación entre a y b (por defecto es '=').
 
+
     Returns
     -------
     str
         String formateado en LaTeX representando la expresión.
+
 
     Raises
     ------
@@ -283,10 +317,16 @@ def expr_simb_expr(a, b, symbol='='):
 
     Examples
     --------
-    >>> print(expr_simb_expr(sp.symbols('x'), sp.symbols('y')))
-    $x=y$
-    >>> print(expr_simb_expr('a', sp.symbols('b'), '!='))  # Usando otro símbolo
-    $a\neq b$
+    >>> import sympy as sp
+    >>> from pytc2.general import expr_simb_expr, print_latex
+    >>> s = sp.symbols('s')
+    >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
+    >>> tt1 = (s**2 + 4*s + 7) / (2*s**2 + 5*s + 3)
+    >>> print_latex(expr_simb_expr('tt', tt1, r'\\neq'))  
+    [LaTex formated equation]
+    >>> print_latex(expr_simb_expr('tt', tt))
+    [LaTex formated equation]
+
 
     '''
 
@@ -301,15 +341,18 @@ def to_latex(unsimbolo):
     '''
     Convierte un símbolo en un string formateado para visualizarse en LaTeX.
 
+
     Parameters
     ----------
     unsimbolo : Symbolic or str
         Símbolo o cadena a convertir a formato LaTeX.
 
+
     Returns
     -------
     str
         String formateado en LaTeX.
+
 
     Raises
     ------
@@ -326,10 +369,12 @@ def to_latex(unsimbolo):
 
     Examples
     --------
+    >>> import sympy as sp
+    >>> from pytc2.general import to_latex, print_latex
     >>> print(to_latex(sp.symbols('x')))
     $x$
-    >>> print(to_latex('a'))  
-    $a$
+    >>> print_latex(to_latex(sp.symbols('x')))
+    [LaTex formated equation]
 
     '''
 
@@ -342,15 +387,18 @@ def str_to_latex(unstr):
     '''
     Formatea un string para visualizarse en LaTeX.
 
+
     Parameters
     ----------
     unstr : str
         Cadena a formatear para visualización en LaTeX.
 
+
     Returns
     -------
     str
         String formateado en LaTeX.
+
 
     Raises
     ------
@@ -367,10 +415,13 @@ def str_to_latex(unstr):
 
     Examples
     --------
+    
+    >>> import sympy as sp
+    >>> from pytc2.general import str_to_latex, print_latex
     >>> print(str_to_latex('x'))
     $x$
-    >>> print(str_to_latex('a'))  
-    $a$
+    >>> print_latex(str_to_latex('x'))  
+    [LaTex formated equation]
 
     '''
 
@@ -383,15 +434,18 @@ def print_latex(unstr):
     '''
     Muestra una expresión LaTeX en formato matemático.
 
+
     Parameters
     ----------
     unstr : str
         Cadena que representa la expresión LaTeX.
 
+
     Returns
     -------
     None
         Esta función no devuelve nada, simplemente muestra la expresión en formato LaTeX.
+
 
     Raises
     ------
@@ -408,8 +462,12 @@ def print_latex(unstr):
 
     Examples
     --------
-    >>> print_latex('\\frac{1}{2}')
-    $\frac{1}{2}$
+    >>> import sympy as sp
+    >>> from pytc2.general import str_to_latex, print_latex
+    >>> print(str_to_latex('x'))
+    $x$
+    >>> print_latex(str_to_latex('x'))  
+    [LaTex formated equation]
 
     '''
     if not isinstance(unstr, str):
@@ -429,15 +487,18 @@ def print_console_alert(unstr):
     '''
     Imprime una cadena rodeada por símbolos de alerta en la consola.
 
+
     Parameters
     ----------
     unstr : str
         Cadena a imprimir.
 
+
     Returns
     -------
     None
         Esta función no devuelve nada, simplemente imprime la cadena en la consola.
+
 
     Raises
     ------
@@ -454,6 +515,7 @@ def print_console_alert(unstr):
 
     Examples
     --------
+    >>> from pytc2.general import print_console_alert
     >>> print_console_alert('Advertencia: Datos incompletos')
     ##################################
     # Advertencia: Datos incompletos #
@@ -474,15 +536,18 @@ def print_console_subtitle(unstr):
     '''
     Imprime un subtítulo en la consola.
 
+
     Parameters
     ----------
     unstr : str
         Cadena que representa el subtítulo.
 
+
     Returns
     -------
     None
         Esta función no devuelve nada, simplemente imprime el subtítulo en la consola.
+
 
     Raises
     ------
@@ -499,6 +564,7 @@ def print_console_subtitle(unstr):
 
     Examples
     --------
+    >>> from pytc2.general import print_console_subtitle
     >>> print_console_subtitle('Subtítulo')
     Subtítulo
     ---------
@@ -517,15 +583,18 @@ def print_subtitle(unstr):
     '''
     Imprime un subtítulo.
 
+
     Parameters
     ----------
     unstr : str
         Cadena que representa el subtítulo.
 
+
     Returns
     -------
     None
         Esta función no devuelve nada, simplemente imprime el subtítulo.
+
 
     Raises
     ------
@@ -542,8 +611,9 @@ def print_subtitle(unstr):
 
     Examples
     --------
+    >>> from pytc2.general import print_subtitle
     >>> print_subtitle('Subtítulo')
-    #### Subtítulo
+    <IPython.core.display.Markdown object>
 
     '''
 
@@ -564,19 +634,22 @@ def db2nepper(at_en_db):
     '''
     Convierte una magnitud en decibels a su equivalente en nepers.
 
+
     Parameters
     ----------
     at_en_db : float or numpy.ndarray
         Magnitud en decibelios a convertir.
+
 
     Returns
     -------
     float or numpy.ndarray
         Equivalente en nepers.
 
+
     Raises
     ------
-      TypeError: Si at_en_db no es de tipo `np.floating`.
+      TypeError: Si at_en_db no es de tipo `float`.
 
 
     See Also
@@ -586,15 +659,16 @@ def db2nepper(at_en_db):
 
     Examples
     --------
-    >>> db2nepper(20)
-    8.685889638065036
-    >>> db2nepper(np.array([10, 30, 50]))
-    array([4.34294482, 13.02883445, 21.71472408])
+    >>> from pytc2.general import db2nepper
+    >>> db2nepper(20.)
+    2.3025850929940455
+    >>> db2nepper(1.)
+    0.11512925464970228
 
     '''
 
-    if not isinstance(at_en_db, np.floating):
-        raise TypeError('at_en_db debe ser np.floating')
+    if not isinstance(at_en_db, float):
+        raise TypeError('at_en_db debe ser float')
 
     return at_en_db / (20 * np.log10(np.exp(1)))
 
@@ -602,19 +676,22 @@ def nepper2db(at_en_np):
     '''
     Convierte una magnitud en neperios a su equivalente en decibelios.
 
+
     Parameters
     ----------
     at_en_np : float or numpy.ndarray
         Magnitud en neperios a convertir.
+
 
     Returns
     -------
     float or numpy.ndarray
         Equivalente en decibelios.
 
+
     Raises
     ------
-      TypeError: Si at_en_db no es de tipo `np.floating`.
+      TypeError: Si at_en_db no es de tipo `float`.
     
 
     See Also
@@ -624,15 +701,16 @@ def nepper2db(at_en_np):
 
     Examples
     --------
-    >>> nepper2db(10)
-    22.046285227092834
-    >>> nepper2db(np.array([4, 8, 12]))
-    array([8.81851409, 17.63702818, 26.45554226])
+    >>> from pytc2.general import nepper2db
+    >>> nepper2db(1.)
+    8.685889638065037
+    >>> nepper2db(2.3025850929940455)
+    20.
 
     '''
 
-    if not isinstance(at_en_np, np.floating):
-        raise TypeError('at_en_np debe ser np.floating')
+    if not isinstance(at_en_np, float):
+        raise TypeError('at_en_np debe ser float')
 
     return at_en_np * (20 * np.log10(np.exp(1)))
     
