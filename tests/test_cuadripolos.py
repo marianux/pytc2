@@ -7,31 +7,28 @@ Created on Sun Feb 18 19:58:49 2024
 """
 
 import pytest
-from scipy.signal import TransferFunction
 import numpy as np
 import sympy as sp
-import matplotlib.pyplot as plt
-from pytc2 import sistemas_lineales as test_module
 import scipy.signal as sig
+from pytc2 import cuadripolos as test_module
 
-def test_tfcascade():
-    # Definir las funciones de transferencia de prueba
-    tfa = TransferFunction([1, 2], [1, 3, 2])
-    tfb = TransferFunction([1], [1, 4])
+def test_S2Ts_s():
+    
+    S11, S12, S21, S22 = sp.symbols('S11, S12, S21, S22')
+    Spar = sp.Matrix([[S11, S12],
+                      [S21, S22]])
+
+    Ts = test_module.S2Ts_s(Spar)
 
     # Calcular el resultado esperado de la cascada
-    expected_num = [1, 2]
-    expected_den = [1, 7, 14, 8]
+    expected_Ts = sp.Matrix([[1/S21, -S22/S21], [S11/S21, -S11*S22/S21 + S12]])
 
-    # Llamar a la función tfcascade con las funciones de transferencia de prueba
-    result = test_module.tfcascade(tfa, tfb)
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, sp.MatrixBase)
 
-    # Verificar que el tipo de resultado sea TransferFunction
-    assert isinstance(result, TransferFunction)
+    # Verificar el correcto resultado
+    assert Ts == expected_Ts
 
-    # Verificar que los coeficientes del numerador y el denominador sean los esperados
-    assert np.array_equal(result.num, expected_num)
-    assert np.array_equal(result.den, expected_den)
 
 def test_tfcascade_invalid_input():
     # Definir una función de transferencia incorrecta

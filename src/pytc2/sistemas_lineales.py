@@ -68,9 +68,6 @@ def tfcascade(tfa, tfb):
     TransferFunction([1, 2], [1, 7, 14, 8])
 
 
-    Notes
-    -----
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
         
     """
     if not isinstance(tfa, TransferFunction) or not isinstance(tfb, TransferFunction):
@@ -198,9 +195,6 @@ def sos2tf_analog(mySOS):
     )
 
 
-    Nota
-    ----
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     """
     # Verificar si mySOS es una matriz 2D y si cada fila tiene exactamente 6 elementos
     if not isinstance(mySOS, np.ndarray) or mySOS.ndim != 2 or mySOS.shape[1] != 6:
@@ -285,9 +279,6 @@ def tf2sos_analog(num, den=[]):
     [[1. 2. 3. 4. 5. 6.]]
 
 
-    Nota
-    ----
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
     """
     
     if not isinstance(num, (list, np.ndarray, TransferFunction)):
@@ -331,9 +322,7 @@ def zpk2sos_analog(zz, pp, kk):
         
     1. Asignar ceros a los polos más cercanos.
     2. Ordenar las secciones por Q creciente.
-    3. Ordenar las ganancias para maximizar el rango dinámico. Ver [1] cap. 5.
-    
-    .. [1] Schaumann, Rolf, Haiqiao Xiao, and Van Valkenburg Mac. Design of analog filters 2nd. Edition. Oxford University Press, 2013. ISBN	0195373944, 9780195373943.
+    3. Ordenar las ganancias para maximizar el rango dinámico. Ver :ref:`Schaumann R. <schau13>` cap. 5.
     
 
     Parameters
@@ -377,9 +366,11 @@ def zpk2sos_analog(zz, pp, kk):
     [[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]]
 
 
-    Nota
-    ----
-    Parte de esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
+    Notes:
+    -------
+    .. _schau13:
+    .. [1] Schaumann, Rolf, Haiqiao Xiao, and Van Valkenburg Mac. Design of analog filters 2nd. Edition. Oxford University Press, 2013. ISBN	0195373944, 9780195373943.
+
     """
     if not isinstance(zz, (list, np.ndarray)) or not isinstance(pp, (list, np.ndarray)):
         raise ValueError("Los argumentos 'zz' y 'pp' deben ser listas o arrays.")
@@ -2256,13 +2247,13 @@ def _nearest_real_complex_idx(fro, to, which):
     
     Example
     --------
+    >>> import numpy as np
+    >>> from pytc2.sistemas_lineales import _nearest_real_complex_idx
     >>> fro = np.array([1, 2, 3, 4])
     >>> to = 2.5
     >>> nearest_idx = _nearest_real_complex_idx(fro, to, 'real')
     >>> print("El índice del elemento real más cercano a", to, "es:", nearest_idx)
 
-
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
 
     '''
     # Verificar que 'which' sea 'real' o 'complex'
@@ -2319,6 +2310,8 @@ def _cplxreal(z, tol=None):
 
     Exampless
     ---------
+    >>> import numpy as np
+    >>> from pytc2.sistemas_lineales import _cplxreal
     >>> a = [4, 3, 1, 2-2j, 2+2j, 2-1j, 2+1j, 2-1j, 2+1j, 1+1j, 1-1j]
     >>> zc, zr = _cplxreal(a)
     >>> print(zc)
@@ -2326,7 +2319,7 @@ def _cplxreal(z, tol=None):
     >>> print(zr)
     [ 1.  3.  4.]
 
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
+
     """
 
     z = np.atleast_1d(z)
@@ -2411,6 +2404,8 @@ def _one_sos2tf(mySOS):
 
     Examples
     --------
+    >>> import numpy as np
+    >>> from pytc2.sistemas_lineales import _one_sos2tf
     >>> mySOS = [1, -1.9, 1, 1, -1.6, 0.64]
     >>> num, den = _one_sos2tf(mySOS)
     >>> print(num)
@@ -2418,7 +2413,7 @@ def _one_sos2tf(mySOS):
     >>> print(den)
     [1, -1.6, 0.64]
 
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
+    
     """
     if not isinstance(mySOS, (list, tuple, np.ndarray)):
         raise ValueError("El argumento 'mySOS' debe ser un vector.")
@@ -2465,20 +2460,22 @@ def _build_poly_str(this_poly):
 
 
     See Also
-    -----------
+    ---------
     :func:`pretty_print_lti`
     :func:`pretty_print_bicuad_omegayq`
 
 
     Examples
     --------
+    >>> import numpy as np
+    >>> from pytc2.sistemas_lineales import _build_poly_str
     >>> this_poly = np.array([1, -2, 3])
     >>> poly_str = _build_poly_str(this_poly)
     >>> print(poly_str)
     's^2 - 2 s + 3'
 
 
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
+    
     """
     if not isinstance(this_poly, np.ndarray):
         raise ValueError("El argumento 'this_poly' debe ser un array de numpy.")
@@ -2505,8 +2502,8 @@ def _build_poly_str(this_poly):
 
 def _build_omegayq_str(this_quad_poly, den=np.array([])):
     """
-    Construye una cadena de caracteres que representa omega y Q.
-
+    Construye una cadena de caracteres que representa un polinomio parametrizado
+    mediante :math:`\\omega_0` y Q.
 
     Parameters
     -----------
@@ -2516,34 +2513,36 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
         Coeficientes del denominador. El valor predeterminado es np.array([]).
 
 
-    Raises
-    ------
-    ValueError
-        Si `this_quad_poly` no es un array de numpy.
-        Si `den` no es un array de numpy.
-
-        
     Returns
     --------
     str
-        Cadena de caracteres que representa omega y Q.
+        Cadena de caracteres que representa el polinomio parametrizado.
+
+
+    Raises
+    ------
+    ValueError
+        Si `this_poly` no es un array de numpy.
 
 
     See Also
-    -----------
+    ---------
+    :func:`pretty_print_lti`
     :func:`pretty_print_bicuad_omegayq`
 
 
     Examples
     --------
+    >>> import numpy as np
+    >>> from pytc2.sistemas_lineales import _build_omegayq_str
     >>> this_quad_poly = np.array([1, 2, 3])
     >>> den = np.array([4, 5, 6])
     >>> omegaq_str = _build_omegayq_str(this_quad_poly, den)
     >>> print(omegaq_str)
-    's\,0.08333\,\frac{2}{0.1667}'
+    r'$s\\,0.08333\\,\\frac{2}{0.1667}$'
 
 
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
+
     """
     if not isinstance(this_quad_poly, np.ndarray):
         raise ValueError("El argumento 'this_quad_poly' debe ser un array de numpy.")
@@ -2578,22 +2577,23 @@ def _complementaryColor(my_hex):
     """
     Returns el color RGB complementario.
 
+
     Parameters
     -----------
     my_hex : str
         Código hexadecimal del color.
 
 
-    Raises
-    ------
-    ValueError
-        Si `my_hex` no es una cadena de caracteres válida o no tiene la longitud correcta.
-
-
     Returns
     --------
     str
         Código hexadecimal del color complementario.
+
+
+    Raises
+    ------
+    ValueError
+        Si `my_hex` no es una cadena de caracteres válida o no tiene la longitud correcta.
 
 
     See Also
@@ -2603,11 +2603,12 @@ def _complementaryColor(my_hex):
 
     Examples
     --------
+    >>> from pytc2.sistemas_lineales import _complementaryColor
     >>> _complementaryColor('FFFFFF')
     '000000'
 
 
-    Esta documentación ha sido generada por ChatGPT, una IA desarrollada por OpenAI.
+    
     """
     
     if not isinstance(my_hex, str) or len(my_hex) != 7: # '#' + 6 RGB

@@ -20,16 +20,16 @@ from .general import s, a_equal_b_latex_s, print_latex, print_console_alert
 
 sig = sp.symbols('sig', real=True)
 """
-# versión simbólica de sigma, parte real de la variable compleja de Laplace
-# s = σ + j.ω
-# En caso de necesitar usarla, importar el símbolo desde este módulo.
+versión simbólica de sigma, parte real de la variable compleja de Laplace
+s = σ + j.ω
+En caso de necesitar usarla, importar el símbolo desde este módulo.
 """
 
 sig_pos = sp.symbols('sig_pos', real=True, positive = True)
 """
-# versión simbólica de sigma, parte real positiva de la variable compleja 
-# de Laplace s = σ + j.ω
-# En caso de necesitar usarla, importar el símbolo desde este módulo.
+versión simbólica de sigma, parte real positiva de la variable compleja 
+de Laplace s = σ + j.ω
+En caso de necesitar usarla, importar el símbolo desde este módulo.
 """
 
 
@@ -980,7 +980,7 @@ def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
     imit_r : Symbolic
         Imitancia luego de la remoción
     k_inf : Symbolic
-        Expresión completa del término removido :math:`s.k_\\infty `.
+        Expresión completa del término removido :math:`s.k_{\\infty}`.
 
         
     Raises
@@ -1196,7 +1196,7 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
     imit_r : Symbolic
         Imitancia luego de la remoción
     k_inf : Symbolic
-        Expresión completa del término removido :math:`s.k_\\infty `.
+        Expresión completa del término removido :math:`s.k_{\\infty}`.
 
         
     Raises

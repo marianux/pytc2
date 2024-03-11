@@ -58,11 +58,11 @@ def S2Ts_s(Spar):
     --------
     >>> import sympy as sp
     >>> from pytc2.cuadripolos import S2Ts_s
-    >>> Spar = sp.Matrix([[sp.symbols('Z11'), sp.symbols('Z12')],
-    ...                   [sp.symbols('Z21'), sp.symbols('Z22')]])
+    >>> Spar = sp.Matrix([[sp.symbols('S11'), sp.symbols('S12')],
+    ...                   [sp.symbols('S21'), sp.symbols('S22')]])
     >>> Ts = S2Ts_s(Spar)
     >>> print(Ts)
-    Matrix([[1/Z21, -Z22/Z21], [Z11/Z21, -Z11*Z22/Z21 + Z12]])
+    Matrix([[1/S21, -S22/S21], [S11/S21, -S11*S22/S21 + S12]])
 
     Notes
     -----
@@ -732,12 +732,12 @@ def Model_conversion(src_model, dst_model):
     src_model : dict
         Diccionario que describe el modelo de origen.
         Debe tener las claves: 
-            - 'model_name': nombre del modelo ('Z', 'T', etc.).
-            - 'matrix': matriz de parámetros del modelo.
-            - 'dep_var': variables dependientes del modelo.
-            - 'indep_var': variables independientes del modelo.
-            - (opcional) 'proxy_matrix': matriz de parámetros proxy en caso de ser necesario.
-            - (opcional) 'neg_i2_current': indicador booleano si la corriente i2 se define con signo negativo.
+        - 'model_name': nombre del modelo ('Z', 'T', etc.).
+        - 'matrix': matriz de parámetros del modelo.
+        - 'dep_var': variables dependientes del modelo.
+        - 'indep_var': variables independientes del modelo.
+        - (opcional) 'proxy_matrix': matriz de parámetros proxy en caso de ser necesario.
+        - (opcional) 'neg_i2_current': indicador booleano si la corriente i2 se define con signo negativo.
 
     dst_model : dict
         Diccionario que describe el modelo de salida.
