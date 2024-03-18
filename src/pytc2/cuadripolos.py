@@ -7,10 +7,8 @@ Created on Thu Mar  2 14:14:13 2023
 """
 
 import numpy as np
-
 import sympy as sp
-
-from .general import print_latex
+from numbers import Real, Complex
 
 
 #%%
@@ -80,7 +78,7 @@ def S2Ts_s(Spar):
         raise ValueError("Spar debe tener el formato [ [Spar_11, Spar_12], [Spar_21, Spar_22] ]")
     
     # Verificar que Spar_12 no sea nulo
-    if Spar[0, 1] == 0:
+    if Spar[1, 0] == 0:
         raise ValueError("Spar_12 no puede ser nulo")
     
     # Inicialización de la matriz de parámetros de transferencia
@@ -126,11 +124,11 @@ def Ts2S_s(Ts):
     --------
     >>> import sympy as sp
     >>> from pytc2.cuadripolos import Ts2S_s
-    >>> Ts = sp.Matrix([[sp.symbols('A'), sp.symbols('B')],
-    ...                 [sp.symbols('C'), sp.symbols('D')]])
+    >>> Ts = sp.Matrix([[sp.symbols('Ts11'), sp.symbols('Ts12')],
+    ...                 [sp.symbols('Ts21'), sp.symbols('Ts22')]])
     >>> Spar = Ts2S_s(Ts)
     >>> print(Spar)
-    Matrix([[C/A, D - B*C/A], [1/A, -B/A]])
+    Matrix([[Ts21/Ts11, Ts22 - Ts12*Ts21/Ts11], [1/Ts11, -Ts12/Ts11]])
 
 
     Notes
@@ -163,7 +161,7 @@ def Ts2S_s(Ts):
 
     return sp.simplify(sp.expand(1 / Ts[0, 0] * Spar)) # Sxx = 1/Ts11 * Sxx 
 
-def Ts2Tabcd_s(Ts, Z0=sp.Rational('1')):
+def Ts2Tabcd_s(Ts, Z01=sp.Rational('1'), Z02=sp.Rational('1')):
     """Converts a symbolic scattering parameter matrix (Ts) to the symbolic ABCD or Tabcd model.
 
     This function converts a symbolic scattering parameter matrix (Ts) to the symbolic ABCD or Tabcd model.
@@ -211,13 +209,16 @@ def Ts2Tabcd_s(Ts, Z0=sp.Rational('1')):
         raise ValueError("Ts must be an instance of sp.Matrix.")
     
     # Check if Z0 is an instance of sp.Expr
-    if not isinstance(Z0, sp.Expr):
-        raise ValueError("Z0 must be an instance of sp.Expr.")
+    if not isinstance(Z01, sp.Expr):
+        raise ValueError("Z01 debe ser un número complejo (expresión simbolólica de SymPy)")
+
+    if not isinstance(Z02, sp.Expr):
+        raise ValueError("Z02 debe ser un número complejo (expresión simbolólica de SymPy)")
 
     # Convert Ts to S-parameter matrix and then to ABCD matrix
-    return sp.simplify(sp.expand(S2Tabcd_s(Ts2S_s(Ts), Z0=Z0)))
+    return sp.simplify(sp.expand(S2Tabcd_s(Ts2S_s(Ts), Z01=Z01, Z02=Z02)))
 
-def Tabcd2S_s(Tabcd, Z0=sp.Rational('1')):
+def Tabcd2S_s(Tabcd, Z01=sp.Rational('1'), Z02=sp.Rational('1')):
     '''
     Convierte una matriz de parámetros ABCD (Tabcd) simbólica 
     al modelo de parámetros scattering (S).
@@ -275,23 +276,29 @@ def Tabcd2S_s(Tabcd, Z0=sp.Rational('1')):
     if Tabcd.shape != (2, 2):
         raise ValueError("Tabcd debe tener el formato [ [A, B], [C, D] ]")
 
-    # Verificar si la matriz Tabcd es invertible
-    if Tabcd.det() == 0:
-        raise ValueError("La matriz Tabcd no es invertible")
+    # # Verificar si la matriz Tabcd es invertible
+    # if Tabcd.det() == 0:
+    #     raise ValueError("La matriz Tabcd no es invertible")
+
+    if not isinstance(Z01, sp.Expr):
+        raise ValueError("Z01 debe ser un número complejo (expresión simbolólica de SymPy)")
+
+    if not isinstance(Z02, sp.Expr):
+        raise ValueError("Z02 debe ser un número complejo (expresión simbolólica de SymPy)")
 
     # Inicialización de la matriz de parámetros de scattering
     Spar = sp.Matrix([[0, 0], [0, 0]])
 
     # Cálculo de los elementos de la matriz Spar
-    common = Tabcd[0, 0] + Tabcd[0, 1]/Z0 + Tabcd[1, 0]*Z0 + Tabcd[1, 1]
-    Spar[0, 0] = Tabcd[0, 0] + Tabcd[0, 1]/Z0 - Tabcd[1, 0]*Z0 - Tabcd[1, 1]
-    Spar[0, 1] = 2 * sp.simplify(sp.expand(sp.Determinant(Tabcd)))
-    Spar[1, 0] = sp.Rational('2')
-    Spar[1, 1] = -Tabcd[0, 0] + Tabcd[0, 1]/Z0 - Tabcd[1, 0]*Z0 + Tabcd[1, 1]
+    common = Tabcd[0, 0]*Z02 + Tabcd[0, 1] + Tabcd[1, 0]*Z01*Z02 + Tabcd[1, 1]*Z01
+    Spar[0, 0] = Tabcd[0, 0] *Z02 + Tabcd[0, 1] - Tabcd[1, 0]*sp.conjugate(Z01)*Z02 - Tabcd[1, 1]*sp.conjugate(Z01)
+    Spar[0, 1] = sp.Rational('2') * sp.sqrt(sp.re(Z01)*sp.re(Z02)) * sp.simplify(sp.expand(sp.Determinant(Tabcd))) 
+    Spar[1, 0] = sp.Rational('2') * sp.sqrt(sp.re(Z01)*sp.re(Z02)) 
+    Spar[1, 1] = -Tabcd[0, 0] *sp.conjugate(Z02) + Tabcd[0, 1] - Tabcd[1, 0]*sp.conjugate(Z02)*Z01 + Tabcd[1, 1]*Z01
 
     return sp.simplify(sp.expand(1 / common * Spar))
 
-def S2Tabcd_s(Spar, Z0=sp.Rational('1')):
+def S2Tabcd_s(Spar, Z01=sp.Rational('1'), Z02=sp.Rational('1')):
     '''
     Convierte una matriz de parámetros scattering (S) simbólica 
     al modelo de parámetros ABCD (Tabcd).
@@ -353,15 +360,21 @@ def S2Tabcd_s(Spar, Z0=sp.Rational('1')):
     if Spar[1, 0] == 0:
         raise ValueError("Spar[1, 0] no puede ser nulo")
 
+    if not isinstance(Z01, sp.Expr):
+        raise ValueError("Z01 debe ser un número complejo (expresión simbolólica de SymPy)")
+
+    if not isinstance(Z02, sp.Expr):
+        raise ValueError("Z02 debe ser un número complejo (expresión simbolólica de SymPy)")
+
     # Inicialización de la matriz de parámetros ABCD
     Tabcd = sp.Matrix([[0, 0], [0, 0]])
 
     # Cálculo de los elementos de la matriz Tabcd
-    common = 2 * Spar[1, 0]
-    Tabcd[0, 0] = (1 - Spar[0, 0]) * (1 + Spar[1, 1]) + Spar[1, 0] * Spar[0, 1]
-    Tabcd[0, 1] = Z0 * ((1 + Spar[0, 0]) * (1 + Spar[1, 1]) - Spar[1, 0] * Spar[0, 1])
-    Tabcd[1, 0] = 1 / Z0 * ((1 - Spar[0, 0]) * (1 - Spar[1, 1]) - Spar[1, 0] * Spar[0, 1])
-    Tabcd[1, 1] = (1 - Spar[0, 0]) * (1 + Spar[1, 1]) + Spar[1, 0] * Spar[0, 1]
+    common = 2 * Spar[1, 0] * sp.sqrt(sp.re(Z01)*sp.re(Z02))
+    Tabcd[0, 0] = (sp.conjugate(Z01) + Spar[0, 0] * Z01) * (1 - Spar[1, 1]) + Spar[1, 0] * Spar[0, 1] * Z01
+    Tabcd[0, 1] = (sp.conjugate(Z01) + Spar[0, 0] * Z01) * (sp.conjugate(Z02) + Spar[1, 1] * Z02) - Spar[1, 0] * Spar[0, 1] * Z01 * Z02
+    Tabcd[1, 0] = (1 - Spar[0, 0]) * (1 - Spar[1, 1]) - Spar[1, 0] * Spar[0, 1]
+    Tabcd[1, 1] = (1 - Spar[0, 0]) * (sp.conjugate(Z02) + Spar[1, 1] * Z02) + Spar[1, 0] * Spar[0, 1] * Z02
 
     return sp.simplify(sp.expand(1 / common * Tabcd))
 
@@ -703,15 +716,15 @@ def I2Tabcd_s(gamma, z01, z02=None):
     '''
     # Verificar que gamma sea un número complejo
     if not isinstance(gamma, sp.Expr): 
-        raise ValueError("gamma debe ser un número complejo")
+        raise ValueError("gamma debe ser un número complejo (expresión simbolólica de SymPy)")
 
     # Verificar que z01 sea un símbolo o un número real positivo
     if not isinstance(z01, sp.Expr):
-        raise ValueError("z01 debe ser una expresión simbolólica de SymPy")
+        raise ValueError("z01 debe ser un real (expresión simbolólica de SymPy)")
 
     # Verificar si z02 es proporcionado y, de serlo, que sea un símbolo o un número real positivo
     if not isinstance(z02, (sp.Expr, type(None))):
-        raise ValueError("z02 debe ser una expresión simbolólica de SymPy")
+        raise ValueError("z02 debe ser un real (expresión simbolólica de SymPy)")
 
     # Si z02 no es proporcionado, se asume z02 = z01
     if z02 is None:
@@ -736,8 +749,11 @@ def Model_conversion(src_model, dst_model):
         - 'matrix': matriz de parámetros del modelo.
         - 'dep_var': variables dependientes del modelo.
         - 'indep_var': variables independientes del modelo.
-        - (opcional) 'proxy_matrix': matriz de parámetros proxy en caso de ser necesario.
-        - (opcional) 'neg_i2_current': indicador booleano si la corriente i2 se define con signo negativo.
+        - 'proxy_matrix': (opcional) matriz de parámetros auxiliar. Por ejemplo para 
+                          relacionar modelos que no tengan variables en común (S->Z).
+                          Se necesitará una conversión intermedia, en PyTC2 se
+                          adopta :math:`T_{ABCD}` como modelo intermedio.                          
+        - 'neg_i2_current': (opcional) indicador booleano si la corriente i2 se define con signo negativo.
 
     dst_model : dict
         Diccionario que describe el modelo de salida.
@@ -795,10 +811,6 @@ def Model_conversion(src_model, dst_model):
     - Esta función está diseñada para trabajar con expresiones simbólicas utilizando el módulo SymPy.
 
     '''
-    # Verificar si los modelos de origen y destino son iguales
-    if src_model['model_name'] == dst_model['model_name']:
-        raise ValueError("Los modelos de origen y destino son iguales")
-
     # Verificar que src_model tenga las claves necesarias
     required_keys = ['model_name', 'matrix', 'dep_var', 'indep_var']
     for key in required_keys:
@@ -809,6 +821,11 @@ def Model_conversion(src_model, dst_model):
     for key in required_keys:
         if key not in dst_model:
             raise ValueError(f"Falta la clave '{key}' en dst_model")
+
+    # Verificar si los modelos de origen y destino son iguales
+    if src_model['model_name'] == dst_model['model_name']:
+        return {'matrix': sp.Matrix([[1,1],[1,1]]), 'name': f"{dst_model['model_name']}_{src_model['model_name']}"}
+
 
     # Verificar que las variables independientes sean símbolos o números reales positivos
     for var in src_model['indep_var']:
@@ -845,12 +862,12 @@ def Model_conversion(src_model, dst_model):
 
 def y2mai(YY):
     '''
-    Convierte una matriz de admitancia indefinida (YY) a una matriz admitancia indefinida (Ymai).
+    Convierte una matriz de admitancia definida (YY) a una matriz admitancia indefinida (Ymai).
 
     Parameters
     ----------
     YY : sympy.Matrix
-        Matriz admitancia indefinida.
+        Matriz admitancia definida.
 
     Returns
     -------
@@ -955,7 +972,7 @@ def may2y(Ymai, nodes2del):
         raise ValueError("Ymai debe ser una instancia de sympy.Matrix")
 
     # Verificar si nodes2del es una lista o un entero
-    if not isinstance(nodes2del, list) and not isinstance(nodes2del, int):
+    if not isinstance(nodes2del, (list, int)) :
         raise ValueError("nodes2del debe ser una lista o un entero")
 
     # Convertir nodes2del a lista si es un entero
@@ -1034,6 +1051,10 @@ def Y2Tabcd(YY):
     - YY[1, 0] no puede ser cero para evitar una división por cero.
 
     """
+    
+    if not isinstance(YY, np.ndarray):
+        raise ValueError("YY debe ser una instancia de np.ndarray")
+    
     # Verificar que YY sea una matriz de 2x2
     if YY.shape != (2, 2):
         raise ValueError("YY debe ser una matriz de 2x2")
@@ -1102,6 +1123,9 @@ def Z2Tabcd(ZZ):
     - ZZ[1, 0] no puede ser cero para evitar una división por cero.
 
     '''
+    if not isinstance(ZZ, np.ndarray):
+        raise ValueError("ZZ debe ser una instancia de np.ndarray")
+    
     # Verificar que ZZ sea una matriz de 2x2
     if ZZ.shape != (2, 2):
         raise ValueError("ZZ debe ser una matriz de 2x2")
@@ -1169,6 +1193,9 @@ def Tabcd2Y(TT):
     - B no puede ser cero para evitar una división por cero.
 
     '''
+    if not isinstance(TT, np.ndarray):
+        raise ValueError("TT debe ser una instancia de np.ndarray")
+    
     # Verificar que TT sea una matriz de 2x2
     if TT.shape != (2, 2):
         raise ValueError("TT debe ser una matriz de 2x2")
@@ -1187,7 +1214,6 @@ def Tabcd2Y(TT):
     YY[1, 1] = TT[0, 0] / TT[0, 1]
 
     return YY
-
 
 def I2Tabcd(gamma, z01, z02=None):
     '''
@@ -1249,14 +1275,19 @@ def I2Tabcd(gamma, z01, z02=None):
     - Se espera que z01 y z02 sean números reales positivos.
 
     '''
+    
+    # Verificar si gamma es un número complejo
+    if not isinstance(gamma, Complex):
+        raise ValueError("Gamma debe ser un número complejo")
+
     # Verificar si z01 es un número real positivo
-    if not isinstance(z01, (int, float)) or z01 <= 0:
+    if not isinstance(z01, Real) or z01 <= 0:
         raise ValueError("z01 debe ser un número real positivo")
 
+
     # Verificar si z02 es proporcionado y, de serlo, que sea un número real positivo
-    if z02 is not None:
-        if not isinstance(z02, (int, float)) or z02 <= 0:
-            raise ValueError("z02 debe ser un número real positivo")
+    if not isinstance(z02, (Real, type(None))) or z02 <= 0:
+        raise ValueError("z02 debe ser un número real positivo")
 
     # Si z02 no es proporcionado, se asume z02 = z01
     if z02 is None:
@@ -1275,7 +1306,7 @@ def I2Tabcd(gamma, z01, z02=None):
  ##############################################################
 #%%
 
-def SparZ_s(Zexc, Z01=sp.Rational(1), Z02=sp.Rational(1)):
+def SparZ_s(Zexc, Z01=sp.Rational(1), Z02=None):
     '''
     Convierte una matriz de transferencia de scattering (Ts) simbólica 
     al modelo de parámetros scattering (S).
@@ -1316,7 +1347,7 @@ def SparZ_s(Zexc, Z01=sp.Rational(1), Z02=sp.Rational(1)):
     >>> Zexc = sp.symbols('Z')
     >>> Z01 = sp.symbols('Z01')
     >>> Z02 = sp.symbols('Z02')
-    >>> Spar = SparZ_s(Zexc, Z01, Z02)
+    >>> Spar = SparZ_s(Zexc, Z01, Z01)
     >>> print(Spar)
     Matrix([[Z/(Z + 2*Z01), 2*Z01/(Z + 2*Z01)], [2*Z01/(Z + 2*Z01), Z/(Z + 2*Z01)]])
     
@@ -1334,22 +1365,25 @@ def SparZ_s(Zexc, Z01=sp.Rational(1), Z02=sp.Rational(1)):
         raise ValueError("Zexc debe ser una instancia de Symbolic")
     if not isinstance(Z01, sp.Expr):
         raise ValueError("Z01 debe ser una instancia de Symbolic")
-    if not isinstance(Z02, sp.Expr):
+    if not isinstance(Z02, (sp.Expr, type(None))):
         raise ValueError("Z02 debe ser una instancia de Symbolic")
+
+    if Z02 is None:
+        Z02 = Z01
 
     # Inicialización de la matriz de parámetros de scattering
     Spar = sp.Matrix([[0, 0], [0, 0]])
 
     # Cálculo de los elementos de la matriz Spar
-    common = Zexc + sp.Rational(2) * Z01
-    Spar[0, 0] = Zexc
-    Spar[0, 1] = sp.Rational(2) * Z01
-    Spar[1, 0] = sp.Rational(2) * Z01
-    Spar[1, 1] = Zexc
+    common = Zexc + Z02 + Z01
+    Spar[0, 0] = Zexc + Z02 - Z01
+    Spar[0, 1] = sp.Rational(2) * Z01 * sp.sqrt(Z02/Z01)
+    Spar[1, 0] = sp.Rational(2) * Z02 * sp.sqrt(Z01/Z02)
+    Spar[1, 1] = Zexc + Z01 - Z02
 
     return sp.simplify(sp.expand(1 / common * Spar))
 
-def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=sp.Rational('1')):
+def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=None):
     '''
     Convierte una matriz de transferencia de scattering (Ts) simbólica 
     al modelo de parámetros scattering (S).
@@ -1392,7 +1426,7 @@ def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=sp.Rational('1')):
     >>> Yexc = sp.symbols('Yexc')
     >>> Y01 = sp.symbols('Y01')
     >>> Y02 = sp.symbols('Y02')
-    >>> SparY = SparY_s(Yexc, Y01, Y02)
+    >>> SparY = SparY_s(Yexc, Y01)
     >>> print(SparY)
     Matrix([[-Yexc/(2*Y01 + Yexc), 2*Y01/(2*Y01 + Yexc)], [2*Y01/(2*Y01 + Yexc), -Yexc/(2*Y01 + Yexc)]])
     
@@ -1410,20 +1444,24 @@ def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=sp.Rational('1')):
         raise ValueError("Yexc debe ser una instancia de Symbolic")
     if not isinstance(Y01, sp.Expr):
         raise ValueError("Y01 debe ser una instancia de Symbolic")
-    if not isinstance(Y02, sp.Expr):
+    if not isinstance(Y02, (sp.Expr, type(None))):
         raise ValueError("Y02 debe ser una instancia de Symbolic")
+
+    if Y02 is None:
+        Y02 = Y01
 
     # Inicialización de la matriz de parámetros de scattering
     Spar = sp.Matrix([[0, 0], [0, 0]])
 
-    # Cálculo de los elementos de la matriz Spar
-    Spar[0, 0] = -Yexc
-    Spar[0, 1] = sp.Rational(2) * Y01
-    Spar[1, 0] = sp.Rational(2) * Y01
-    Spar[1, 1] = -Yexc
-    
     # Normalización por el término común
-    common = Yexc + sp.Rational(2) * Y01
+    common = Yexc + Y01 + Y02
+
+    # Cálculo de los elementos de la matriz Spar
+    Spar[0, 0] = Y01 - Yexc - Y02
+    Spar[0, 1] = sp.Rational(2) * Y01 * sp.sqrt(Y01/Y02)
+    Spar[1, 0] = sp.Rational(2) * Y02 * sp.sqrt(Y02/Y01)
+    Spar[1, 1] = Y02 - Yexc - Y01
+    
     return sp.simplify(sp.expand(1 / common * Spar))
 
 def TabcdLYZ_s(Yexc, Zexc):
@@ -1701,15 +1739,22 @@ def TabcdLYZ(Yexc, Zexc):
     ([[1, Z], [Y, Y*Z + 1]])
 
     '''
+    # Verificar si Zexc, Yexc es un número complejo
+    if not isinstance(Zexc, Complex):
+        raise ValueError("Zexc debe ser un número complejo")
+
+    if not isinstance(Yexc, Complex):
+        raise ValueError("Yexc debe ser un número complejo")
+
 
     # Inicialización de la matriz de parámetros ABCD
-    Tpar = np.array([[0, 0], [0, 0]])
+    Tpar = np.array([[0., 0.], [0., 0.]])
     
     # Cálculo de los elementos de la matriz Tpar
-    Tpar[0, 0] = 1 
+    Tpar[0, 0] = 1. 
     Tpar[0, 1] = Zexc
     Tpar[1, 0] = Yexc
-    Tpar[1, 1] = 1 + Zexc * Yexc
+    Tpar[1, 1] = 1. + Zexc * Yexc
     
     return Tpar
 
@@ -1751,16 +1796,21 @@ def TabcdLZY(Zexc, Yexc):
     [[Y*Z + 1, Z], [Y, 1]]
 
     '''
-    # Verificar si Zexc y Yexc son instancias de Symbolic
+    # Verificar si Zexc, Yexc es un número complejo
+    if not isinstance(Zexc, Complex):
+        raise ValueError("Zexc debe ser un número complejo")
+
+    if not isinstance(Yexc, Complex):
+        raise ValueError("Yexc debe ser un número complejo")
 
     # Inicialización de la matriz de parámetros ABCD
-    Tpar = np.array([[0.0, 0], [0, 0]])
+    Tpar = np.array([[0., 0.], [0., 0.]])
     
     # Cálculo de los elementos de la matriz Tpar
-    Tpar[0, 0] = 1 + Zexc * Yexc 
+    Tpar[0, 0] = 1. + Zexc * Yexc 
     Tpar[0, 1] = Zexc
     Tpar[1, 0] = Yexc
-    Tpar[1, 1] = 1
+    Tpar[1, 1] = 1.
     
     return Tpar
 
@@ -1799,15 +1849,18 @@ def TabcdZ(Zexc):
      [0, 1]]
 
     '''
+    # Verificar si Zexc, Yexc es un número complejo
+    if not isinstance(Zexc, Complex):
+        raise ValueError("Zexc debe ser un número complejo")
 
     # Inicialización de la matriz de parámetros ABCD
-    Tpar = np.array([[0.0, 0.0], [0, 0]])
+    Tpar = np.array([[0.0, 0.0], [0., 0.]])
     
     # Cálculo de los elementos de la matriz Tpar
-    Tpar[0, 0] = 1 
+    Tpar[0, 0] = 1. 
     Tpar[0, 1] = Zexc
-    Tpar[1, 0] = 0
-    Tpar[1, 1] = 1
+    Tpar[1, 0] = 0.
+    Tpar[1, 1] = 1.
 
     return Tpar
 
@@ -1847,15 +1900,18 @@ def TabcdY(Yexc):
 
 
     '''
+    # Verificar si Zexc, Yexc es un número complejo
+    if not isinstance(Yexc, Complex):
+        raise ValueError("Yexc debe ser un número complejo")
 
     # Inicialización de la matriz de parámetros ABCD
-    Tpar = np.array([[0.0, 0], [0, 0]])
+    Tpar = np.array([[0., 0.], [0., 0.]])
     
     # Cálculo de los elementos de la matriz Tpar
-    Tpar[0, 0] = 1 
-    Tpar[0, 1] = 0
+    Tpar[0, 0] = 1.
+    Tpar[0, 1] = 0.
     Tpar[1, 0] = Yexc
-    Tpar[1, 1] = 1
+    Tpar[1, 1] = 1.
     
     return Tpar
 
@@ -1942,6 +1998,10 @@ def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     # Check if the indices are integers
     if not all(isinstance(val, int) for val in [ii, jj, mm, nn]):
         raise ValueError("Indices must be integers.")
+    # Check if verbose is an instance of bool
+    if not isinstance(verbose, bool):
+        raise ValueError("verbose must be an instance of bool")
+
 
     # Calculate cofactors
     num = Ymai.minor_submatrix(max(ii, jj), max(mm, nn)).minor_submatrix(min(ii, jj), min(mm, nn))
@@ -2041,6 +2101,10 @@ def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     if not all(isinstance(val, int) for val in [ii, jj, mm, nn]):
         raise ValueError("Indices must be integers.")
 
+    # Check if verbose is an instance of bool
+    if not isinstance(verbose, bool):
+        raise ValueError("verbose must be an instance of bool")
+
     # Calculate cofactors
     num = Ymai.minor_submatrix(max(ii, jj), max(mm, nn)).minor_submatrix(min(ii, jj), min(mm, nn))
     den = Ymai.minor_submatrix(max(mm, nn), max(mm, nn)).minor_submatrix(min(mm, nn), min(mm, nn))
@@ -2134,6 +2198,10 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
     # Check if ii and jj are integers
     if not isinstance(ii, int) or not isinstance(jj, int):
         raise ValueError("ii and jj must be integers.")
+
+    # Check if verbose is an instance of bool
+    if not isinstance(verbose, bool):
+        raise ValueError("verbose must be an instance of bool")
 
     # Calculate cofactor of second order
     num = Ymai.minor_submatrix(max(ii, jj), max(ii, jj)).minor_submatrix(min(ii, jj), min(ii, jj))

@@ -37,7 +37,6 @@ En caso de necesitar usarla, importar el símbolo desde este módulo.
 #%% Funciones generales para la remoción #
 ##########################################
 
-
 def tanque_z( doska, omegasq ):
     '''
     Calcula los valores de L y C que componen un tanque resonante LC 
@@ -95,7 +94,7 @@ def tanque_z( doska, omegasq ):
 
     '''
     
-    if not ( isinstance(doska , sp.Expr) or isinstance(omegasq , sp.Expr)):
+    if not ( isinstance(doska, sp.Expr) and isinstance(omegasq, sp.Expr)):
         raise ValueError('Hay que definir doska y omegasq como expresiones simbólicas.')
     
     L = doska/omegasq
@@ -161,15 +160,13 @@ def tanque_y( doska, omegasq ):
 
     '''
     
-    if not ( isinstance(doska , sp.Expr) or isinstance(omegasq , sp.Expr)):
+    if not ( isinstance(doska , sp.Expr) and isinstance(omegasq , sp.Expr)):
         raise ValueError('Hay que definir doska y omegasq como expresiones simbólicas.')
     
     C = doska/omegasq
     L = 1/doska
     
     return( (L, C) )
-
-
 
 def trim_poly_s( this_poly, tol = 10**-6 ):
     '''
@@ -217,7 +214,7 @@ def trim_poly_s( this_poly, tol = 10**-6 ):
 
 
     '''
-    if not ( isinstance(this_poly , sp.polys.polytools.Poly) or isinstance(tol, Real)):
+    if not ( isinstance(this_poly, sp.polys.polytools.Poly) and isinstance(tol, Real)):
         raise ValueError('Hay que definir this_poly como polinomio simbólico y tol como un flotante.')
 
     all_terms = this_poly.as_poly(s).all_terms()
@@ -279,13 +276,13 @@ def trim_func_s( rat_func, tol = 10**-6 ):
 
 
     '''
-    if not ( isinstance(rat_func , sp.Expr) or isinstance(tol, Real)):
+    if not ( isinstance(rat_func , sp.Expr) and isinstance(tol, Real)):
         raise ValueError('Hay que definir this_poly como una expresión simbólica y tol como un flotante.')
 
     num, den = rat_func.as_numer_denom()
     
-    num = trim_poly_s(num, tol)
-    den = trim_poly_s(den, tol)
+    num = trim_poly_s(sp.poly(num, s), tol)
+    den = trim_poly_s(sp.poly(den, s), tol)
     
     return(num/den)
 
@@ -408,11 +405,9 @@ def modsq2mod_s( this_func ):
 
     return(sp.simplify(sp.expand(sp.sqrt(k) * num/den))) 
 
-
 ################################################################
 #%% Bloque de funciones para la síntesis gráfica de imitancias #
 ################################################################
-
 
 def isFRP( Imm ):
     '''
@@ -483,10 +478,6 @@ def isFRP( Imm ):
     # is positive real or not.
     # On substituting s = jω, F(s) should posses simple poles and the residues 
     # should be real and positive.
-    
-    
-    
-    
 
 def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zero = None ):
     '''
@@ -812,8 +803,6 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
 
     return( [imit_r, kk, L, C] )
 
-
-
 def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
     '''
     Se removerá el residuo en continua (:math:`j.0`) de la 
@@ -925,7 +914,6 @@ def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
     imit_r = sp.factor(sp.simplify(sp.expand(imit - k_cero)))
 
     return( [imit_r, k_cero] )
-
 
 def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
     '''

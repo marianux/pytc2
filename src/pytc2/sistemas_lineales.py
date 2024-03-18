@@ -318,7 +318,7 @@ def zpk2sos_analog(zz, pp, kk):
     
     .. math:: T_i = (a_{1i} \, s^2 + a_{2i} \, s + a_{3i})/(b_{1i} \, s^2 + b_{2i} \, s + b_{3i})
             
-    El algoritmo utilizado para convertir de ZPK a formato SOS sigue las sugerencias del libro "Design of Analog Filters" de R. Schaumann, Cap. 5:
+    El algoritmo utilizado para convertir de ZPK a formato SOS sigue las sugerencias del libro :ref:`Design of Analog Filters de R. Schaumann <schau13>` , Cap. 5:
         
     1. Asignar ceros a los polos más cercanos.
     2. Ordenar las secciones por Q creciente.
@@ -369,7 +369,7 @@ def zpk2sos_analog(zz, pp, kk):
     Notes:
     -------
     .. _schau13:
-    .. [1] Schaumann, Rolf, Haiqiao Xiao, and Van Valkenburg Mac. Design of analog filters 2nd. Edition. Oxford University Press, 2013. ISBN	0195373944, 9780195373943.
+    Schaumann, Rolf, Haiqiao Xiao, and Van Valkenburg Mac. Design of analog filters 2nd. Edition. Oxford University Press, 2013. ISBN	0195373944, 9780195373943.
 
     """
     if not isinstance(zz, (list, np.ndarray)) or not isinstance(pp, (list, np.ndarray)):
