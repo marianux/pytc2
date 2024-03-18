@@ -12,694 +12,775 @@ import sympy as sp
 import scipy.signal as sig
 from pytc2 import cuadripolos as test_module
 
-def test_S2Ts_s():
+# símbolos genéricos 
+S11, S12, S21, S22 = sp.symbols('S11, S12, S21, S22')
+
+
+@pytest.mark.parametrize(
+    "func_ptr, true_val",
+    [
+       # S -> Ts
+       (   
+           test_module.S2Ts_s,
+           sp.Matrix([[1/S21, -S22/S21], [S11/S21, -S11*S22/S21 + S12]])
+        ), 
+       # Ts -> S 
+       (   
+           test_module.Ts2S_s,
+           sp.Matrix([[S21/S11, S22 - S12*S21/S11], [1/S11, -S12/S11]])
+        ), 
+       # Ts -> Tabcd 
+       (   
+           test_module.Ts2Tabcd_s,
+           sp.Matrix([[S11/2 + S12/2 + S21/2 + S22/2, S11/2 - S12/2 + S21/2 - S22/2], [S11/2 + S12/2 - S21/2 - S22/2, S11/2 - S12/2 - S21/2 + S22/2]])
+        ), 
+       # Tabcd -> S 
+       (   
+           test_module.Tabcd2S_s,
+           sp.Matrix([[(S11 + S12 - S21 - S22)/(S11 + S12 + S21 + S22), 2*(S11*S22 - S12*S21)/(S11 + S12 + S21 + S22)], [2/(S11 + S12 + S21 + S22), (-S11 + S12 - S21 + S22)/(S11 + S12 + S21 + S22)]])
+        ), 
+       # S -> Tabcd 
+       (   
+           test_module.S2Tabcd_s,
+           sp.Matrix([[(-S11*S22 + S11 + S12*S21 - S22 + 1)/(2*S21), (S11*S22 + S11 - S12*S21 + S22 + 1)/(2*S21)], [(S11*S22 - S11 - S12*S21 - S22 + 1)/(2*S21), (-S11*S22 - S11 + S12*S21 + S22 + 1)/(2*S21)]])
+        ), 
+       # Y -> Tabcd 
+       (   
+           test_module.Y2Tabcd_s,
+           sp.Matrix([[-S22/S21, -1/S21], [-(S11*S22 - S12*S21)/S21, -S22/S21]])
+        ), 
+       # Tabcd -> Y
+       (   
+           test_module.Tabcd2Y_s,
+           sp.Matrix([[S22/S12, -(S11*S22 - S12*S21)/S12], [-1/S12, S11/S12]])
+        ), 
+       # Z -> Tabcd 
+       (   
+           test_module.Z2Tabcd_s,
+           sp.Matrix([[S11/S21, (S11*S22 - S12*S21)/S21], [1/S21, S22/S21]])
+        ), 
+       # Tabcd -> Z
+       (   
+           test_module.Tabcd2Z_s,
+           sp.Matrix([[S11/S21, (S11*S22 - S12*S21)/S21], [1/S21, S22/S21]])
+        ), 
+      
+    ]
+)
+def test_matrix_conversion_simbolic(func_ptr, true_val):
     
-    S11, S12, S21, S22 = sp.symbols('S11, S12, S21, S22')
     Spar = sp.Matrix([[S11, S12],
                       [S21, S22]])
 
-    Ts = test_module.S2Ts_s(Spar)
-
-    # Calcular el resultado esperado de la cascada
-    expected_Ts = sp.Matrix([[1/S21, -S22/S21], [S11/S21, -S11*S22/S21 + S12]])
-
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Ts = func_ptr(Spar)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
     # Verificar que el tipo de resultado sea sp.Matrix
     assert isinstance(Ts, sp.MatrixBase)
 
     # Verificar el correcto resultado
-    assert Ts == expected_Ts
+    assert sp.simplify(Ts - true_val) == sp.Matrix([[0, 0], [0, 0]])
 
 
-def test_tfcascade_invalid_input():
-    # Definir una función de transferencia incorrecta
-    tfa = TransferFunction([1, 2], [1, 3, 2])
-    invalid_tfb = "not_a_transfer_function"
+@pytest.mark.parametrize(
+    "func_ptr, Spar_invalid",
+    [
+       # S -> Ts
+       (   
+           test_module.S2Ts_s,
+           sp.Matrix([[S11, S12], [0, S22]])
+        ), 
+       # Ts -> S 
+       (   
+           test_module.Ts2S_s,
+           sp.Matrix([[0, S12], [S21, S22]])
+        ), 
+       # Ts -> Tabcd 
+       (   
+           test_module.Ts2Tabcd_s,
+           sp.Matrix([[0, S12], [S21, S22]])
+        ), 
+       # Tabcd -> S 
+       (   
+           test_module.Tabcd2S_s,
+           sp.Matrix([[S11, S12, S22], [S11, S12, S22], [S11, S12, S22]])
+        ), 
+       # S -> Tabcd 
+       (   
+           test_module.S2Tabcd_s,
+           sp.Matrix([[S11, S12], [0, S22]])
+        ), 
+       # Y -> Tabcd 
+       (   
+           test_module.Y2Tabcd_s,
+           sp.Matrix([[S11, S12], [0, S22]])
+        ), 
+       # Tabcd -> Y
+       (   
+           test_module.Tabcd2Y_s,
+           sp.Matrix([[S11, 0], [S21, S22]])
+        ), 
+       # Z -> Tabcd 
+       (   
+           test_module.Z2Tabcd_s,
+           sp.Matrix([[S11, S12], [0, S22]])
+        ), 
+       # Tabcd -> Z
+       (   
+           test_module.Tabcd2Z_s,
+           sp.Matrix([[S11, S12], [0, S22]])
+        ), 
+      
+    ]
+)
+def test_matrix_conversion_simbolic_invalid_input(func_ptr, Spar_invalid):
+    
+    Spar_mal_tipo = np.random.randn(2,2)
+    
+    Spar_mala_dim = sp.Matrix([[S11, S12, S22],
+                               [S11, S12, S22],
+                               [S11, S12, S22]])
 
-    # Verificar que se levante un ValueError al pasar una función de transferencia no válida
+    # Verificar que se levante un ValueError al pasar una matriz numérica
     with pytest.raises(ValueError):
-        test_module.tfcascade(tfa, invalid_tfb)
+        Ts = func_ptr(Spar_mal_tipo)
+    
+    # Verificar que se levante un ValueError al pasar una matriz mal dimensionada
+    with pytest.raises(ValueError):
+        Ts = func_ptr(Spar_mala_dim)
+    
+    # Verificar que se levante un ValueError al pasar una matriz no válida
+    with pytest.raises(ValueError):
+        Ts = func_ptr(Spar_invalid)
+    
 
-    # Definir funciones de transferencia válidas
-    valid_tfa = TransferFunction([1, 2], [1, 3, 2])
-    valid_tfb = TransferFunction([1], [1, 4])
+def test_I2Tabcd_s_valid():
+    
+    true_val = sp.Matrix([[sp.sqrt(S12/S21)*sp.cosh(S11), sp.sqrt(S12*S21)*sp.sinh(S11)], [sp.sinh(S11)/sp.sqrt(S12*S21), sp.sqrt(S21/S12)*sp.cosh(S11)]])
 
     # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
     try:
-        test_module.tfcascade(valid_tfa, valid_tfb)
+        Ts = test_module.I2Tabcd_s(S11, S12, S21)
     except ValueError:
         pytest.fail("Se levantó un ValueError incorrectamente.")
-
-def test_tfadd_valid_input():
-    # Definir funciones de transferencia de prueba
-    tfa = TransferFunction([1, 2], [3, 4])
-    tfb = TransferFunction([5, 6], [7, 8])
-
-    # Calcular el resultado esperado de la suma
-    expected_num = np.polyadd(np.polymul(tfa.num, tfb.den), np.polymul(tfa.den, tfb.num))
-    expected_den = np.polymul(tfa.den, tfb.den)
-
-    # Llamar a la función tfadd con las funciones de transferencia de prueba
-    result = test_module.tfadd(tfa, tfb)
-
-    # Verificar que el tipo de resultado sea TransferFunction
-    assert isinstance(result, TransferFunction)
-
-    # Verificar que los coeficientes del numerador y del denominador sean los esperados
-    assert np.array_equal(result.num, expected_num)
-    assert np.array_equal(result.den, expected_den)
-
-def test_tfadd_invalid_input():
-    # Definir una función de transferencia incorrecta
-    tfa = TransferFunction([1, 2], [3, 4])
-    invalid_tfb = "not_a_transfer_function"
-
-    # Verificar que se levante un ValueError al pasar una función de transferencia no válida
-    with pytest.raises(ValueError):
-        test_module.tfadd(tfa, invalid_tfb)
-
-    # Definir funciones de transferencia válidas
-    valid_tfa = TransferFunction([1, 2], [3, 4])
-    valid_tfb = TransferFunction([5, 6], [7, 8])
-
-    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
-    try:
-        test_module.tfadd(valid_tfa, valid_tfb)
-    except ValueError:
-        pytest.fail("Se levantó un ValueError incorrectamente.")
-
-# varias SOS que prueben muchas posibilidades de sistemas válidos
-@pytest.mark.parametrize(
-    "mySOS",
-    [
-        np.array([ [1., 7., 1., 1., 9., 1.],
-                   [1., 2., 1., 1., 3., 1.]]),
-        np.array([ [0., 1., 1., 0., 1., 2.],
-                   [1., 3./7., 9., 1., 4./5., 16.],                  
-                   [1., 1./3., 1., 1., 5./2., 25.]]), 
-        np.array([ [1., 1., 0., 1., 1., 0.],
-                   [1., 3./7., 9., 1., 4./5., 16.],                  
-                   [1., 1./3., 1., 1., 5./2., 25.]]), 
-        np.array([ [1., 0., 0., 0., 1., 1.],
-                   [0., 0., 1., 1., 4., 3.],                  
-                   [1., 7./1., 10., 1., 1./5., 1.]]), 
-    ])
-def test_sos2tf_analog_valid_input(mySOS):
-    # Definir una matriz SOS de prueba
-
-    # tolerancia numérica
-    tol = 1e-10
-
-    # Calcular la función de transferencia analógica esperada
-    # Calcular la matriz SOS esperada de otra manera
-    sos_num, sos_den = test_module._one_sos2tf(mySOS[0,:])
-    expected_tf = TransferFunction(sos_num, sos_den)
-    for ii in range(1, mySOS.shape[0]):
-        sos_num, sos_den = test_module._one_sos2tf(mySOS[ii,:])
-        tfa = TransferFunction(sos_num, sos_den)
-        expected_tf = test_module.tfcascade(expected_tf, tfa)
-
-    # Llamar a la función sos2tf_analog con la matriz SOS de prueba
-    result_tf = test_module.sos2tf_analog(mySOS)
-
-    # Verificar que el tipo de resultado sea TransferFunction
-    assert isinstance(result_tf, TransferFunction)
-
-    # Verificar que los coeficientes de la función de transferencia sean los esperados
-    assert np.max(np.abs( result_tf.num - expected_tf.num)) < tol
-    assert np.max(np.abs( result_tf.den - expected_tf.den)) < tol
-
-def test_sos2tf_analog_invalid_input():
-    # Definir una matriz SOS no válida (no 2D)
-    invalid_SOS = [1, 0.5, 1, 1, 0.2, 1]
-
-    # Verificar que se levante un ValueError al pasar una matriz SOS no válida
-    with pytest.raises(ValueError):
-        test_module.sos2tf_analog(invalid_SOS)
-
-    # Definir una matriz SOS no válida (cada fila no tiene exactamente 6 elementos)
-    invalid_SOS = np.array([[1, 0.5, 1, 1, 0.2]])
-
-    # Verificar que se levante un ValueError al pasar una matriz SOS no válida
-    with pytest.raises(ValueError):
-        test_module.sos2tf_analog(invalid_SOS)
-
-    # Definir una matriz SOS válida pero no como instancia de ndarray
-    invalid_SOS = [[1, 0.5, 1, 1, 0.2, 1], [1, 1, 1, 1, 1, 1]]
-
-    # Verificar que se levante un ValueError al pasar una matriz SOS no válida
-    with pytest.raises(ValueError):
-        test_module.sos2tf_analog(invalid_SOS)
-
-
-@pytest.mark.parametrize(
-    "obj",
-    [
-        [np.array([1. , 37./21., 229./21., 95./7., 87./7., 9. ]), # num
-         np.array([1. , 53./10., 248./5., 146., 520., 800. ])],   # den
-        [np.array([1. , 9., 16., 9., 1. ]),    # num
-         np.array([1. , 12., 29., 12., 1. ])], # den
-        [np.array([1. , 10./7., 6./7., 9. ]), # num
-         np.array([1. , 53./10., 248./5., 146., 520., 800. ])],   # den
-        [np.array([1. , 4./3., 4./3., 1. ]), # num
-         np.array([1. , 53./10., 248./5., 146., 520., 800. ])],   # den
-        [np.array([1. , 1., 0. ]), # num
-         np.array([1. , 53./10., 248./5., 146., 520., 800. ])],   # den
-        [np.array([1. , 2., 0., 0. ]), # num
-         np.array([1. , 53./10., 248./5., 146., 520., 800. ])],   # den
-        [np.array([1. , 2., 0. ]), # num
-         np.array([1. , 8., 22., 24., 9.])],   # den
-        [np.array([1. , 1./3., 1.]), # num
-         np.array([1. , 8., 22., 24., 9.])],   # den
-    ]
-)
-def test_tf2sos_analog_valid_input(obj):
-    
-    num, den = obj
-    # Coeficientes numéricos y denóminos de una función de transferencia de prueba
-
-    # tolerancia numérica
-    tol = 1e-10
-
-    # Llamar a la función tf2sos_analog con los coeficientes de prueba
-    result_sos = test_module.tf2sos_analog(num, den)
-
-    # Verificar que el resultado sea una instancia de ndarray
-    assert isinstance(result_sos, np.ndarray)
-
-    # Calcular la matriz SOS esperada de otra manera
-    sos_num, sos_den = test_module._one_sos2tf(result_sos[0,:])
-    expected_tf = TransferFunction(sos_num, sos_den)
-    for ii in range(1, result_sos.shape[0]):
-        sos_num, sos_den = test_module._one_sos2tf(result_sos[ii,:])
-        tfa = TransferFunction(sos_num, sos_den)
-        expected_tf = test_module.tfcascade(expected_tf, tfa)
-
-    # Verificar que la forma y los elementos de la matriz SOS sean los esperados
-    assert np.max(np.abs( expected_tf.num - num)) < tol
-    assert np.max(np.abs( expected_tf.den - den)) < tol
-
-def test_tf2sos_analog_invalid_input():
-    # Coeficientes numéricos y denóminos no válidos (no instancias de arrays de numpy)
-    invalid_num = 2
-    invalid_den = [4, 5, 6]
-
-    # Verificar que se levante un ValueError al pasar coeficientes no válidos
-    with pytest.raises(ValueError):
-        test_module.tf2sos_analog(invalid_num, invalid_den)
-
-    invalid_num = [4, 5, 6]
-    invalid_den = 3
-
-    # Verificar que se levante un ValueError al pasar coeficientes no válidos
-    with pytest.raises(ValueError):
-        test_module.tf2sos_analog(invalid_num, invalid_den)
-
-    # Coeficientes numéricos y denóminos no válidos (más ceros que polos)
-    invalid_num = np.array([1, 2, 3, 4])
-    invalid_den = np.array([4, 5, 6])
-
-    # Verificar que se levante un ValueError al pasar coeficientes no válidos
-    with pytest.raises(ValueError):
-        test_module.tf2sos_analog(invalid_num, invalid_den)
-
-def test_pretty_print_lti_valid_input():
-    # Coeficientes numéricos y denóminos de una función de transferencia de prueba
-    num = [1, 2, 3]
-    den = [4, 5, 6]
-
-    # Llamar a la función pretty_print_lti con los coeficientes de prueba
-    result = test_module.pretty_print_lti(num, den, displaystr=False)
-
-    # Verificar que se devuelva una cadena de texto
-    assert isinstance(result, str)
-
-    # Verificar que la cadena generada sea la esperada
-    expected_str = r'\frac{s^2 \,\, 0.25 + s \,\, 0.5 + 0.75 }{s^2 + s \,\, 1.25 + 1.5 }'
-    assert result == expected_str
-
-def test_pretty_print_lti_invalid_num_type():
-    # Coeficientes numéricos no válidos (no list o ndarray)
-    invalid_num = '1, 2, 3'
-
-    # Verificar que se levante un ValueError al pasar coeficientes numéricos no válidos
-    with pytest.raises(ValueError):
-        test_module.pretty_print_lti(invalid_num)
-
-def test_pretty_print_lti_invalid_den_type():
-    # Coeficientes denóminos no válidos (no list o ndarray)
-    invalid_den = '4, 5, 6'
-
-    # Verificar que se levante un ValueError al pasar coeficientes denóminos no válidos
-    with pytest.raises(ValueError):
-        test_module.pretty_print_lti([1, 2, 3], den=invalid_den)
-
-def test_pretty_print_lti_invalid_displaystr_type():
-    # Tipo de displaystr no válido (no bool)
-    invalid_displaystr = 123
-
-    # Verificar que se levante un ValueError al pasar displaystr no válido
-    with pytest.raises(ValueError):
-        test_module.pretty_print_lti([1, 2, 3], displaystr=invalid_displaystr)
-
-## analogicos
-
-# arbitrary
-tf_arb = TransferFunction( np.array( [6, 24, 5, 96]),   # num
-  np.array( [1,  2, 3,  4]) ) # den
-
-# lowpass
-tf_lp = TransferFunction( np.array( [0., 0., 3.] ),      # num
-  np.array( [1., 1./3., 1.] ) ) # den
-
-# notch
-tf_notch = TransferFunction( np.array( [2, 0, 8] ),     # num
-  np.array( [1, 2, 3, 4]) ) # den
-
-# highpass
-tf_hp = TransferFunction( np.array( [7., 0., 0.] ),    # num
-  np.array( [1., 5./4., 25.] ) ) # den
-
-# hp-notch
-tf_hpnotch = TransferFunction( np.array( [5, 0, 80]),    # num
-  np.array( [1, 2, 3, 4]) ) # den
-
-# lp-notch
-tf_lpnotch = TransferFunction( np.array( [9, 0, 9]),    # num
-  np.array( [1, 2, 3, 4]) ) # den
-
-# bilineal
-tf_bili = TransferFunction( np.array( [0, 3, 3] ),    # num
-  np.array( [0, 1, 2] ) ) # den
-
-# bilineal
-tf_bili2 = TransferFunction( np.array( [0, 5, 35]),    # num
-  np.array( [0, 1, 3 ] ) ) # den
-
-# lp 1er orden
-tf_lp1 = TransferFunction( np.array( [0, 0, 15] ),    # num
-  np.array( [0, 1, 3] ) ) # den
-
-# hp 1er orden
-tf_hp1 = TransferFunction( np.array( [0, 5, 0] ),   # num
-  np.array( [0, 1, 3] ) ) # den
-    
-
-# digitales
-fs = 1e3
-
-# arbitrario
-numz, denz = sig.bilinear(tf_arb.num, tf_arb.den, fs = fs)
-tf_arb_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# lowpass
-numz, denz = sig.bilinear(tf_lp.num, tf_lp.den, fs = fs)
-tf_lp_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# notch
-numz, denz = sig.bilinear(tf_notch.num, tf_notch.den, fs = fs)
-tf_notch_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# highpass
-numz, denz = sig.bilinear(tf_hp.num, tf_hp.den, fs = fs)
-tf_hp_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# hp-notch
-numz, denz = sig.bilinear(tf_hpnotch.num, tf_hpnotch.den, fs = fs)
-tf_hpnotch_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# lp-notch
-numz, denz = sig.bilinear(tf_lpnotch.num, tf_lpnotch.den, fs = fs)
-tf_lpnotch_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# bilineal
-numz, denz = sig.bilinear(tf_bili.num, tf_bili.den, fs = fs)
-tf_bili_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# bilineal
-numz, denz = sig.bilinear(tf_bili2.num, tf_bili2.den, fs = fs)
-tf_bili2_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# lp 1er orden
-numz, denz = sig.bilinear(tf_lp1.num, tf_lp1.den, fs = fs)
-tf_lp1_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-# hp 1er orden
-numz, denz = sig.bilinear(tf_hp1.num, tf_hp1.den, fs = fs)
-tf_hp1_dig = TransferFunction( numz, denz, dt=1/fs ) # den
-
-@pytest.mark.parametrize(
-    "true_parameters, num, den",
-    [
-       # arbitrary
-       ([sp.Rational('2'),  # w_od
-          sp.Rational('3'),  # Q_d
-          sp.Rational('4'),  # w_on
-          sp.Rational('5'),  # Q_n
-          sp.Rational('6')], # K
-          np.array( [sp.Rational(6), sp.Rational(24,5), sp.Rational(96)] ),    # num
-          np.array( [sp.Rational(1), sp.Rational(2,3), sp.Rational(4)] ) ), # den
-       
-       # lowpass
-       ([sp.Rational('1'),  # w_od
-          sp.Rational('3'),  # Q_d
-          sp.Rational('1'),  # w_on
-          sp.oo,  # Q_n
-          sp.Rational('3')], # K
-          np.array( [0., 0., 3.] ),    # num
-          np.array( [1., 1./3., 1.] ) ), # den
-       
-       # notch
-       ([sp.Rational('2'),  # w_od
-          sp.Rational('3'),  # Q_d
-          sp.Rational('2'),  # w_on
-          sp.oo,  # Q_n
-          sp.Rational('2')], # K
-          np.array( [sp.Rational(2), sp.Rational(0), sp.Rational(8)] ),    # num
-          np.array( [sp.Rational(1), sp.Rational(2,3), sp.Rational(4)] ) ), # den
-
-       # highpass
-       ([sp.Rational('5'),  # w_od
-          sp.Rational('4'),  # Q_d
-          sp.Rational('0'),  # w_on
-          sp.Rational('0'),  # Q_n
-          sp.Rational('7')], # K
-          np.array( [7., 0., 0.] ),    # num
-          np.array( [1., 5./4., 25.] ) ), # den
-       
-       # hp-notch
-       ([sp.Rational('2'),  # w_od
-          sp.Rational('3'),  # Q_d
-          sp.Rational('4'),  # w_on
-          sp.oo,  # Q_n
-          sp.Rational('5')], # K
-          np.array( [sp.Rational(5), sp.Rational(0), sp.Rational(80)] ),    # num
-          np.array( [sp.Rational(1), sp.Rational(2,3), sp.Rational(4)] ) ), # den
-       
-       # lp-notch
-       ([sp.Rational('2'),  # w_od
-          sp.Rational('3'),  # Q_d
-          sp.Rational('1'),  # w_on
-          sp.oo,  # Q_n
-          sp.Rational('9')], # K
-          np.array( [sp.Rational(9), sp.Rational(0), sp.Rational(9)] ),    # num
-          np.array( [sp.Rational(1), sp.Rational(2,3), sp.Rational(4)] ) ), # den
-       
-       # bilineal
-       ([sp.Rational('2'),  # w_od
-          sp.nan,  # Q_d
-          sp.Rational('1'),  # w_on
-          sp.nan,  # Q_n
-          sp.Rational('3')], # K
-          np.array( [sp.Rational(0), sp.Rational(3), sp.Rational(3)] ),    # num
-          np.array( [sp.Rational(0), sp.Rational(1), sp.Rational(2)] ) ), # den
-       
-       # bilineal
-       ([sp.Rational('3'),  # w_od
-          sp.nan,  # Q_d
-          sp.Rational('7'),  # w_on
-          sp.nan,  # Q_n
-          sp.Rational('5')], # K
-          np.array( [sp.Rational(0), sp.Rational(5), sp.Rational(35)] ),    # num
-          np.array( [sp.Rational(0), sp.Rational(1), sp.Rational(3)] ) ), # den
-       
-       # lp 1er orden
-       ([sp.Rational('3'),  # w_od
-          sp.nan,  # Q_d
-          sp.Rational('3'),  # w_on
-          sp.nan,  # Q_n
-          sp.Rational('5')], # K
-          np.array( [sp.Rational(0), sp.Rational(0), sp.Rational(15)] ),    # num
-          np.array( [sp.Rational(0), sp.Rational(1), sp.Rational(3)] ) ), # den
-       
-       # hp 1er orden
-       ([sp.Rational('3'),  # w_od
-          sp.nan,  # Q_d
-          sp.Rational('0'),  # w_on
-          sp.nan,  # Q_n
-          sp.Rational('5')], # K
-          np.array( [sp.Rational(0), sp.Rational(5), sp.Rational(0)] ),    # num
-          np.array( [sp.Rational(0), sp.Rational(1), sp.Rational(3)] ) ), # den
-       
-    ]
-)
-def test_parametrize_sos_valid_input_bicuad( true_parameters, num, den ):
-    # Coeficientes de un sistema de segundo orden
-    s = test_module.s
-
-    # num = [K, K*w_on/Q_n,  K*w_on**2]
-    # den = [1, w_od/Q_d, w_od**2]
-    
-    w_od, Q_d, w_on, Q_n, K = true_parameters
-    
-    num_poly = sp.Poly(num[0]*s**2 + num[1] * s + num[2], s)
-    den_poly = sp.Poly(den[0]*s**2 + den[1] * s + den[2], s)
-
-    # Llamar a la función parametrize_sos con los coeficientes de prueba
-    result_num, result_den, result_w_on, result_Q_n, result_w_od, result_Q_d, result_K  = test_module.parametrize_sos(num_poly, den_poly)
-
-    # Verificar que la tupla devuelta tenga los elementos esperados
-    assert (result_K*result_num).expr == num_poly.expr
-    assert result_den.expr == den_poly.expr
-    assert result_w_od == w_od
-    assert result_Q_d == Q_d
-    assert result_w_on == w_on
-    assert result_Q_n == Q_n
-    assert result_K == K
-    
-def test_parametrize_sos_invalid_num_type():
-
-    s = test_module.s
-    
-    # Coeficientes numéricos no válidos (no Poly)
-    invalid_num = s
-
-    # Verificar que se levante un ValueError al pasar coeficientes numéricos no válidos
-    with pytest.raises(ValueError):
-        test_module.parametrize_sos(invalid_num, sp.Poly(s + 1))
-
-def test_parametrize_sos_invalid_den_type():
-    s = test_module.s
-    
-    # Coeficientes del denominador no válidos (no Poly)
-    invalid_den = s
-
-    # Verificar que se levante un ValueError al pasar coeficientes del denominador no válidos
-    with pytest.raises(ValueError):
-        test_module.parametrize_sos(sp.Poly(s), invalid_den)
-
-def test_pretty_print_bicuad_omegayq_complete_second_order():
-    num = [1, 2/3, 4]
-    den = [1, 5/4, 25]
-    expected_output = r'\frac{s^2 + s \frac{  2}{  3} +   2^2}{s^2 + s \frac{  5}{  4} +   5^2}'
-    assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
-
-def test_pretty_print_bicuad_omegayq_biquad_passband():
-    num = [ 1./3.*5./4., 0 ]
-    den = [1, 5/4, 25]
-    expected_output = r'\frac{s\,0.3333\,\frac{  5}{  4}}{s^2 + s \frac{  5}{  4} +   5^2}'
-    assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
-
-def test_pretty_print_bicuad_omegayq_notch():
-    num = [3.*1., 0, 3.*25.]
-    den = [1, 5/4, 25]
-    expected_output = r'\frac{  3(s^2 +   5^2)}{s^2 + s \frac{  5}{  4} +   5^2}'
-    assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
-
-def test_pretty_print_bicuad_omegayq_lowpass():
-    num = [3.*25.]
-    den = [1, 5/4, 25]
-    expected_output = r'\frac{ 75 }{s^2 + s \frac{  5}{  4} +   5^2}'
-    assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
-
-def test_pretty_print_bicuad_omegayq_highpass():
-    num = [3., 0, 0]
-    den = [1, 5/4, 25]
-    expected_output = r'\frac{s^2 \,\,   3 }{s^2 + s \frac{  5}{  4} +   5^2}'
-    assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
-
-def test_pretty_print_SOS_default_mode():
-    mySOS = np.array([[1., 7., 1., 1., 9., 1.],
-                      [1., 2., 1., 1., 3., 1.]])
-    expected_output = r' \frac{s^2 + s \,\,   7 +   1 }{s^2 + s \,\,   9 +   1 } . \frac{s^2 + s \,\,   2 +   1 }{s^2 + s \,\,   3 +   1 }'
-    
-    assert test_module.pretty_print_SOS(mySOS, displaystr=False) == expected_output
-
-def test_pretty_print_SOS_omegayq_mode():
-    mySOS = np.array([[1., 7., 1., 1., 9., 1.],
-                      [1., 2., 1., 1., 3., 1.]])
-    expected_output = r' \frac{s^2 + s \frac{  1}{0.1429} +   1^2}{s^2 + s \frac{  1}{0.1111} +   1^2} . \frac{s^2 + s \frac{  1}{0.5} +   1^2}{s^2 + s \frac{  1}{0.3333} +   1^2}'
-    
-    assert test_module.pretty_print_SOS(mySOS, mode='omegayq', displaystr=False) == expected_output
-
-def test_pretty_print_SOS_invalid_mode():
-    with pytest.raises(ValueError):
-        test_module.pretty_print_SOS(np.array([[1, 2, 1, 1, 2, 1], [1, 1, 1, 1, 1, 1]]), mode='invalid_mode')
-
-def test_pretty_print_SOS_invalid_matrix():
-    with pytest.raises(ValueError):
-        test_module.pretty_print_SOS([[1, 2, 1, 1, 2, 1], [1, 1, 1, 1, 1, 1]])
-
-def test_pretty_print_SOS_invalid_displaystr():
-    with pytest.raises(ValueError):
-        test_module.pretty_print_SOS(np.array([[1, 2, 1, 1, 2, 1], [1, 1, 1, 1, 1, 1]]), displaystr='not_bool')
-
-def test_pretty_print_SOS_invalid_shape():
-    with pytest.raises(ValueError):
-        test_module.pretty_print_SOS(np.array([[1, 2, 1, 1, 2]]))
-
-
-def test_analyze_sys_single_transfer_function():
-    # Crear una única función de transferencia para analizar
-    num = [ 1./3.*5./4., 0 ]
-    den = [1, 5/4, 25]
-    H = TransferFunction(num, den)
-    # Llamar a la función analyze_sys con la función de transferencia única
-    result = test_module.analyze_sys([H], sys_name='Single Transfer Function')
-    # Verificar el tipo y la longitud del resultado
-    assert isinstance(result, list)
-    assert len(result) == 4  # debe haber cuatro pares de handles de figuras y ejes
-    
-    freq_resp, pzmap, retardo_digital, retardo_analog = result
-
-    assert len(freq_resp[1]) == 2  # debe haber dos handles de ejes
-    assert isinstance(freq_resp[1][0], plt.Axes)
-    assert isinstance(freq_resp[1][1], plt.Axes)
-
-    assert isinstance(pzmap[1], plt.Axes)
-    assert isinstance(retardo_analog[1], plt.Axes)
-    
-    
-@pytest.mark.parametrize(
-    "all_sys, all_lbls",
-    [
-       ([tf_arb, tf_bili], ['l1', 'l1']),
-       ([tf_arb, tf_arb_dig], ['l1', 'l1_dig']),
-       ([tf_lp1, tf_hp1], ['l1', 'l2']),
-       ([tf_lp1_dig, tf_hp1_dig], ['l1', 'l2']),
-       ([tf_lp1, tf_hp1, tf_lp1_dig, tf_hp1_dig], ['l1', 'l2', 'l1_d', 'l2_d']),
-       ([tf_notch], ['l1']),
-       ([tf_notch_dig], ['l1_d']),
-       ([tf_arb, tf_lpnotch, tf_hpnotch], ['l1', 'l2', 'l3'])
-       
-   ])  
-def test_analyze_sys_multiple_transfer_functions(all_sys, all_lbls):
-    # Crear varias funciones de transferencia para analizar
-
-    # Llamar a la función analyze_sys con las funciones de transferencia múltiples
-    result = test_module.analyze_sys(all_sys, sys_name=all_lbls)
-    # Verificar el tipo y la longitud del resultado
-    assert isinstance(result, list)
-    assert len(result) == 4  # debe haber cuatro pares de handles de figuras y ejes
-    
-    freq_resp, pzmap_s, pzmap_z, retardo_analog = result
-
-    assert len(freq_resp[1]) == 2  # debe haber dos handles de ejes
-    assert isinstance(freq_resp[1][0], plt.Axes)
-    assert isinstance(freq_resp[1][1], plt.Axes)
-
-    if not isinstance(pzmap_s[1], plt.Axes):
-        assert isinstance(pzmap_z[1], plt.Axes)
         
-    assert isinstance(retardo_analog[1], plt.Axes)
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, sp.MatrixBase)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Ts - true_val) == sp.Matrix([[0, 0], [0, 0]])
+
+def test_I2Tabcd_s_invalid_input():
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Ts = test_module.I2Tabcd_s(1, S12, S21)
+    
+    # Verificar que se levante un ValueError al pasar una matriz mal dimensionada
+    with pytest.raises(ValueError):
+        Ts = test_module.I2Tabcd_s(S12, 1, S21)
+    
+    # Verificar que se levante un ValueError al pasar una matriz no válida
+    with pytest.raises(ValueError):
+        Ts = test_module.I2Tabcd_s(S12, S21, 1)
+
+    
+
+y11, y12, y21, y22 = sp.symbols('y11, y12, y21, y22', complex=True)
+z11, z12, z21, z22 = sp.symbols('z11, z12, z21, z22', complex=True)
+A, B, C, D = sp.symbols('A, B, C, D', complex=True)
+Ai, Bi, Ci, Di = sp.symbols('Ai, Bi, Ci, Di', complex=True)
+h11, h12, h21, h22 = sp.symbols('h11, h12, h21, h22', complex=True)
+g11, g12, g21, g22 = sp.symbols('g11, g12, g21, g22', complex=True)
+v1, v2, i1, i2 = sp.symbols('v1, v2, i1, i2', complex=True)
+
+# Parámetros Z (impedancia - circ. abierto)
+ZZ = sp.Matrix([[z11, z12], [z21, z22]])
+# vars. dependientes
+vv = sp.Matrix([[v1], [v2]])
+# vars. INdependientes
+ii = sp.Matrix([[i1], [i2]])
+
+# Parámetros Y (admitancia - corto circ.)
+YY = sp.Matrix([[y11, y12], [y21, y22]])
+# vars. dependientes
+# ii = sp.Matrix([[i1], [i2]])
+# vars. INdependientes
+# vv = sp.Matrix([[v1], [v2]])
+
+# Parámetros H (híbridos h)
+HH = sp.Matrix([[h11, h12], [h21, h22]])
+# vars. dependientes
+h_dep = sp.Matrix([[v1], [i2]])
+# vars. INdependientes
+h_ind = sp.Matrix([[i1], [v2]])
+
+# Parámetros G (híbridos g)
+GG = sp.Matrix([[g11, g12], [g21, g22]])
+# vars. dependientes
+g_dep = sp.Matrix([[i1], [v2]])
+# vars. INdependientes
+g_ind = sp.Matrix([[v1], [i2]])
+
+# Parámetros Tabcd (Transmisión, ABCD)
+TT = sp.Matrix([[A, -B], [C, -D]])
+# vars. dependientes
+t_dep = sp.Matrix([[v1], [i1]])
+# vars. INdependientes.  (Signo negativo de corriente)
+t_ind = sp.Matrix([[v2], [i2]])
+
+# Parámetros Tdcba (Transmisión inversos, DCBA)
+TTi = sp.Matrix([[Ai, Bi], [-Ci, -Di]])
+# vars. dependientes
+ti_dep = sp.Matrix([[v2], [i2]])
+# vars. INdependientes. (Signo negativo de corriente)
+ti_ind = sp.Matrix([[v1], [i1]])
+
+# Diccionario con la definición de cada modelo
+model_dct = [ { 'model_name': 'Z', 'matrix': ZZ, 'dep_var': vv, 'indep_var':ii },
+              { 'model_name': 'Y', 'matrix': YY, 'dep_var': ii, 'indep_var':vv },
+              { 'model_name': 'H', 'matrix': HH, 'dep_var': h_dep, 'indep_var':h_ind },
+              { 'model_name': 'G', 'matrix': GG, 'dep_var': g_dep, 'indep_var':g_ind },
+              { 'model_name': 'T', 'matrix': TT, 'dep_var': t_dep, 'indep_var':t_ind, 'neg_i2_current': True },
+              { 'model_name': 'Ti', 'matrix': TTi, 'dep_var': ti_dep, 'indep_var':ti_ind, 'neg_i2_current': True}
+            ]
+
+
+def test_Model_conversion_valid():
+   
+    for dst_model in model_dct:
+        
+        for src_model in model_dct:
+            
+            try:
+                HH_z = test_module.Model_conversion( src_model, dst_model )
+            except ValueError:
+                pytest.fail("Se levantó un ValueError incorrectamente.")
+
+# diccionarios inválidos
+invalid_model_dct = [ {  'matrix': ZZ, 'dep_var': vv, 'indep_var':ii },
+                      { 'model_name': 'Y', 'dep_var': ii, 'indep_var':vv },
+                      { 'model_name': 'H', 'matrix': HH, 'indep_var':h_ind },
+                      { 'model_name': 'G', 'matrix': GG, 'dep_var': g_dep},
+                      { 'dep_var': t_dep, 'indep_var':t_ind, 'neg_i2_current': True },
+                      { 'model_name': 'Ti', 'matrix': TTi, 'dep_var': ti_dep}
+                    ]
+    
+def test_Model_conversion_invalid_input():
+    
+    for dst_model in invalid_model_dct:
+        
+        for src_model in invalid_model_dct:
+            
+            with pytest.raises(ValueError):
+                
+                HH_z = test_module.Model_conversion( src_model, dst_model)
+            
+
+def test_y2mai_valid():
+
+
+    true_val = sp.Matrix([[y11, y12, -y11 - y12], [y21, y22, -y21 - y22], [-y11 - y21, -y12 - y22, y11 + y12 + y21 + y22]])
+
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Ts = test_module.y2mai(YY)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, sp.MatrixBase)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Ts - true_val) == sp.Matrix([[0, 0, 0],[0, 0, 0],[0, 0, 0]])
+
+    
+def test_y2mai_invalid_input():
+
+    with pytest.raises(ValueError):
+        HH_z = test_module.y2mai(1)
+    
+    with pytest.raises(ValueError):
+        HH_z = test_module.y2mai(np.random.randn(2,2))
+    
+    
+def test_may2y_valid():
+
+    true_val = sp.Matrix([[y11, y12], [y21, y22]])
+    Ymai = sp.Matrix([[y11, y12, -y11 - y12], [y21, y22, -y21 - y22], [-y11 - y21, -y12 - y22, y11 + y12 + y21 + y22]])
+
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Ts = test_module.may2y(Ymai, 2)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, sp.MatrixBase)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Ts - true_val) == sp.Matrix([[0, 0],[0, 0]])
+    
+    
+def test_may2y_invalid_input():
+    
+    Ymai = sp.Matrix([[y11, y12, -y11 - y12], [y21, y22, -y21 - y22], [-y11 - y21, -y12 - y22, y11 + y12 + y21 + y22]])
+    
+    with pytest.raises(ValueError):
+        YY = test_module.may2y(1, 2)
+    
+    with pytest.raises(ValueError):
+        YY = test_module.may2y(np.random.randn(3,3), 3)
+
+    with pytest.raises(ValueError):
+        YY = test_module.may2y(Ymai, 3)
+    
+    with pytest.raises(ValueError):
+        YY = test_module.may2y(Ymai, [2, 'a'])
+
 
 @pytest.mark.parametrize(
-    "all_sys, all_lbls",
+    "func_ptr, true_val",
     [
-       (test_module.tfcascade(tf_arb, tf_bili), ['l1']),
-       (test_module.tfcascade(tf_lp1, tf_hpnotch), ['l2']),
-       (test_module.tfcascade(test_module.tfcascade(tf_lp, tf_lpnotch), tf_lp1), ['l1']),
-       (test_module.tfcascade(test_module.tfcascade(tf_arb, tf_lpnotch), tf_hpnotch), ['l3'])
-   ])  
-def test_analyze_sys_sos_matrix(all_sys, all_lbls):
-    # Crear una matriz SOS para analizar
-
-    # Llamar a la función analyze_sys con la matriz SOS
-    result = test_module.analyze_sys( test_module.tf2sos_analog(all_sys), sys_name=all_lbls)
-    # Verificar el tipo y la longitud del resultado
-    assert isinstance(result, list)
-    assert len(result) == 4  # debe haber cuatro pares de handles de figuras y ejes
+       # Y -> Tabcd
+       (   
+           test_module.Y2Tabcd,
+           np.array([[-1.33333333, -0.33333333], [ 0.66666667, -0.33333333]])
+        ), 
+       # Z -> Tabcd
+       (   
+           test_module.Z2Tabcd,
+           np.array([[ 0.33333333, -0.66666667], [ 0.33333333,  1.33333333]])
+        ), 
+       # Tabcd -> Y
+       (   
+           test_module.Tabcd2Y,
+           np.array([[ 2.,   1. ], [-0.5, 0.5]])
+        )
+      
+    ]
+)
+def test_matrix_conversion_numeric(func_ptr, true_val):
     
-    freq_resp, pzmap, retardo_digital, retardo_analog = result
+    matrix = np.array([[1., 2.],
+                       [3., 4.]])
 
-    assert len(freq_resp[1]) == 2  # debe haber dos handles de ejes
-    assert isinstance(freq_resp[1][0], plt.Axes)
-    assert isinstance(freq_resp[1][1], plt.Axes)
-
-    assert isinstance(pzmap[1], plt.Axes)
-    assert isinstance(retardo_analog[1], plt.Axes)
-
-def test_analyze_sys_invalid_xaxis():
-    # Llamar a la función analyze_sys con un valor de xaxis no válido
-    with pytest.raises(ValueError):
-        test_module.analyze_sys([], xaxis='invalid_xaxis_value')
-
-# Prueba para asegurar que la función arroja ValueError cuando se le pasan arreglos de diferentes longitudes
-def test_group_delay_different_lengths():
-    freq = np.linspace(0, 10, 100)
-    phase = np.sin(freq)
-    with pytest.raises(ValueError):
-        test_module.group_delay(freq[:-1], phase)
-
-# Prueba para asegurar que la función arroja ValueError cuando se le pasan argumentos que no son arreglos NumPy
-def test_group_delay_non_numpy_arrays():
-    freq = [0, 1, 2, 3]
-    phase = [0, 1, 2, 3]
-    with pytest.raises(ValueError):
-        test_module.group_delay(freq, phase)
-
-# Prueba para asegurar que la función devuelve un arreglo con la misma longitud que los arreglos de entrada
-def test_group_delay_output_length():
-    freq = np.linspace(0, 10, 100)
-    phase = np.sin(freq)
-    group_delay_result = test_module.group_delay(freq, phase)
-    assert len(group_delay_result) == len(freq)
-
-# Prueba para asegurar que la función calcula correctamente el retardo de grupo
-def test_group_delay_calculation():
-    # tolerancia numérica
-    tol = 1e-10
-    freq = np.arange(0, -10, step = -1/10)
-    group_delay_result = test_module.group_delay(-freq, freq)
-
-    assert np.max(np.abs( group_delay_result - 1)) < tol
-
-
-# Prueba para verificar si se genera un gráfico sin errores cuando se pasan argumentos válidos
-def test_plot_plantilla_valid_arguments():
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
     try:
-        test_module.plot_plantilla()
-        test_module.plot_plantilla(filter_type='lowpass', fpass=0.25, ripple=0.5, fstop=0.6, attenuation=40, fs=2)
-        test_module.plot_plantilla(filter_type='highpass', fpass=0.25, ripple=0.5, fstop=0.6, attenuation=40, fs=2)
-        test_module.plot_plantilla(filter_type='bandpass', fpass=(0.2, 0.4), ripple=0.3, fstop=(0.1, 0.5), attenuation=50, fs=2)
-        test_module.plot_plantilla(filter_type='bandstop', fpass=(0.2, 0.4), ripple=0.3, fstop=(0.1, 0.5), attenuation=50, fs=2)
-    except Exception as e:
-        pytest.fail(f"Se generó una excepción: {e}")
+        Ts = func_ptr(matrix)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, np.ndarray)
 
-# Prueba para verificar si se genera un ValueError cuando se pasan argumentos inválidos
-def test_plot_plantilla_invalid_arguments():
-    with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='lowpass', fpass='invalid', ripple=0.5, fstop=0.6, attenuation=40, fs=2)
-    with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='bandpass', fpass=(0.4,), ripple=0.3, fstop=(0.1, 0.5), attenuation=50, fs=2)
-    with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='bandstop', fpass=(0.4,), ripple=0.3, fstop=(0.1, 0.5), attenuation=50, fs=2)
+    # Verificar el correcto resultado
+    assert np.median(Ts - true_val) < 1e-6
 
-# Prueba para verificar si se genera un gráfico sin errores cuando se pasa un tipo de filtro desconocido
-def test_plot_plantilla_unknown_filter_type():
+
+@pytest.mark.parametrize(
+    "func_ptr, Spar_invalid",
+    [
+     
+       # Y -> Tabcd
+       (   
+           test_module.Y2Tabcd,
+           np.array([[-1.33333333, -0.33333333], [ 0., -0.33333333]])
+        ), 
+       # Z -> Tabcd
+       (   
+           test_module.Z2Tabcd,
+           np.array([[ 0.33333333, -0.66666667], [ 0.,  1.33333333]])
+        ), 
+       # Tabcd -> Y
+       (   
+           test_module.Tabcd2Y,
+           np.array([[ 2.,   0. ], [-0.5, 0.5]])
+        )
+      
+    ]
+)
+def test_matrix_conversion_numeric_invalid_input(func_ptr, Spar_invalid):
+    
+    Spar_mala_dim = np.random.randn(3,3)
+    
+    Spar_mal_tipo = sp.Matrix([[S11, S12, S22],
+                               [S11, S12, S22],
+                               [S11, S12, S22]])
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Ts = func_ptr(Spar_mal_tipo)
+    
+    # Verificar que se levante un ValueError al pasar una matriz mal dimensionada
+    with pytest.raises(ValueError):
+        Ts = func_ptr(Spar_mala_dim)
+    
+    # Verificar que se levante un ValueError al pasar una matriz no válida
+    with pytest.raises(ValueError):
+        Ts = func_ptr(Spar_invalid)
+    
+
+def test_I2Tabcd_valid():
+    
+    true_val = np.array([[0.68073771+0.8074316j,  1.5553376 +3.18055853j],
+                         [0.25922293+0.53009309j, 1.02110657+1.21114739j]])
+
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
     try:
-        test_module.plot_plantilla(fpass=0.25, ripple=0.5, fstop=0.6, attenuation=40, fs=2)
-    except Exception as e:
-        pytest.fail(f"Se generó una excepción: {e}")
+        Ts = test_module.I2Tabcd(1.+1.j, 2, 3)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, np.ndarray)
 
-# Prueba para verificar si se genera un ValueError cuando se pasan argumentos no numéricos
-def test_plot_plantilla_non_numeric_arguments():
+    # Verificar el correcto resultado
+    assert np.median(Ts - true_val) < 1e-6
+
+    
+def test_I2Tabcd_invalid_input():
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica como gamma
     with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='lowpass', fpass='invalid', ripple=0.5, fstop=0.6, attenuation=40, fs=2)
+        Ts = test_module.I2Tabcd( np.array([1.0, 2.0]), 2, 3)
+    
+    # Verificar que se levante un ValueError al pasar un nivel de impedancia negativo
     with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='lowpass', fpass=0.25, ripple='invalid', fstop=0.6, attenuation=40, fs=2)
+        Ts = test_module.I2Tabcd( 1., -2., 3)
+    
+    # Verificar que se levante un ValueError al pasar un nivel de impedancia negativo
     with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='lowpass', fpass=0.25, ripple=0.5, fstop='invalid', attenuation=40, fs=2)
+        Ts = test_module.I2Tabcd( 1., 2., -3)
+
+Zexc = sp.symbols('Zexc')
+Z01 = sp.symbols('Z01')
+Z02 = sp.symbols('Z02')
+Y01 = sp.symbols('Y01')
+Y02 = sp.symbols('Y02')
+Yexc = sp.symbols('Yexc')
+
+@pytest.mark.parametrize(
+    "func_ptr, f_exc, p1, p2, true_val",
+    [
+       # Z_s
+       (   
+           test_module.SparZ_s,
+           sp.symbols('Zexc'),
+           sp.symbols('Z01'),
+           sp.symbols('Z02'),
+           sp.Matrix([[(-Z01 + Z02 + Zexc)/(Z01 + Z02 + Zexc), 2*Z01*sp.sqrt(Z02/Z01)/(Z01 + Z02 + Zexc)], [2*Z02*sp.sqrt(Z01/Z02)/(Z01 + Z02 + Zexc), (Z01 - Z02 + Zexc)/(Z01 + Z02 + Zexc)]])
+        ), 
+       (   
+           test_module.SparZ_s,
+           sp.symbols('Zexc'),
+           sp.symbols('Z01'),
+           sp.symbols('Z01'),
+           sp.Matrix([[Zexc/(2*Z01 + Zexc), 2*Z01/(2*Z01 + Zexc)], [2*Z01/(2*Z01 + Zexc), Zexc/(2*Z01 + Zexc)]])
+        ), 
+       # Y_s
+       (   
+           test_module.SparY_s,
+           sp.symbols('Yexc'),
+           sp.symbols('Y01'),
+           sp.symbols('Y02'),
+           sp.Matrix([[(Y01 - Y02 - Yexc)/(Y01 + Y02 + Yexc), 2*Y01*sp.sqrt(Y01/Y02)/(Y01 + Y02 + Yexc)], [2*Y02*sp.sqrt(Y02/Y01)/(Y01 + Y02 + Yexc), (-Y01 + Y02 - Yexc)/(Y01 + Y02 + Yexc)]])
+        ), 
+       (   
+           test_module.SparY_s,
+           sp.symbols('Yexc'),
+           sp.symbols('Y01'),
+           sp.symbols('Y01'),
+           sp.Matrix([[-Yexc/(2*Y01 + Yexc), 2*Y01/(2*Y01 + Yexc)], [2*Y01/(2*Y01 + Yexc), -Yexc/(2*Y01 + Yexc)]])
+        ), 
+      
+    ]
+)
+def test_matrix_def_simbolic(func_ptr, f_exc, p1, p2, true_val):
+    
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Ts = func_ptr(f_exc, p1, p2)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, sp.MatrixBase)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Ts - true_val) == sp.Matrix([[0, 0], [0, 0]])
+
+
+@pytest.mark.parametrize(
+    "func_ptr",
+    [
+       # Z_s
+           test_module.SparZ_s,
+       # Y_s
+           test_module.SparY_s,
+      
+    ]
+)
+def test_matrix_def_simbolic_invalid_input(func_ptr):
+    
+    Spar_mal_tipo = np.random.randn(2,2)
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
     with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='lowpass', fpass=0.25, ripple=0.5, fstop=0.6, attenuation='invalid', fs=2)
+        Ts = func_ptr(Spar_mal_tipo, y11)
+    
+    # Verificar que se levante un ValueError al pasar un float
     with pytest.raises(ValueError):
-        test_module.plot_plantilla(filter_type='lowpass', fpass=0.25, ripple=0.5, fstop=0.6, attenuation=40, fs='invalid')
+        Ts = func_ptr(y11, y11, 1.)
+    
+
+@pytest.mark.parametrize(
+    "func_ptr, f_exc1, f_exc2, true_val",
+    [
+       # LYZ_s
+       (   
+           test_module.TabcdLYZ_s,
+           sp.symbols('Yexc'),
+           sp.symbols('Zexc'),
+           sp.Matrix([[1, Zexc], [Yexc, Yexc*Zexc + 1]])
+        ), 
+       (   
+           test_module.TabcdLZY_s,
+           sp.symbols('Zexc'),
+           sp.symbols('Yexc'),
+           sp.Matrix([[Yexc*Zexc + 1, Zexc], [Yexc, 1]])
+        ), 
+      
+    ]
+)
+def test_matrix_def1_simbolic(func_ptr, f_exc1, f_exc2, true_val):
+    
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Ts = func_ptr(f_exc1, f_exc2)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, sp.MatrixBase)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Ts - true_val) == sp.Matrix([[0, 0], [0, 0]])
+
+
+@pytest.mark.parametrize(
+    "func_ptr",
+    [
+       # Z_s
+           test_module.TabcdLYZ_s,
+       # Y_s
+           test_module.TabcdLZY_s,
+      
+    ]
+)
+def test_matrix_def1_simbolic_invalid_input(func_ptr):
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Ts = func_ptr(1., y11)
+    
+    # Verificar que se levante un ValueError al pasar un float
+    with pytest.raises(ValueError):
+        Ts = func_ptr(y11, 1.)
+    
+
+@pytest.mark.parametrize(
+    "func_ptr, f_exc, true_val",
+    [
+       # LYZ_s
+       (   
+           test_module.TabcdZ_s,
+           sp.symbols('Zexc'),
+           sp.Matrix([[1, Zexc], [0, 1]])
+        ), 
+       (   
+           test_module.TabcdY_s,
+           sp.symbols('Yexc'),
+           sp.Matrix([[1, 0], [Yexc, 1]])
+        ), 
+      
+    ]
+)
+def test_matrix_def2_simbolic(func_ptr, f_exc, true_val):
+    
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Ts = func_ptr(f_exc)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, sp.MatrixBase)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Ts - true_val) == sp.Matrix([[0, 0], [0, 0]])
+
+
+@pytest.mark.parametrize(
+    "func_ptr",
+    [
+       # Z_s
+           test_module.TabcdZ_s,
+       # Y_s
+           test_module.TabcdY_s,
+      
+    ]
+)
+def test_matrix_def2_simbolic_invalid_input(func_ptr):
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Ts = func_ptr(1.)
+
+Y1, Y2, Y3 = sp.symbols('Y1 Y2 Y3', complex=True)
+G = sp.symbols('G', real=True, positive=True)
+s = sp.symbols('s ', complex=True)
+
+@pytest.mark.parametrize(
+    "func_ptr, true_val",
+    [
+         (
+             test_module.calc_MAI_vtransf_ij_mn,
+             -1/(2*G*s + 2*s**2*(G*s + 1) + 1)
+         ),
+         (
+             test_module.calc_MAI_ztransf_ij_mn,
+             -1/(2*G*s**2 + G + 2*s)
+         )
+    ]
+)
+def test_MAI_transf( func_ptr, true_val):
+
+    input_port = [0, 1]
+    output_port = [3, 1]
+    #      Nodos: 0      1        2        3
+    Ymai = sp.Matrix([  
+                    [ Y1,    0,      -Y1,      0],
+                    [ 0,    Y2+G,    -Y2,     -G],
+                    [ -Y1,  -Y2,    Y1+Y2+Y3, -Y3],
+                    [ 0,    -G,      -Y3,      Y3+G ]
+                    ])
+    # Butter de 3er orden doblemente cargado
+    Ymai = Ymai.subs(Y1, 1/s/sp.Rational('1'))
+    Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1'))
+    Ymai = Ymai.subs(Y2, s*sp.Rational('2'))
+
+    
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Zmai = func_ptr(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=False)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Zmai, sp.Expr)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Zmai - true_val) == sp.Rational('0')
+
+
+@pytest.mark.parametrize(
+    "func_ptr",
+    [
+     test_module.calc_MAI_vtransf_ij_mn,
+     test_module.calc_MAI_ztransf_ij_mn      
+    ]
+)
+def test_MAI_transf_invalid_input(func_ptr):
+
+    Ymai_mal_tipo = np.random.randn(2,2)
+    
+    Ymai = sp.Matrix([[S11, S12, S22],
+                               [S11, S12, S22],
+                               [S11, S12, S22]])
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai_mal_tipo, 0, 1, 3, 1, verbose=False)
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0.5, 1, 3, 1, verbose=False)
+    
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0, 0.5, 3, 1, verbose=False)
+    
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0, 1, 0.5, 1, verbose=False)
+    
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0, 1, 3, 0.5, verbose=False)
+    
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0, 1, 3, 1, verbose=1.0)
+    
+
+    
+def test_MAI_impedance_valid():
+    
+    input_port = [0, 1]
+    #      Nodos: 0      1        2        3
+    Ymai = sp.Matrix([  
+                    [ Y1,    0,      -Y1,      0],
+                    [ 0,    Y2+G,    -Y2,     -G],
+                    [ -Y1,  -Y2,    Y1+Y2+Y3, -Y3],
+                    [ 0,    -G,      -Y3,      Y3+G ]
+                    ])
+    # Butter de 3er orden doblemente cargado
+    Ymai = Ymai.subs(Y1, 1/s/sp.Rational('1'))
+    Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1'))
+    Ymai = Ymai.subs(Y2, s*sp.Rational('2'))
+
+    true_val = (2*G*s + 2*s**2*(G*s + 1) + 1)/(2*G*s**2 + G + 2*s)
+    
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        Zmai = test_module.calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=False)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Zmai, sp.Expr)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(Zmai - true_val) == sp.Rational('0')
+    
+    
+def test_MAI_impedance_invalid_input():
+    
+    Ymai_mal_tipo = np.random.randn(2,2)
+    
+    Ymai = sp.Matrix([[S11, S12, S22],
+                               [S11, S12, S22],
+                               [S11, S12, S22]])
+
+    func_ptr = test_module.calc_MAI_impedance_ij
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai_mal_tipo, 0, 1, verbose=False)
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0.5, 1, verbose=False)
+    
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0, 0.5, verbose=False)
+    
+    with pytest.raises(ValueError):
+        Zmai = func_ptr(Ymai, 0, 1, verbose=1.0)
+    
+    
+
+# def test__valid():
+    
+# def test__invalid_input():
+
