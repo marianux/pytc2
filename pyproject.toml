@@ -2,39 +2,51 @@
 [tool.poetry]
 name = "pytc2"
 version = "0.0.6"
-description = "A circuit theory module for students at Universidad Tecnológica Nacional Regional Buen"
+description = "A circuit theory module for students at Universidad Tecnológica Nacional Regional"
 authors = ["Mariano Llamedo Soria"]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "<3.12, >=3.8"
-sympy = "^1.11.1"
-schemdraw = "^0.15"
-jupyter = "^1.0.0"
-matplotlib = "^3.7.0"
-numpy = "^1.24.2"
-scipy = "^1.10.1"
+sympy = ">=1.11.1"
+schemdraw = ">=0.15"
+jupyter = ">=1.0.0"
+matplotlib = ">=3.7.0"
+numpy = ">=1.24.2"
+scipy = ">=1.10.1"
 # tuve problemas con jupyter-notebook
-traitlets = "5.9.0"
+#traitlets = "5.9.0"
 
 [tool.poetry.dev-dependencies]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.2"
-pytest-cov = "^4.0.0"
-jupyter = "^1.0.0"
-pyfda = "^0.7.1"
-myst-nb = {version = "^0.17.1", python = "^3.9"}
-sphinx-autoapi = "^2.0.1"
-sphinx-rtd-theme = "^1.2.0"
-sphinxcontrib-napoleon = "^0.7"
-pandas = "^2.0.0"
-spyder = "^5.4.3"
+pytest = ">=7.2.2"
+pytest-cov = ">=4.0.0"
+jupyter = ">=1.0.0"
+#pyfda = ">=0.7.1"
+myst-nb = {version = ">=0.17.1", python = ">=3.9"}
+sphinx-autoapi = ">=2.0.1"
+sphinx-rtd-theme = ">=1.2.0"
+sphinxcontrib-napoleon = ">=0.7"
+pandas = ">=2.0.0"
+# engañifa para saltar el quilombo de PyQT:
+# https://github.com/python-poetry/poetry/issues/8540
+pyqt5 = [
+    { platform = "linux", version = "5.15.10" },
+]
+pyqt5-qt5 = [
+    { platform = "linux", version = "5.15.2" },
+]
+pyqtwebengine-qt5 = [
+    { platform = "linux", version = "5.15.2" },
+]
+spyder = ">=5.4.3"
 # tuve problemas con jupyter-notebook
-traitlets = "5.9.0"
-jupyterlab-language-pack-es-es = "^4.0.post3"
+#traitlets = "5.9.0"
+jupyterlab-language-pack-es-es = ">=4.0.post3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
