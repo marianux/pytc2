@@ -152,6 +152,32 @@ def test_trims_invalid_input(func_ptr, args):
 #         factor_func = test_module.modsq2mod_s( 1.0 )
 
 
+def test_isFRP_valid():
+
+    Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)    
+
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        test_module.isFRP(Imm)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+
+    # Imm si es FRP
+    assert test_module.isFRP(Imm)
+
+    Imm = (s**2 - 4*s + 3)/(s**2 - 2*s)
+    
+    # Imm no es FRP
+    assert test_module.isFRP(Imm)
+
+    
+def test_isFRP_invalid_input():
+    
+    # Verificar que se levante un ValueError 
+    with pytest.raises(ValueError):
+        test_module.isFRP(1.)
+
+    
 
 # def test__valid():
     
