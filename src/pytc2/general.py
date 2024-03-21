@@ -12,6 +12,7 @@ by Mariano Llamedo llamedom _at_ frba_utn_edu_ar
 
 import sympy as sp
 import numpy as np
+from numbers import Integral, Real, Complex
 
 from IPython.display import display, Math, Markdown
 
@@ -58,7 +59,7 @@ def pp(z1, z2):
 
     Raises
     ------
-      TypeError: Si alguno de los argumentos no es de tipo `Symbolic`.
+      ValueError: Si alguno de los argumentos no es de tipo `Symbolic`.
     
     
     See Also
@@ -87,12 +88,11 @@ def pp(z1, z2):
     
     """
     if not ( (isinstance(z1, sp.Expr) and isinstance(z2, sp.Expr)) or
-              (isinstance(z1, (float, complex)) and isinstance(z2, (float, complex))) 
+              (isinstance(z1, (Real, Complex)) and isinstance(z2, (Real, Complex))) 
             ):
         raise ValueError('z1 y z2 deben ser AMBOS de tipo Symbolic o float')
         
     return(z1*z2/(z1+z2))
-    
 
 #%%
   ##################################
@@ -100,7 +100,6 @@ def pp(z1, z2):
 ##################################
 
 #%%
-
 
 def simplify_n_monic(tt):
     '''
@@ -121,7 +120,7 @@ def simplify_n_monic(tt):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si la entrada no es una expresión simbólica.
 
 
@@ -144,7 +143,7 @@ def simplify_n_monic(tt):
     
     '''
     if not isinstance(tt, sp.Expr):
-        raise TypeError("La entrada debe ser una expresión simbólica.")
+        raise ValueError("La entrada debe ser una expresión simbólica.")
 
     # Obtener el numerador y el denominador de la expresión y convertirlos en polinomios
     num, den = sp.fraction(sp.simplify(sp.expand(tt)))
@@ -200,7 +199,7 @@ def Chebyshev_polynomials(nn):
 
     '''
     
-    if not isinstance(nn, int) or nn < 0:
+    if not isinstance(nn, Integral) or nn < 0:
         raise ValueError("nn debe ser un entero positivo.")
 
     if nn == 0:
@@ -217,7 +216,6 @@ def Chebyshev_polynomials(nn):
             Cn_p = Cn
             
         return sp.simplify(sp.expand(Cn))
-    
 
 def a_equal_b_latex_s(a, b):
     '''
@@ -244,7 +242,7 @@ def a_equal_b_latex_s(a, b):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si a no es un símbolo ni una cadena.
         Si b no es un símbolo.
 
@@ -269,10 +267,13 @@ def a_equal_b_latex_s(a, b):
 
     '''
 
-    if not (isinstance(a, (sp.Expr, str)) and isinstance(b, (list, sp.Expr))):
-        raise TypeError("a debe ser un símbolo o una cadena y b debe ser un símbolo.")
+    if not isinstance(a, (sp.Expr, str)):
+        raise ValueError("a debe ser un símbolo o una cadena.")
     
-    a_str = sp.latex(a) if isinstance(a, sp.Basic) else a
+    if not isinstance(b, (list, sp.Expr)):
+        raise ValueError("b debe ser un símbolo o una lista de símbolos.")
+    
+    a_str = sp.latex(a) if isinstance(a, sp.Expr) else a
     
     return '$' + a_str + '=' + sp.latex(b) + '$'
 
@@ -303,7 +304,7 @@ def expr_simb_expr(a, b, symbol='='):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si a no es un símbolo ni una cadena.
         Si b no es un símbolo.
 
@@ -322,7 +323,7 @@ def expr_simb_expr(a, b, symbol='='):
     >>> s = sp.symbols('s')
     >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
     >>> tt1 = (s**2 + 4*s + 7) / (2*s**2 + 5*s + 3)
-    >>> print_latex(expr_simb_expr('tt', tt1, r'\\neq'))  
+    >>> print_latex(expr_simb_expr('tt', tt1, '\\neq'))  
     [LaTex formated equation]
     >>> print_latex(expr_simb_expr('tt', tt))
     [LaTex formated equation]
@@ -330,10 +331,16 @@ def expr_simb_expr(a, b, symbol='='):
 
     '''
 
-    if not (isinstance(a, (sp.Expr, str)) and isinstance(b, sp.Expr)):
-        raise TypeError("a debe ser un símbolo o una cadena y b debe ser un símbolo.")
+    if not isinstance(a, (sp.Expr, str)):
+        raise ValueError("a debe ser un símbolo o una cadena.")
     
-    a_str = sp.latex(a) if isinstance(a, sp.Basic) else a
+    if not isinstance(b, (list, sp.Expr)):
+        raise ValueError("b debe ser un símbolo o una lista de símbolos.")
+    
+    if not isinstance(symbol, str):
+        raise ValueError("symbol debe ser un string que represente un comando interpretable en LaTex.")
+    
+    a_str = sp.latex(a) if isinstance(a, sp.Expr) else a
     
     return '$' + a_str + symbol + sp.latex(b) + '$'
 
@@ -356,7 +363,7 @@ def to_latex(unsimbolo):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si unsimbolo no es un símbolo ni una cadena.
 
 
@@ -379,56 +386,12 @@ def to_latex(unsimbolo):
     '''
 
     if not isinstance(unsimbolo, (sp.Expr, str)):
-        raise TypeError("unsimbolo debe ser un símbolo o una cadena.")
+        raise ValueError("unsimbolo debe ser un símbolo o una cadena.")
     
-    return '$' + sp.latex(unsimbolo) + '$'
+    a_str = sp.latex(unsimbolo) if isinstance(unsimbolo, sp.Expr) else unsimbolo
 
-def str_to_latex(unstr):
-    '''
-    Formatea un string para visualizarse en LaTeX.
-
-
-    Parameters
-    ----------
-    unstr : str
-        Cadena a formatear para visualización en LaTeX.
-
-
-    Returns
-    -------
-    str
-        String formateado en LaTeX.
-
-
-    Raises
-    ------
-    TypeError
-        Si unstr no es una cadena.
-
-
-    See Also
-    --------
-    :func:`print_latex`
-    :func:`print_subtitle`
-    :func:`to_latex`
-
-
-    Examples
-    --------
     
-    >>> import sympy as sp
-    >>> from pytc2.general import str_to_latex, print_latex
-    >>> print(str_to_latex('x'))
-    $x$
-    >>> print_latex(str_to_latex('x'))  
-    [LaTex formated equation]
-
-    '''
-
-    if not isinstance(unstr, str):
-        raise TypeError("unstr debe ser una cadena.")
-    
-    return '$' + unstr + '$'
+    return '$' + a_str + '$'
 
 def print_latex(unstr):
     '''
@@ -449,7 +412,7 @@ def print_latex(unstr):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si unstr no es una cadena.
 
 
@@ -471,7 +434,7 @@ def print_latex(unstr):
 
     '''
     if not isinstance(unstr, str):
-        raise TypeError("unstr debe ser una cadena.")
+        raise ValueError("unstr debe ser una cadena.")
     
 
     display(Math(unstr))
@@ -502,7 +465,7 @@ def print_console_alert(unstr):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si unstr no es una cadena.
 
 
@@ -524,13 +487,12 @@ def print_console_alert(unstr):
     '''
 
     if not isinstance(unstr, str):
-        raise TypeError("unstr debe ser una cadena.")
+        raise ValueError("unstr debe ser una cadena.")
 
     unstr = '# ' + unstr + ' #\n'
     unstr1 =  '#' * (len(unstr)-1) + '\n' 
     
     print( '\n\n' + unstr1 + unstr + unstr1 )
-
     
 def print_console_subtitle(unstr):
     '''
@@ -551,7 +513,7 @@ def print_console_subtitle(unstr):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si unstr no es una cadena.
 
 
@@ -572,7 +534,7 @@ def print_console_subtitle(unstr):
     '''
 
     if not isinstance(unstr, str):
-        raise TypeError("unstr debe ser una cadena.")
+        raise ValueError("unstr debe ser una cadena.")
 
     unstr = unstr + '\n'
     unstr1 =  '-' * (len(unstr)-1) + '\n' 
@@ -598,7 +560,7 @@ def print_subtitle(unstr):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si unstr no es una cadena.
 
 
@@ -618,7 +580,7 @@ def print_subtitle(unstr):
     '''
 
     if not isinstance(unstr, str):
-        raise TypeError("unstr debe ser una cadena.")
+        raise ValueError("unstr debe ser una cadena.")
     
     display(Markdown('#### ' + unstr))
     
@@ -649,7 +611,7 @@ def db2nepper(at_en_db):
 
     Raises
     ------
-      TypeError: Si at_en_db no es de tipo `float`.
+      ValueError: Si at_en_db no es de tipo `float`.
 
 
     See Also
@@ -667,10 +629,10 @@ def db2nepper(at_en_db):
 
     '''
 
-    if not isinstance(at_en_db, float):
-        raise TypeError('at_en_db debe ser float')
+    if not isinstance(at_en_db, Real):
+        raise ValueError('at_en_db debe ser float')
 
-    return at_en_db / (20 * np.log10(np.exp(1)))
+    return at_en_db / (20. * np.log10(np.exp(1.)))
 
 def nepper2db(at_en_np):
     '''
@@ -691,7 +653,7 @@ def nepper2db(at_en_np):
 
     Raises
     ------
-      TypeError: Si at_en_db no es de tipo `float`.
+      ValueError: Si at_en_db no es de tipo `float`.
     
 
     See Also
@@ -709,8 +671,8 @@ def nepper2db(at_en_np):
 
     '''
 
-    if not isinstance(at_en_np, float):
-        raise TypeError('at_en_np debe ser float')
+    if not isinstance(at_en_np, Real):
+        raise ValueError('at_en_np debe ser float')
 
-    return at_en_np * (20 * np.log10(np.exp(1)))
+    return at_en_np * (20. * np.log10(np.exp(1.)))
     
