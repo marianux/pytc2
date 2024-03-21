@@ -160,7 +160,8 @@ def cauer_RC( imm, remover_en_inf=True ):
         # error
         print_console_alert('Fallo la expansión')
         print_latex(expr_simb_expr(imm, imm_as_cauer, ' \\neq '))
-        
+        raise ValueError('Fallo la expansión Cauer. Revisar!!')
+
     return(ko, imm_as_cauer, rem)
 
 def cauer_LC( imm, remover_en_inf = True ):
@@ -299,7 +300,6 @@ def cauer_LC( imm, remover_en_inf = True ):
         
     return(ko, imm_as_cauer, rem)
 
-
 # TODO: me gustaría documentar y probar mejor esta función
 def foster_zRC2yRC( k0 = None, koo = None, ki_wi = None, kk = None, ZRC_foster = None ):
     '''
@@ -394,7 +394,6 @@ def foster_zRC2yRC( k0 = None, koo = None, ki_wi = None, kk = None, ZRC_foster =
 
     return([k0, koo, ki, kk, YRC_foster])
 
-
 def foster( imm ):
     '''
     Expande una función inmitancia :math:`I(s)` en fracciones simples, de acuerdo al método 
@@ -466,6 +465,9 @@ def foster( imm ):
 
 
     '''    
+
+    if not isinstance(imm , sp.Expr):
+        raise ValueError('Hay que definir imm como una expresión simbólica.')
 
     num, den = imm.as_numer_denom()
     

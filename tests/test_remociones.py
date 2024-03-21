@@ -7,7 +7,6 @@ Created on Sun Feb 18 19:58:49 2024
 """
 
 import pytest
-import numpy as np
 import sympy as sp
 from pytc2 import remociones as test_module
 
@@ -168,7 +167,7 @@ def test_isFRP_valid():
     Imm = (s**2 - 4*s + 3)/(s**2 - 2*s)
     
     # Imm no es FRP
-    assert test_module.isFRP(Imm)
+    assert not test_module.isFRP(Imm)
 
     
 def test_isFRP_invalid_input():
@@ -178,6 +177,176 @@ def test_isFRP_invalid_input():
         test_module.isFRP(1.)
 
     
+
+@pytest.mark.parametrize(
+    "func_ptr, args, true_val",
+    [
+       (   
+           test_module.remover_polo_sigma,
+           ((s**2 + 13*s + 32)/(2*(s+1)*(s+6)), -1.),
+           ((s + 8)/(2*(s + 6)), 2/(s + 1))
+        ), 
+       (   
+           test_module.remover_polo_jw,
+           ((s * (3*s**2+7) )/((s**2+1)*(s**2+3)), 1.),
+           (s/(s**2 + 3), 2*s/(s**2 + 1))
+        ), 
+       (   
+           test_module.remover_polo_dc,
+           ( ((s**2+2)*(s**2+5))/(3*s*(s**2+sp.Rational(7,3))), 1.),
+           ((s**2 + 1)*(s**2 + 3)/(s*(3*s**2 + 7)), 1/s)
+        ), 
+       (   
+           test_module.remover_polo_infinito,
+           ( ((s**2+2)*(s**2+5))/(3*s*(s**2+sp.Rational(7,3))), None),
+           (2*(7*s**2 + 15)/(3*s*(3*s**2 + 7)), s/3)
+        ), 
+       (   
+           test_module.remover_valor_en_infinito,
+           ( (s**2 + 13*s + 32)/(3*s**2 + 27*s+ 44), None),
+           (4*(3*s + 13)/(3*(3*s**2 + 27*s + 44)), 1/3)
+        ), 
+       (   
+           test_module.remover_valor_en_dc,
+           ( (3*s**2 + 27*s+ 44)/(s**2 + 13*s + 32), None),
+           (s*(13*s + 73)/(8*(s**2 + 13*s + 32)), 11/8)
+        ), 
+     
+    ]
+)   
+def test_remociones_valid(func_ptr, args, true_val):
+    
+    
+    imm, sigma_omega = args
+
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        out = func_ptr(imm, sigma_omega)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(out[0], sp.Expr)
+    assert isinstance(out[1], sp.Expr)
+
+    # Verificar el correcto resultado
+    assert sp.simplify(out[0] - true_val[0]) == sp.Rational(0)
+    assert sp.simplify(out[1] - true_val[1]) == sp.Rational(0)
+    
+    
+def test_remover_polo_sigma_invalid_input():
+    
+    func_ptr = test_module.remover_polo_sigma
+    
+    imm = (s**2 + 13*s + 32)/(2*(s+1)*(s+6))
+
+    sigma_R1C1 = -1
+
+    # Verificar que se levante un ValueError 
+    with pytest.raises(ValueError):
+        out = func_ptr('a', sigma_R1C1)
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, 'a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, sigma_R1C1, isImpedance = 2)
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, sigma_R1C1, isRC = 2)
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, sigma_R1C1, sigma_zero = 'a')
+
+def test_remover_polo_jw_invalid_input():
+    
+    func_ptr = test_module.remover_polo_jw
+    
+    imm = (s * (3*s**2+7) )/((s**2+1)*(s**2+3))
+
+    # Verificar que se levante un ValueError 
+    with pytest.raises(ValueError):
+        out = func_ptr('a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, omega = 'a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, isImpedance = 2)
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, omega_zero = 'a')
+
+
+def test_remover_polo_jw_invalid_input():
+    
+    func_ptr = test_module.remover_polo_jw
+    
+    imm = (s * (3*s**2+7) )/((s**2+1)*(s**2+3))
+
+    # Verificar que se levante un ValueError 
+    with pytest.raises(ValueError):
+        out = func_ptr('a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, omega = 'a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, isImpedance = 2)
+
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, omega_zero = 'a')
+
+@pytest.mark.parametrize(
+    "func_ptr, imm",
+    [
+       (   
+           test_module.remover_polo_dc,
+           ((s**2+2)*(s**2+5))/(3*s*(s**2+sp.Rational(7,3))),
+        ), 
+       (   
+           test_module.remover_polo_infinito,
+           ((s**2+2)*(s**2+5))/(3*s*(s**2+sp.Rational(7,3))),
+        ), 
+     
+    ]
+)   
+def test_remover_polo_dc_invalid_input(func_ptr, imm):
+
+    # Verificar que se levante un ValueError 
+    with pytest.raises(ValueError):
+        out = func_ptr('a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, omega_zero = 'a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, isSigma = 2)
+
+@pytest.mark.parametrize(
+    "func_ptr, imm",
+    [
+       (   
+           test_module.remover_valor_en_infinito,
+           (s**2 + 13*s + 32)/(3*s**2 + 27*s+ 44),
+        ), 
+       (   
+           test_module.remover_valor_en_dc,
+           (3*s**2 + 27*s+ 44)/(s**2 + 13*s + 32),
+        ), 
+     
+    ]
+)   
+def test_remover_valor_invalid_input(func_ptr, imm):
+
+    # Verificar que se levante un ValueError 
+    with pytest.raises(ValueError):
+        out = func_ptr('a')
+
+    with pytest.raises(ValueError):
+        out = func_ptr(imm, sigma_zero = 'a')
+
 
 # def test__valid():
     
