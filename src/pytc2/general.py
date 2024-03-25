@@ -370,7 +370,7 @@ def to_latex(unsimbolo):
     See Also
     --------
     :func:`print_latex`
-    :func:`str_to_latex`
+    :func:`to_latex`
     :func:`to_latex`
 
 
@@ -419,17 +419,17 @@ def print_latex(unstr):
     See Also
     --------
     :func:`print_subtitle`
-    :func:`str_to_latex`
+    :func:`to_latex`
     :func:`to_latex`
 
 
     Examples
     --------
     >>> import sympy as sp
-    >>> from pytc2.general import str_to_latex, print_latex
-    >>> print(str_to_latex('x'))
+    >>> from pytc2.general import to_latex, print_latex
+    >>> print(to_latex('x'))
     $x$
-    >>> print_latex(str_to_latex('x'))  
+    >>> print_latex(to_latex('x'))  
     [LaTex formated equation]
 
     '''

@@ -374,7 +374,7 @@ def zpk2sos_analog(zz, pp, kk):
     """
     if not isinstance(zz, (list, np.ndarray)) or not isinstance(pp, (list, np.ndarray)):
         raise ValueError("Los argumentos 'zz' y 'pp' deben ser listas o arrays.")
-    if not isinstance(kk, (int, float)):
+    if not isinstance(kk, (Integral, Real)):
         raise ValueError("El argumento 'kk' debe ser un número.")
     
     # Verificar si el filtro está vacío
@@ -1074,7 +1074,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     >>> H1 = sig.TransferFunction(num, den)
     >>> pretty_print_bicuad_omegayq(num, den)
     [ Expresión formateada en LaTex ]
-    >>> analyze_sys([H1], sys_name='mi Example')
+    >>> analyze_sys([H1], sys_name='mi Ejemplo')
     [ Tres gráficas: respuesta en frec (mód, fase y retardo) y pzmap ]
     >>> # Compara el sistema anterior con otros dos con valores diferentes de Q
     >>> Q = 5
@@ -1129,7 +1129,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
         raise ValueError('annotations debe ser un booleano')
 
     # Check valid type for fs
-    if fs is not None and not isinstance(fs, (int, float)):
+    if fs is not None and not isinstance(fs, (Integral, Real)):
         raise ValueError('fs debe ser None o un valor real')
 
     # Gráficos de BODE
@@ -1313,7 +1313,7 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
     """
     
     # Chequeo de argumentos
-    if not isinstance(fig_id, (str, int)):
+    if not isinstance(fig_id, (str, Integral)):
         raise ValueError('fig_id debe ser un string o un entero.')
 
     if not isinstance(axes_hdl, (str, list, plt.Axes)):
@@ -1322,7 +1322,7 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
     if not isinstance(digital, bool):
         raise ValueError('digital debe ser un booleano.')
 
-    if not isinstance(fs, (int, float)):
+    if not isinstance(fs, (Integral, Real)):
         raise ValueError('fs debe ser un valor numérico.')
 
     # Configuración de la figura y el eje
@@ -1659,11 +1659,11 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         raise ValueError("myFilter debe ser un array NumPy o un objeto TransferFunction.")
 
     # Verificar si fig_id es None, str o int
-    if not isinstance(fig_id, (type(None), str, int)):
+    if not isinstance(fig_id, (type(None), str, Integral)):
         raise ValueError("fig_id debe ser de tipo str, int o None.")
 
     # Verificar si npoints es un entero
-    if not isinstance(npoints, int):
+    if not isinstance(npoints, Integral):
         raise ValueError("npoints debe ser un entero.")
 
     # Verificar si digital es un booleano
@@ -1675,7 +1675,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         raise ValueError("xaxis debe ser uno de los siguientes valores: 'omega', 'freq', 'norm'.")
 
     # Verificar si fs es un número
-    if not isinstance(fs, (int, float)):
+    if not isinstance(fs, (Integral, Real)):
         raise ValueError("fs debe ser un número.")
 
 
@@ -1877,7 +1877,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     """
 
     # Verificar si fig_id es válido
-    if not isinstance(fig_id, (str, int)):
+    if not isinstance(fig_id, (str, Integral)):
         raise ValueError("fig_id debe ser una cadena de caracteres o un número entero.")
 
     # Verificar si axes_hdl es válido
@@ -1959,6 +1959,8 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         if plt.fignum_exists(fig_id):
             fig_hdl = plt.figure(fig_id)
             axes_hdl = fig_hdl.get_axes()
+            if( len(axes_hdl) != 2 ):
+                raise ValueError("La figura {:d} no tiene dos ejes (módulo y fase).".format(fig_id))
         else:
             fig_hdl = plt.figure(fig_id)
             axes_hdl = fig_hdl.subplots(2, 1, sharex='col')

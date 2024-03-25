@@ -7,22 +7,26 @@ Created on Thu Mar  2 11:24:17 2023
 """
 
 import numpy as np
-
 import sympy as sp
-
 from IPython.display import display
-
+import schemdraw as sdr
 from schemdraw import Drawing
 from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow
+from numbers import Integral, Real, Complex
 
+
+##################################################
+#%% Variables para dibujar elementos circuitales #
+##################################################
+
+elementos_keys = ( 'R', 'L', 'C', 'Z', 'Y')
+elementos_dic = { 'R': Resistor, 'Z': ResistorIEC, 'Y': ResistorIEC, 'C': Capacitor, 'L': Inductor }
 
 ##########################################
 #%% Variables para el análisis simbólico #
 ##########################################
 
-from .general import s, to_latex, str_to_latex
-
-
+from .general import s, to_latex
 
 ########################################
 #%% Funciones para dibujar cuadripolos #
@@ -47,7 +51,7 @@ def dibujar_Tee(ZZ, return_components=False):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si ZZ no es una instancia de sympy.Matrix.
 
 
@@ -71,7 +75,10 @@ def dibujar_Tee(ZZ, return_components=False):
     '''
 
     if not isinstance(ZZ, sp.Matrix):
-        raise TypeError("ZZ debe ser una instancia de sympy.Matrix.")
+        raise ValueError("ZZ debe ser una instancia de sympy.Matrix.")
+
+    if not isinstance(return_components, bool):
+        raise ValueError("return_components debe ser booleano.")
 
     # Dibujo la red Tee
     d = Drawing(unit=4)
@@ -82,19 +89,19 @@ def dibujar_Tee(ZZ, return_components=False):
     Zb = ZZ[0, 1]
     Zc = ZZ[1, 1] - ZZ[0, 1]
     
-    if isinstance(ZZ, sp.Basic):
+    if isinstance(ZZ, sp.Expr):
         Za = sp.simplify(sp.expand(Za))
         Zb = sp.simplify(sp.expand(Zb))
         Zc = sp.simplify(sp.expand(Zc))
 
     if not Za.is_zero:
-        d = dibujar_elemento_serie(d, ResistorIEC, Za)
+        d = dibujar_elemento_serie(d, "Z", Za)
 
     if not Zb.is_zero:
-        d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
+        d = dibujar_elemento_derivacion(d, "Z", Zb)
 
     if not Zc.is_zero:
-        d = dibujar_elemento_serie(d, ResistorIEC, Zc)
+        d = dibujar_elemento_serie(d, "Z", Zc)
 
     d = dibujar_puerto_salida(d, port_name='')
 
@@ -102,7 +109,6 @@ def dibujar_Tee(ZZ, return_components=False):
 
     if return_components:
         return [Za, Zb, Zc]
-    
     
 def dibujar_Pi(YY, return_components=False):
     '''
@@ -126,7 +132,7 @@ def dibujar_Pi(YY, return_components=False):
 
     Raises
     ------
-    TypeError
+    ValueError
         Si YY no es una instancia de sympy.Matrix.
 
 
@@ -151,7 +157,10 @@ def dibujar_Pi(YY, return_components=False):
 
     # Comprobar el tipo de dato de YY
     if not isinstance(YY, sp.Matrix):
-        raise TypeError("YY debe ser una matriz simbólica.")
+        raise ValueError("YY debe ser una matriz simbólica.")
+
+    if not isinstance(return_components, bool):
+        raise ValueError("return_components debe ser booleano.")
 
     # Dibujo la red Pi
     d = Drawing(unit=4)
@@ -162,7 +171,7 @@ def dibujar_Pi(YY, return_components=False):
     Yb = -YY[0, 1]
     Yc = YY[1, 1] + YY[0, 1]
 
-    bSymbolic = isinstance(YY[0, 0], sp.Basic)
+    bSymbolic = isinstance(YY[0, 0], sp.Expr)
 
     if bSymbolic:
         Za = sp.simplify(sp.expand(1/Ya))
@@ -174,13 +183,13 @@ def dibujar_Pi(YY, return_components=False):
         Zc = 1/Yc
 
     if (bSymbolic and (not Ya.is_zero) or (not bSymbolic) and Ya != 0):
-        d = dibujar_elemento_derivacion(d, ResistorIEC, Za)
+        d = dibujar_elemento_derivacion(d, "Z", Za)
 
     if (bSymbolic and (not Yb.is_zero) or (not bSymbolic) and Yb != 0):
-        d = dibujar_elemento_serie(d, ResistorIEC, Zb)
+        d = dibujar_elemento_serie(d, "Z", Zb)
 
     if (bSymbolic and (not Yc.is_zero) or (not bSymbolic) and Yc != 0):
-        d = dibujar_elemento_derivacion(d, ResistorIEC, Zc)
+        d = dibujar_elemento_derivacion(d, "Z", Zc)
 
     d = dibujar_puerto_salida(d, port_name='')
 
@@ -241,6 +250,9 @@ def dibujar_lattice(ZZ, return_components=False):
     if ZZ.shape != (2, 2):
         raise ValueError("ZZ debe tener el formato [ [Z11, Z12], [Z21, Z22] ]")
 
+    if not isinstance(return_components, bool):
+        raise ValueError("return_components debe ser booleano.")
+
     if ZZ is None:
         # Sin valores, solo el dibujo
         Za_lbl = 'Za'
@@ -253,7 +265,7 @@ def dibujar_lattice(ZZ, return_components=False):
         # z11 - z12
         Za = ZZ[0, 0] - ZZ[0, 1]
         Zb = ZZ[0, 0] + ZZ[0, 1]
-        bSymbolic = isinstance(ZZ[0, 0], sp.Basic)
+        bSymbolic = isinstance(ZZ[0, 0], sp.Expr)
         
         if bSymbolic:
             Za = sp.simplify(Za)
@@ -261,8 +273,8 @@ def dibujar_lattice(ZZ, return_components=False):
             Za_lbl = to_latex(Za)
             Zb_lbl = to_latex(Zb)
         else:
-            Za_lbl = str_to_latex('{:3.3f}'.format(Za))
-            Zb_lbl = str_to_latex('{:3.3f}'.format(Zb))
+            Za_lbl = to_latex('{:3.3f}'.format(Za))
+            Zb_lbl = to_latex('{:3.3f}'.format(Zb))
 
     # Dibujo la red Lattice
     with Drawing() as d:
@@ -350,6 +362,10 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
     if not ( isinstance(y_exc , sp.Expr) or isinstance(z_exc , sp.Expr)):
         raise ValueError("'Hay que definir la función de excitación y_exc o z_exc como una expresión simbólica.'")
 
+    if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
+        raise ValueError('Hay que definir ki como una expresión simbólica.')
+
+
     if not(ki is None) or len(ki) > 0:
         # si hay algo para dibujar ...
         
@@ -363,7 +379,7 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
             
             bIsImpedance = True
             
-            d, _ = dibujar_funcion_exc_abajo(d, 
+            d = dibujar_funcion_exc_abajo(d, 
                                                       'Z',  
                                                       z_exc, 
                                                       hacia_salida = True,
@@ -371,7 +387,7 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
         else:
             bIsImpedance = False
             
-            d, _ = dibujar_funcion_exc_abajo(d, 
+            d = dibujar_funcion_exc_abajo(d, 
                                                       'Y',  
                                                       y_exc, 
                                                       hacia_salida = True,
@@ -390,11 +406,11 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
             if bSeries:
                 
                 if sp.degree(kii*s) == 1:
-                    d = dibujar_elemento_serie(d, Resistor, kii)
+                    d = dibujar_elemento_serie(d, 'R', kii)
                 elif sp.degree(kii*s) == 0:
-                    d = dibujar_elemento_serie(d, Capacitor, 1/(s*kii))
+                    d = dibujar_elemento_serie(d, 'C', 1/(s*kii))
                 else:
-                    d = dibujar_elemento_serie(d, Inductor, kii/s)
+                    d = dibujar_elemento_serie(d, 'L', kii/s)
                     
                 bComponenteDibujadoDerivacion = False
 
@@ -405,11 +421,11 @@ def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
                     dibujar_espacio_derivacion(d)
 
                 if sp.degree(kii*s) == 1:
-                    d = dibujar_elemento_derivacion(d, Resistor, 1/kii)
+                    d = dibujar_elemento_derivacion(d, 'R', 1/kii)
                 elif sp.degree(kii*s) == 2:
-                    d = dibujar_elemento_derivacion(d, Capacitor, kii/s)
+                    d = dibujar_elemento_derivacion(d, 'C', kii/s)
                 else:
-                    d = dibujar_elemento_derivacion(d, Inductor, 1/(s*kii))
+                    d = dibujar_elemento_derivacion(d, 'L', 1/(s*kii))
                 
                 bComponenteDibujadoDerivacion = True
 
@@ -489,11 +505,12 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
     '''    
     if not ( isinstance(y_exc , sp.Expr) or isinstance(z_exc , sp.Expr)):
         raise ValueError("'Hay que definir la función de excitación y_exc o z_exc como una expresión simbólica.'")
-
     
     if y_exc is None and z_exc is None:
-
         assert('Hay que definir si se trata de una impedancia o admitancia')
+
+    if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
+        raise ValueError('Hay que definir ki como una expresión simbólica.')
 
     if not(ki is None) or len(ki) > 0:
         # si hay algo para dibujar ...
@@ -508,7 +525,7 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
             
             bIsImpedance = True
             
-            d, _ = dibujar_funcion_exc_abajo(d, 
+            d = dibujar_funcion_exc_abajo(d, 
                                                       'Z',  
                                                       z_exc, 
                                                       hacia_salida = True,
@@ -516,7 +533,7 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
         else:
             bIsImpedance = False
             
-            d, _ = dibujar_funcion_exc_abajo(d, 
+            d = dibujar_funcion_exc_abajo(d, 
                                                       'Y',  
                                                       y_exc, 
                                                       hacia_salida = True,
@@ -542,9 +559,9 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
             if bSeries:
                 
                 if bCauer1:
-                    d = dibujar_elemento_serie(d, Inductor, kii/s)
+                    d = dibujar_elemento_serie(d, 'L', kii/s)
                 else:
-                    d = dibujar_elemento_serie(d, Capacitor, 1/(s*kii))
+                    d = dibujar_elemento_serie(d, 'C', 1/(s*kii))
                     
                 bComponenteDibujadoDerivacion = False
 
@@ -555,9 +572,9 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
                     dibujar_espacio_derivacion(d)
 
                 if bCauer1:
-                    d = dibujar_elemento_derivacion(d, Capacitor, kii/s)
+                    d = dibujar_elemento_derivacion(d, 'C', kii/s)
                 else:
-                    d = dibujar_elemento_derivacion(d, Inductor, 1/(s*kii))
+                    d = dibujar_elemento_derivacion(d, 'L', 1/(s*kii))
                 
                 bComponenteDibujadoDerivacion = True
 
@@ -637,16 +654,16 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
             raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
         
         if not isinstance(k0 , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir la función de excitación k0 como una expresión simbólica.')
+            raise ValueError('Hay que definir k0 como una expresión simbólica.')
         
         if not isinstance(koo , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir la función de excitación koo como una expresión simbólica.')
+            raise ValueError('Hay que definir koo como una expresión simbólica.')
         
         if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
-            raise ValueError('Hay que definir la función de excitación ki como una expresión simbólica.')
+            raise ValueError('Hay que definir ki como una expresión simbólica.')
         
         if not isinstance(kk , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
+            raise ValueError('Hay que definir kk como una expresión simbólica.')
         
         if kk is None:
             bDisipativo = False
@@ -664,7 +681,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
                                        current_lbl = '$I$')
 
         if not(y_exc is None):
-            d, _ = dibujar_funcion_exc_abajo(d, 
+            d = dibujar_funcion_exc_abajo(d, 
                                                       'Y',  
                                                       y_exc, 
                                                       hacia_salida = True,
@@ -673,7 +690,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
 
         if not(kk is None):
             
-            d = dibujar_elemento_derivacion(d, Resistor, 1/kk)
+            d = dibujar_elemento_derivacion(d, 'R', 1/kk)
 
             bComponenteDibujado = True
 
@@ -683,7 +700,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
                 
                 dibujar_espacio_derivacion(d)
 
-            d = dibujar_elemento_derivacion(d, Inductor, 1/k0)
+            d = dibujar_elemento_derivacion(d, 'L', 1/k0)
             
             bComponenteDibujado = True
             
@@ -694,7 +711,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
                 
                 dibujar_espacio_derivacion(d)
                     
-            d = dibujar_elemento_derivacion(d, Capacitor, koo)
+            d = dibujar_elemento_derivacion(d, 'C', koo)
 
             bComponenteDibujado = True
             
@@ -709,15 +726,15 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
                 if bDisipativo:
                     
                     if k0 is None:
-                        d = dibujar_tanque_RC_derivacion(d, capacitor_lbl = 1/un_tanque[0], sym_R_label = un_tanque[1] )
+                        d = dibujar_tanque_RC_derivacion(d, capacitor_lbl = 1/un_tanque[0], resistor_label = un_tanque[1] )
                         bComponenteDibujado = True
                     else:
-                        d = dibujar_tanque_RL_derivacion(d, sym_ind_label = un_tanque[1], sym_R_label = un_tanque[0] )
+                        d = dibujar_tanque_RL_derivacion(d, inductor_label = un_tanque[1], resistor_label = un_tanque[0] )
                         bComponenteDibujado = True
                         
                 else:    
                 
-                    d = dibujar_tanque_derivacion(d, inductor_lbl = un_tanque[1], capacitor_lbl = 1/un_tanque[0])
+                    d = dibujar_tanque_derivacion(d, inductor_label = un_tanque[1], capacitor_label = 1/un_tanque[0])
                     bComponenteDibujado = True
 
         
@@ -815,7 +832,7 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
                                        current_lbl = '$I$')
 
         if not(z_exc is None):
-            d, z5_lbl = dibujar_funcion_exc_abajo(d, 
+            d = dibujar_funcion_exc_abajo(d, 
                                                       'Z',  
                                                       z_exc, 
                                                       hacia_salida = True,
@@ -823,15 +840,15 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
 
         if not(kk is None):
             
-            d = dibujar_elemento_serie(d, Resistor, kk)
+            d = dibujar_elemento_serie(d, 'R', kk)
             
         if not(k0 is None):
         
-            d = dibujar_elemento_serie(d, Capacitor, 1/k0)
+            d = dibujar_elemento_serie(d, 'C', 1/k0)
             
         if not(koo is None):
         
-            d = dibujar_elemento_serie(d, Inductor, koo)
+            d = dibujar_elemento_serie(d, 'L', koo)
             
         if not(ki is None):
 
@@ -840,12 +857,12 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
                 if bDisipativo:
                     
                     if k0 is None:
-                        d = dibujar_tanque_RL_serie(d, sym_ind_label = 1/un_tanque[0], sym_R_label = 1/un_tanque[1] )
+                        d = dibujar_tanque_RL_serie(d, inductor_label = 1/un_tanque[0], resistor_label = 1/un_tanque[1] )
                     else:
-                        d = dibujar_tanque_RC_serie(d, sym_R_label = 1/un_tanque[0], capacitor_lbl = un_tanque[1] )
+                        d = dibujar_tanque_RC_serie(d, resistor_label = 1/un_tanque[0], capacitor_lbl = un_tanque[1] )
                         
                 else:    
-                    d = dibujar_tanque_serie(d, sym_ind_label = 1/un_tanque[0], sym_cap_label = un_tanque[1] )
+                    d = dibujar_tanque_serie(d, inductor_label = 1/un_tanque[0], capacitor_label = un_tanque[1] )
 
                 dibujar_espacio_derivacion(d)
 
@@ -902,20 +919,28 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
-    
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
+
+    if not isinstance(current_lbl , (str, tuple, list, type(None)) ):
+        raise ValueError('El argumento current_lbl debe ser un string, lista, tupla u omitirse.')
+    
+    if not isinstance(voltage_lbl , (str, tuple, list, type(None)) ):
+        raise ValueError('El argumento voltage_lbl debe ser un string, lista, tupla u omitirse.')
+    
+    if not isinstance(port_name , (str, type(None))):
+        raise ValueError('El argumento port_name debe ser un string u omitirse.')
+
     
     d += Dot(open=True)
     
@@ -986,19 +1011,27 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
+    
+    if not isinstance(current_lbl , (str, tuple, list, type(None)) ):
+        raise ValueError('El argumento current_lbl debe ser un string, lista, tupla u omitirse.')
+    
+    if not isinstance(voltage_lbl , (str, tuple, list, type(None)) ):
+        raise ValueError('El argumento voltage_lbl debe ser un string, lista, tupla u omitirse.')
+    
+    if not isinstance(port_name , (str, type(None))):
+        raise ValueError('El argumento port_name debe ser un string u omitirse.')
     
     if isinstance(current_lbl , str):
         d += Line().right().length(d.unit*.25)
@@ -1063,22 +1096,21 @@ def dibujar_espaciador( d ):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_espaciador, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
     >>> d = dibujar_espaciador(d)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
     >>> d = dibujar_espaciador(d)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
 
     d += Line().right().length(d.unit*.5)
 
@@ -1104,9 +1136,9 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
         Objeto Drawing del módulo :mod:`schemdraw`.
     func_label:  string
         Etiqueta o nombre de la función de excitación.
-    sym_func:  string, np.floating, symbolic expr.
+    sym_func:  string, Real, symbolic expr.
         Un valor o expresión simbólica de la función `func_label` a indicar.
-    k_gap_width:  np.floating, opcional
+    k_gap_width:  Real, opcional
         Anchura del espacio destinado para la expresión proporcional a la escala del esquemático.
         El valor predeterminado es `0.5*d.unit`.
     hacia_salida:  boolean, opcional
@@ -1141,24 +1173,38 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     >>> # Sea la siguiente función de excitación
     >>> ZZ = Za+Zb
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_funcion_exc_abajo, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d, _ = dibujar_funcion_exc_abajo(d, 
+    >>> d = dibujar_funcion_exc_abajo(d, 
     >>>                                  'Z',  
     >>>                                  ZZ, 
     >>>                                  hacia_salida = True)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", Za)
+    >>> d = dibujar_elemento_derivacion(d, "Z", Zb)
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
+
+    if not isinstance(func_label , str):
+        raise ValueError('El argumento func_label debe ser un string.')
+    
+    if not isinstance(sym_func , (str, Real, sp.Expr) ):
+        raise ValueError('El argumento sym_func debe ser un string, float, o expresión simbólica.')
+
+    if not isinstance(k_gap_width, Real):
+        raise ValueError('k_gap_width debe ser float')
+
+    if not isinstance(hacia_salida, bool):
+        raise ValueError('hacia_salida debe ser booleano')
+
+    if not isinstance(hacia_entrada, bool):
+        raise ValueError('hacia_salida debe ser booleano')
 
     half_width = d.unit*k_gap_width/2
     
@@ -1167,16 +1213,16 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     d += Gap().down().label('')
     d.push()
     
-    if isinstance(sym_func, sp.Basic ):
+    if isinstance(sym_func, sp.Expr ):
         sym_func = '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $'
-    elif isinstance(sym_func, np.floating):
+    elif isinstance(sym_func, Real):
         sym_func =  '$ ' + func_label + ' = ' + '{:3.3f}'.format(sym_func) + ' $'
     elif isinstance(sym_func, str):
         sym_func = '$ ' + func_label + ' = ' +  sym_func + ' $'
     else:
         sym_func = '$ ' + func_label + ' = ?? $'
     
-    lbl = d.add(Gap().down().label( sym_func, fontsize=22 ).length(0.5*half_width))
+    d.add(Gap().down().label( sym_func, fontsize=22 ).length(0.5*half_width))
     d += Gap().down().label('').length(0.5*half_width)
     d.pop()
     d.push()
@@ -1198,7 +1244,7 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     d.pop()
     d += Line().right().length(half_width)
 
-    return([d, lbl])
+    return(d)
 
 def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_salida = False, hacia_entrada = False ):
     '''
@@ -1212,9 +1258,9 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
         Objeto Drawing del módulo :mod:`schemdraw`.
     func_label:  string
         Etiqueta o nombre de la función de excitación.
-    sym_func:  string, np.floating, symbolic expr.
+    sym_func:  string, Real, symbolic expr.
         Un valor o expresión simbólica de la función `func_label` a indicar.
-    k_gap_width:  np.floating, opcional
+    k_gap_width:  Real, opcional
         Anchura del espacio destinado para la expresión proporcional a la escala del esquemático.
         El valor predeterminado es `0.5*d.unit`.
     hacia_salida:  boolean, opcional
@@ -1249,30 +1295,46 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
     >>> # Sea la siguiente función de excitación
     >>> ZZ = Za+Zb
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_funcion_exc_arriba, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d, _ = dibujar_funcion_exc_arriba(d, 
+    >>> d = dibujar_funcion_exc_arriba(d, 
     >>>                                  'Z',  
     >>>                                  ZZ, 
     >>>                                  hacia_salida = True)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, Za)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, Zb)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", Za)
+    >>> d = dibujar_elemento_derivacion(d, "Z", Zb)
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
+
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
+
+    if not isinstance(func_label , str):
+        raise ValueError('El argumento func_label debe ser un string.')
+    
+    if not isinstance(sym_func , (str, Real, sp.Expr) ):
+        raise ValueError('El argumento sym_func debe ser un string, float, o expresión simbólica.')
+
+    if not isinstance(k_gap_width, Real):
+        raise ValueError('k_gap_width debe ser float')
+
+    if not isinstance(hacia_salida, bool):
+        raise ValueError('hacia_salida debe ser booleano')
+
+    if not isinstance(hacia_entrada, bool):
+        raise ValueError('hacia_salida debe ser booleano')
+
 
     half_width = d.unit*k_gap_width/2
     
     d += Line().right().length(half_width)
     d.push()
     
-    if isinstance(sym_func, sp.Basic ):
+    if isinstance(sym_func, sp.Expr ):
         sym_func = '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $'
     elif isinstance(sym_func, np.number):
         sym_func =  '$ ' + func_label + ' = ' + '{:3.3f}'.format(sym_func) + ' $'
@@ -1282,7 +1344,7 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
         sym_func = '$ ' + func_label + ' = ?? $'
 
     
-    lbl = d.add(Gap().up().label( sym_func, fontsize=22 ).length(3* half_width))
+    d.add(Gap().up().label( sym_func, fontsize=22 ).length(3* half_width))
     d.pop()
     d.push()
     d += Line().down().at( (d.here.x, d.here.y + .2 * half_width) ).length(half_width).linewidth(1)
@@ -1307,7 +1369,7 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
 
 
 
-    return([d, lbl])
+    return(d)
 
 def dibujar_elemento_serie(d, elemento, sym_label=''):
     '''
@@ -1322,7 +1384,7 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     elemento:  schemdraw.elements
         Un elemento a dibujar implementado en :mod:`schemdraw`. Ej. Resistor, 
         ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow.
-    sym_label:  string, np.floating, symbolic expr.
+    sym_label:  string, Real, symbolic expr.
         Un valor o expresión simbólica del elemento a dibujar.
     
 
@@ -1346,32 +1408,40 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
     
-    if isinstance(sym_label, sp.Basic ):
+    if not isinstance(sym_label , (str, Real, sp.Expr) ):
+        raise ValueError('El argumento sym_label debe ser un string, float, o expresión simbólica.')
+
+    if not (isinstance(elemento, str) and elemento in elementos_keys):
+        raise ValueError('El argumento elemento debe ser un string contenido en (R, L, C, Z o Y).')
+    
+    # convertir el elemento en su correspondiente objeto schemdraw
+    sch_elemento = elementos_dic[elemento]
+    
+    if isinstance(sym_label, sp.Expr ):
         sym_label = to_latex(sym_label)
     elif isinstance(sym_label, np.number):
-        sym_label = str_to_latex('{:3.3f}'.format(sym_label))
+        sym_label = to_latex('{:3.3f}'.format(sym_label))
     elif isinstance(sym_label, str):
-        sym_label = str_to_latex(sym_label)
+        sym_label = to_latex(sym_label)
     else:
         sym_label = '$ ?? $'
 
     
-    d += elemento().right().label(sym_label, fontsize=16)
+    d += sch_elemento().right().label(sym_label, fontsize=16)
     d.push()
     d += Gap().down().label( '' )
     d += Line().left()
@@ -1410,21 +1480,20 @@ def dibujar_espacio_derivacion(d):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_espacio_derivacion, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
 
     d += Line().right().length(d.unit*.5)
     d.push()
@@ -1434,7 +1503,6 @@ def dibujar_espacio_derivacion(d):
 
     return(d)
 
-        
 def dibujar_cierre(d):
     '''
     Dibuja un cierre entre el conductor superior e inferior en una red eléctrica 
@@ -1467,19 +1535,18 @@ def dibujar_cierre(d):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_cierre, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_cierre(d)
     >>> display(d)
     
     '''    
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
 
     d += Line().right().length(d.unit*.5)
     d.push()
@@ -1488,7 +1555,6 @@ def dibujar_cierre(d):
     d.pop()
 
     return(d)
-
 
 def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     '''
@@ -1503,7 +1569,7 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     elemento:  schemdraw.elements
         Un elemento a dibujar implementado en :mod:`schemdraw`. Ej. Resistor, 
         ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow.
-    sym_label:  string, np.floating, symbolic expr.
+    sym_label:  string, Real, symbolic expr.
         Un valor o expresión simbólica del elemento a dibujar.
     
 
@@ -1527,41 +1593,46 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_espacio_derivacion, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
     
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
     
-    if isinstance(sym_label, sp.Basic ):
+    if not (isinstance(elemento, str) and elemento in elementos_keys):
+        raise ValueError('El argumento elemento debe ser un string contenido en (R, L, C, Z o Y).')
+    
+    # convertir el elemento en su correspondiente objeto schemdraw
+    sch_elemento = elementos_dic[elemento]
+    
+    if isinstance(sym_label, sp.Expr ):
         sym_label = to_latex(sym_label)
     elif isinstance(sym_label, np.number):
-        sym_label = str_to_latex('{:3.3f}'.format(sym_label))
+        sym_label = to_latex('{:3.3f}'.format(sym_label))
     elif isinstance(sym_label, str):
-        sym_label = str_to_latex(sym_label)
+        sym_label = to_latex(sym_label)
     else:
         sym_label = '$ ?? $'
     
     d += Dot()
     d.push()
-    d += elemento().down().label(sym_label, fontsize=16)
+    d += sch_elemento().down().label(sym_label, fontsize=16)
     d += Dot()
     d.pop()
 
     return(d)
 
-def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
+def dibujar_tanque_RC_serie(d, resistor_label='', capacitor_lbl=''):
     '''
     Dibuja un tanque RC (resistor y capacitor en paralelo) conectado en serie 
     a una red eléctrica diagramada mediante :mod:`schemdraw`.
@@ -1571,7 +1642,7 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
     ----------
     d:  schemdraw.Drawing
         Objeto Drawing del módulo :mod:`schemdraw`.
-    sym_R_label:  string o symbolic expr.
+    resistor_label:  string o symbolic expr.
         Un valor o expresión simbólica del resistor a dibujar.
     capacitor_lbl:  string o symbolic expr.
         Un valor o expresión simbólica del capacitor a dibujar.
@@ -1597,37 +1668,43 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RC_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d = dibujar_tanque_RC_serie(d, "R_a", "C_a")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
     
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
     
-    if isinstance(sym_R_label, sp.Basic ):
-        sym_R_label = to_latex(sym_R_label)
+    if not isinstance(resistor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento resistor_label debe ser un string o expresión simbólica.')
+    
+    if not isinstance(capacitor_lbl , (str, sp.Expr) ):
+        raise ValueError('El argumento capacitor_lbl debe ser un string o expresión simbólica.')
+    
+    
+    if isinstance(resistor_label, sp.Expr ):
+        resistor_label = to_latex(resistor_label)
     else:
-        sym_R_label = str_to_latex(sym_R_label)
+        resistor_label = to_latex(resistor_label)
     
-    if isinstance(capacitor_lbl, sp.Basic ):
+    if isinstance(capacitor_lbl, sp.Expr ):
         capacitor_lbl = to_latex(capacitor_lbl)
     else:
-        capacitor_lbl = str_to_latex(capacitor_lbl)
+        capacitor_lbl = to_latex(capacitor_lbl)
     
     d.push()
     d += Dot()
     d += Capacitor().right().label(capacitor_lbl, fontsize=16)
     d.pop()
     d += Line().up().length(d.unit*.5)
-    d += Resistor().right().label(sym_R_label, fontsize=16)
+    d += Resistor().right().label(resistor_label, fontsize=16)
     d += Line().down().length(d.unit*.5)
     d += Dot()
     d.push()
@@ -1637,7 +1714,7 @@ def dibujar_tanque_RC_serie(d, sym_R_label='', capacitor_lbl=''):
 
     return(d)
 
-def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
+def dibujar_tanque_RC_derivacion(d, resistor_label='', capacitor_lbl=''):
     '''
     Dibuja un tanque RC (resistor y capacitor en serie) conectado en derivación
     a una red eléctrica diagramada mediante :mod:`schemdraw`.
@@ -1647,7 +1724,7 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
     ----------
     d:  schemdraw.Drawing
         Objeto Drawing del módulo :mod:`schemdraw`.
-    sym_R_label:  string o symbolic expr.
+    resistor_label:  string o symbolic expr.
         Un valor o expresión simbólica del resistor a dibujar.
     capacitor_lbl:  string o symbolic expr.
         Un valor o expresión simbólica del capacitor a dibujar.
@@ -1673,41 +1750,46 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RC_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
     >>> d = dibujar_tanque_RC_derivacion(d, "R_b", "C_b")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
     
-    if isinstance(sym_R_label, sp.Basic ):
-        sym_R_label = to_latex(sym_R_label)
+    if not isinstance(resistor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento resistor_label debe ser un string o expresión simbólica.')
+    
+    if not isinstance(capacitor_lbl , (str, sp.Expr) ):
+        raise ValueError('El argumento capacitor_lbl debe ser un string o expresión simbólica.')
+    
+    if isinstance(resistor_label, sp.Expr ):
+        resistor_label = to_latex(resistor_label)
     else:
-        sym_R_label = str_to_latex(sym_R_label)
+        resistor_label = to_latex(resistor_label)
     
-    if isinstance(capacitor_lbl, sp.Basic ):
+    if isinstance(capacitor_lbl, sp.Expr ):
         capacitor_lbl = to_latex(capacitor_lbl)
     else:
-        capacitor_lbl = str_to_latex(capacitor_lbl)
+        capacitor_lbl = to_latex(capacitor_lbl)
     
     d.push()
     d += Dot()
     d += Capacitor().down().label(capacitor_lbl, fontsize=16).length(d.unit*.5)
-    d += Resistor().down().label(sym_R_label, fontsize=16).length(d.unit*.5)
+    d += Resistor().down().label(resistor_label, fontsize=16).length(d.unit*.5)
     d += Dot()
     d.pop()
 
     return(d)
 
-def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
+def dibujar_tanque_RL_serie(d, resistor_label='', inductor_label=''):
     '''
     Dibuja un tanque RL (resistor e inductor en paralelo) conectado en serie 
     a una red eléctrica diagramada mediante :mod:`schemdraw`.
@@ -1717,9 +1799,9 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
     ----------
     d:  schemdraw.Drawing
         Objeto Drawing del módulo :mod:`schemdraw`.
-    sym_R_label:  string o symbolic expr.
+    resistor_label:  string o symbolic expr.
         Un valor o expresión simbólica del resistor a dibujar.
-    sym_ind_label:  string o symbolic expr.
+    inductor_label:  string o symbolic expr.
         Un valor o expresión simbólica del inductor a dibujar.
     
 
@@ -1743,37 +1825,43 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RL_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d = dibujar_tanque_RL_serie(d, "R_a", "L_a")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
     
-    if isinstance(sym_R_label, sp.Basic ):
-        sym_R_label = to_latex(sym_R_label)
-    else:
-        sym_R_label = str_to_latex(sym_R_label)
+    if not isinstance(resistor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento resistor_label debe ser un string o expresión simbólica.')
     
-    if isinstance(sym_ind_label, sp.Basic ):
-        sym_ind_label = to_latex(sym_ind_label)
+    if not isinstance(inductor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento inductor_label debe ser un string o expresión simbólica.')
+    
+    
+    if isinstance(resistor_label, sp.Expr ):
+        resistor_label = to_latex(resistor_label)
     else:
-        sym_ind_label = str_to_latex(sym_ind_label)
+        resistor_label = to_latex(resistor_label)
+    
+    if isinstance(inductor_label, sp.Expr ):
+        inductor_label = to_latex(inductor_label)
+    else:
+        inductor_label = to_latex(inductor_label)
     
     d.push()
     d += Dot()
-    d += Inductor().right().label(sym_ind_label, fontsize=16)
+    d += Inductor().right().label(inductor_label, fontsize=16)
     d.pop()
     d += Line().up().length(d.unit*.5)
-    d += Resistor().right().label(sym_R_label, fontsize=16)
+    d += Resistor().right().label(resistor_label, fontsize=16)
     d += Line().down().length(d.unit*.5)
     d += Dot()
     d.push()
@@ -1783,7 +1871,7 @@ def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
 
     return(d)
 
-def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
+def dibujar_tanque_RL_derivacion(d, resistor_label='', inductor_label=''):
     '''
     Dibuja un tanque RL (resistor e inductor en serie) conectado en derivación
     a una red eléctrica diagramada mediante :mod:`schemdraw`.
@@ -1793,9 +1881,9 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
     ----------
     d:  schemdraw.Drawing
         Objeto Drawing del módulo :mod:`schemdraw`.
-    sym_R_label:  string o symbolic expr.
+    resistor_label:  string o symbolic expr.
         Un valor o expresión simbólica del resistor a dibujar.
-    sym_ind_label:  string o symbolic expr.
+    inductor_label:  string o symbolic expr.
         Un valor o expresión simbólica del inductor a dibujar.
     
 
@@ -1819,41 +1907,46 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RL_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
     >>> d = dibujar_tanque_RL_derivacion(d, "R_b", "L_b")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
+
+    if not isinstance(resistor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento resistor_label debe ser un string o expresión simbólica.')
     
-    if isinstance(sym_R_label, sp.Basic ):
-        sym_R_label = to_latex(sym_R_label)
-    else:
-        sym_R_label = str_to_latex(sym_R_label)
+    if not isinstance(inductor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento inductor_label debe ser un string o expresión simbólica.')
     
-    if isinstance(sym_ind_label, sp.Basic ):
-        sym_ind_label = to_latex(sym_ind_label)
+    if isinstance(resistor_label, sp.Expr ):
+        resistor_label = to_latex(resistor_label)
     else:
-        sym_ind_label = str_to_latex(sym_ind_label)
+        resistor_label = to_latex(resistor_label)
+    
+    if isinstance(inductor_label, sp.Expr ):
+        inductor_label = to_latex(inductor_label)
+    else:
+        inductor_label = to_latex(inductor_label)
     
     d.push()
     d += Dot()
-    d += Inductor().down().label(sym_ind_label, fontsize=16).length(d.unit*.5)
-    d += Resistor().down().label(sym_R_label, fontsize=16).length(d.unit*.5)
+    d += Inductor().down().label(inductor_label, fontsize=16).length(d.unit*.5)
+    d += Resistor().down().label(resistor_label, fontsize=16).length(d.unit*.5)
     d += Dot()
     d.pop()
 
     return(d)
 
-def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
+def dibujar_tanque_serie(d, inductor_label='', capacitor_label=''):
     '''
     Dibuja un tanque LC (inductor y capacitor en paralelo) conectado en serie 
     a una red eléctrica diagramada mediante :mod:`schemdraw`.
@@ -1863,9 +1956,9 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     ----------
     d:  schemdraw.Drawing
         Objeto Drawing del módulo :mod:`schemdraw`.
-    sym_ind_label:  string o symbolic expr.
+    inductor_label:  string o symbolic expr.
         Un valor o expresión simbólica del inductor a dibujar.
-    sym_cap_label:  string o symbolic expr.
+    capacitor_label:  string o symbolic expr.
         Un valor o expresión simbólica del capacitor a dibujar.
     
 
@@ -1889,37 +1982,42 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
     >>> d = dibujar_tanque_serie(d, "L_a", "C_a")
-    >>> d = dibujar_elemento_derivacion(d, ResistorIEC, "Zb")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
     
-    if isinstance(sym_cap_label, sp.Basic ):
-        sym_cap_label = to_latex(sym_cap_label)
-    else:
-        sym_cap_label = str_to_latex(sym_cap_label)
+    if not isinstance(capacitor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento capacitor_label debe ser un string o expresión simbólica.')
     
-    if isinstance(sym_ind_label, sp.Basic ):
-        sym_ind_label = to_latex(sym_ind_label)
+    if not isinstance(inductor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento inductor_label debe ser un string o expresión simbólica.')
+    
+    if isinstance(capacitor_label, sp.Expr ):
+        capacitor_label = to_latex(capacitor_label)
     else:
-        sym_ind_label = str_to_latex(sym_ind_label)
+        capacitor_label = to_latex(capacitor_label)
+    
+    if isinstance(inductor_label, sp.Expr ):
+        inductor_label = to_latex(inductor_label)
+    else:
+        inductor_label = to_latex(inductor_label)
     
     d.push()
     d += Dot()
-    d += Inductor().right().label(sym_ind_label, fontsize=16)
+    d += Inductor().right().label(inductor_label, fontsize=16)
     d.pop()
     d += Line().up().length(d.unit*.5)
-    d += Capacitor().right().label(sym_cap_label, fontsize=16)
+    d += Capacitor().right().label(capacitor_label, fontsize=16)
     d += Line().down().length(d.unit*.5)
     d += Dot()
     d.push()
@@ -1929,7 +2027,7 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
 
     return(d)
 
-def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
+def dibujar_tanque_derivacion(d, inductor_label='', capacitor_label=''):
     '''
     Dibuja un tanque LC (inductor y capacitor en serie) conectado en derivación
     a una red eléctrica diagramada mediante :mod:`schemdraw`.
@@ -1939,9 +2037,9 @@ def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
     ----------
     d:  schemdraw.Drawing
         Objeto Drawing del módulo :mod:`schemdraw`.
-    sym_ind_label:  string o symbolic expr.
+    inductor_label:  string o symbolic expr.
         Un valor o expresión simbólica del inductor a dibujar.
-    capacitor_lbl:  string o symbolic expr.
+    capacitor_label:  string o symbolic expr.
         Un valor o expresión simbólica del capacitor a dibujar.
     
 
@@ -1965,35 +2063,40 @@ def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
     Examples
     --------
     >>> from schemdraw import Drawing
-    >>> from schemdraw.elements import  ResistorIEC
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
     >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Za")
+    >>> d = dibujar_elemento_serie(d, "Z", "Za")
     >>> d = dibujar_tanque_derivacion(d, "L_a", "C_a")
-    >>> d = dibujar_elemento_serie(d, ResistorIEC, "Zc")
+    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
     >>> d = dibujar_puerto_salida(d, port_name='')
     >>> display(d)
     
     '''    
 
     if not isinstance(d, Drawing):
-        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+        raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
+
+    if not isinstance(capacitor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento capacitor_label debe ser un string o expresión simbólica.')
     
-    if isinstance(inductor_lbl, sp.Basic ):
-        inductor_lbl = to_latex(inductor_lbl)
-    else:
-        inductor_lbl = str_to_latex(inductor_lbl)
+    if not isinstance(inductor_label , (str, sp.Expr) ):
+        raise ValueError('El argumento inductor_label debe ser un string o expresión simbólica.')
     
-    if isinstance(capacitor_lbl, sp.Basic ):
-        capacitor_lbl = to_latex(capacitor_lbl)
+    if isinstance(inductor_label, sp.Expr ):
+        inductor_label = to_latex(inductor_label)
     else:
-        capacitor_lbl = str_to_latex(capacitor_lbl)
+        inductor_label = to_latex(inductor_label)
+    
+    if isinstance(capacitor_label, sp.Expr ):
+        capacitor_label = to_latex(capacitor_label)
+    else:
+        capacitor_label = to_latex(capacitor_label)
     
     d.push()
     d += Dot()
-    d += Capacitor().down().label(capacitor_lbl, fontsize=16).length(d.unit*.5)
-    d += Inductor().down().label(inductor_lbl, fontsize=16).length(d.unit*.5)
+    d += Capacitor().down().label(capacitor_label, fontsize=16).length(d.unit*.5)
+    d += Inductor().down().label(inductor_label, fontsize=16).length(d.unit*.5)
     d += Dot()
     d.pop()
 
