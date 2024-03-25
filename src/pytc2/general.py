@@ -15,6 +15,14 @@ import numpy as np
 from numbers import Integral, Real, Complex
 
 from IPython.display import display, Math, Markdown
+import os
+
+  ##############################################
+ ## Variables para el funcionamiento general ##
+##############################################
+
+# Obtener el directorio base o raíz del código fuente
+pytc2_full_path = os.path.dirname(os.path.abspath(__file__))
 
   ##########################################
  ## Variables para el análisis simbólico ##

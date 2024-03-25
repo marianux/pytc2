@@ -104,3 +104,7 @@ ENV/
 # IDE settings
 .vscode/
 .idea/
+
+
+
+src/pytc2/pyltspice_prueba1.plt

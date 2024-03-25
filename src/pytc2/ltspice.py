@@ -7,14 +7,13 @@ Created on Thu Mar  2 11:22:31 2023
 """
 
 import sympy as sp
-
-
 from os import path
 import shutil
-
 import time
-
 from numbers import Real
+
+from .general import pytc2_full_path
+
 
 ############################################
 #%% Variables para la interfaz con LTspice #
@@ -196,7 +195,7 @@ def ltsp_nuevo_circuito(circ_name=None):
 
     circ_hdl = None
     
-    src_fname = path.join('.', filename_eq_base + '.asc' )
+    src_fname = path.join(pytc2_full_path, filename_eq_base + '.asc' )
     
     if path.isfile(src_fname):
         
@@ -205,7 +204,7 @@ def ltsp_nuevo_circuito(circ_name=None):
         shutil.copy(src_fname, dst_fname)
     
         # configuración de los gráficos standard S11 / S21
-        src_fname = path.join('.', filename_eq_base + '.plt' )
+        src_fname = path.join(pytc2_full_path, filename_eq_base + '.plt' )
         
         dst_fname = 'pyltspice_{:s}.plt'.format(circ_name)
         
@@ -276,7 +275,7 @@ def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
     if not ( isinstance(cap_value, (Real, sp.Number) ) and cap_value > 0 ):
         raise ValueError('Se espera un valor numérico positivo para el capacitor.')
     
-    if isinstance(cap_label, (str, type(None))):
+    if not isinstance(cap_label, (str, type(None))):
         raise ValueError('cap_label debe ser str o None.')
     
     global cap_der_str, cap_num
@@ -355,6 +354,9 @@ def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
 
     if not ( isinstance(ind_value, (Real, sp.Number) ) and ind_value > 0 ):
         raise ValueError('Se espera un valor numérico positivo para el inductor.')
+
+    if not isinstance(ind_label, (str, type(None))):
+        raise ValueError('ind_label debe ser str o None.')
     
     global ind_ser_str, cap_num, cur_x, cur_y
     
@@ -436,6 +438,9 @@ def ltsp_etiquetar_nodo(circ_hdl, node_label=None):
 
     '''
     
+    if not isinstance(node_label, (str, type(None))):
+        raise ValueError('node_label debe ser str o None.')
+
     global cap_der_str, node_num, cur_x, cur_y
     
     if node_label is None:
