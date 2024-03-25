@@ -6,8 +6,6 @@ Created on Thu Mar  2 11:22:31 2023
 @author: mariano
 """
 
-import numpy as np
-
 import sympy as sp
 
 
@@ -278,6 +276,9 @@ def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
     if not ( isinstance(cap_value, (Real, sp.Number) ) and cap_value > 0 ):
         raise ValueError('Se espera un valor numérico positivo para el capacitor.')
     
+    if isinstance(cap_label, (str, type(None))):
+        raise ValueError('cap_label debe ser str o None.')
+    
     global cap_der_str, cap_num
     
     if cap_label is None:
@@ -303,8 +304,6 @@ def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
     circ_hdl.writelines(gnd_str)
     
     return()
-
-
 
 def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
     '''
@@ -390,7 +389,6 @@ def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
     circ_hdl.writelines(this_ind_str)
     
     return()
-
 
 def ltsp_etiquetar_nodo(circ_hdl, node_label=None):
     '''

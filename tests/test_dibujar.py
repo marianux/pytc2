@@ -72,13 +72,6 @@ def test_dibujar_invalid_input(func_ptr):
         out = func_ptr('a')
 
 
-
-
-# cerramos todas las figuras que se hayan abierto, para no perjudicar otras pruebas
-def test_last_call():
-
-    plt.close('all')
-
 ZRC = (s**2 + 4*s + 3)/(s**2 + 2*s)
 
 # Implementaremos FF mediante Cauer 1 o remociones continuas en infinito
@@ -423,6 +416,11 @@ def test_dibujar_redes_invalid(funciones_parametros):
         # Verificar que se levante un ValueError 
         with pytest.raises((ValueError, TypeError)):
             funcion(**parametros)
+
+# cerramos todas las figuras que se hayan abierto, para no perjudicar otras pruebas
+def test_last_call():
+
+    plt.close('all')
 
 
 # def test__valid():
