@@ -706,3 +706,9 @@ def test_plot_plantilla_non_numeric_arguments():
         test_module.plot_plantilla(filter_type='lowpass', fpass=0.25, ripple=0.5, fstop=0.6, attenuation='invalid', fs=2)
     with pytest.raises(ValueError):
         test_module.plot_plantilla(filter_type='lowpass', fpass=0.25, ripple=0.5, fstop=0.6, attenuation=40, fs='invalid')
+
+
+# cerramos todas las figuras que se hayan abierto, para no perjudicar otras pruebas
+def test_last_call():
+
+    plt.close('all')
