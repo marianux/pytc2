@@ -12,7 +12,7 @@ import shutil
 import time
 from numbers import Real
 
-from .general import pytc2_full_path
+from .general import pytc2_full_path, get_home_directory
 
 
 ############################################
@@ -132,12 +132,11 @@ cap_ser_str = [ 'SYMBOL cap {:d} {:d} R90\n', # posición absoluta X-Y en el esq
 capacitor en serie
 """
 
-
 #############################################
 #%% Funciones para dibujar redes en LTspice #
 #############################################
 
-def ltsp_nuevo_circuito(circ_name=None):
+def ltsp_nuevo_circuito(circ_name=None, circ_folder = None):
     '''
     Se genera un circuito nuevo en LTspice de nombre *circ_name*.
 
@@ -145,12 +144,15 @@ def ltsp_nuevo_circuito(circ_name=None):
     ----------
     circ_name : string
         Nombre del circuito.
+    circ_folder : str, opcional
+        Path a la carpeta donde se creará el archivo ASC y PLT de LTspice.
 
 
     Returns
     -------
     circ_hdl : archivo de texto
-        Handle al archivo de texto
+        Handle al archivo de texto de LTspice para continuar construyendo el 
+        circuito.
 
 
     Raises
@@ -186,6 +188,9 @@ def ltsp_nuevo_circuito(circ_name=None):
     if not isinstance(circ_name, (str, type(None)) ):
         raise ValueError('El nombre del circuito debe ser un string u omitirse.')
 
+    if not isinstance(circ_folder, (str, type(None)) ):
+        raise ValueError('La carpeta circ_folder debe ser un path correcto u omitirse.')
+
     global cap_num, res_num, ind_num, cur_x, cur_y
 
     if circ_name is None:
@@ -193,24 +198,34 @@ def ltsp_nuevo_circuito(circ_name=None):
         timestr = time.strftime("%Y%m%d-%H%M%S")
         circ_name = 'NN-' + timestr
 
+    if circ_folder is None:
+
+        circ_folder = get_home_directory()
+
+    else:
+        if path.exists(circ_folder):
+            raise ValueError('La carpeta circ_folder debe ser un path correcto u omitirse.')
+
     circ_hdl = None
     
-    src_fname = path.join(pytc2_full_path, filename_eq_base + '.asc' )
+    src_fname_asc = path.join(pytc2_full_path, filename_eq_base + '.asc' )
     
-    if path.isfile(src_fname):
+    if path.isfile(src_fname_asc):
         
-        dst_fname = 'pyltspice_{:s}.asc'.format(circ_name)
+        dst_fname_asc = 'pytc2ltspice_{:s}.asc'.format(circ_name)
+        dst_fname_asc = path.join(circ_folder, dst_fname_asc ) 
         
-        shutil.copy(src_fname, dst_fname)
+        shutil.copy(src_fname_asc, dst_fname_asc)
     
         # configuración de los gráficos standard S11 / S21
-        src_fname = path.join(pytc2_full_path, filename_eq_base + '.plt' )
+        src_fname_plt = path.join(pytc2_full_path, filename_eq_base + '.plt' )
         
-        dst_fname = 'pyltspice_{:s}.plt'.format(circ_name)
+        dst_fname_plt = 'pytc2ltspice_{:s}.plt'.format(circ_name)
+        dst_fname_plt = path.join(circ_folder, dst_fname_plt ) 
         
-        shutil.copy(src_fname, dst_fname)
+        shutil.copy(src_fname_plt, dst_fname_plt)
         
-        circ_hdl = open(dst_fname, 'a')
+        circ_hdl = open(dst_fname_asc, 'a')
         
         cap_num = 1
         res_num = 1
@@ -220,7 +235,8 @@ def ltsp_nuevo_circuito(circ_name=None):
         cur_y = 0
         
     else:
-        print("No se encontró el archivo {}".format(src_fname))
+        
+        raise RuntimeError('El archivo {:s} no se encuentra. Contacte al desarrollador en: https://github.com/marianux/pytc2/issues'.format(src_fname_asc) )
     
     return(circ_hdl)
 

@@ -9,18 +9,24 @@ Created on Thu Mar  2 11:24:17 2023
 import numpy as np
 import sympy as sp
 from IPython.display import display
-import schemdraw as sdr
 from schemdraw import Drawing
-from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow
-from numbers import Integral, Real, Complex
+from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, SourceV, SourceI
+from numbers import  Real
 
 
 ##################################################
 #%% Variables para dibujar elementos circuitales #
 ##################################################
 
-elementos_keys = ( 'R', 'L', 'C', 'Z', 'Y')
-elementos_dic = { 'R': Resistor, 'Z': ResistorIEC, 'Y': ResistorIEC, 'C': Capacitor, 'L': Inductor }
+elementos_keys = ( 'R', 'L', 'C', 'Z', 'Y', 'V', 'I')
+elementos_dic = { 'R': Resistor, 
+                  'Z': ResistorIEC, 
+                  'Y': ResistorIEC, 
+                  'C': Capacitor, 
+                  'L': Inductor,
+                  'V': SourceV,
+                  'I': SourceI,
+                  }
 
 ##########################################
 #%% Variables para el análisis simbólico #
@@ -83,7 +89,7 @@ def dibujar_Tee(ZZ, return_components=False):
     # Dibujo la red Tee
     d = Drawing(unit=4)
 
-    d = dibujar_puerto_entrada(d, port_name='')
+    d = dibujar_puerto_entrada(d)
 
     Za = ZZ[0, 0] - ZZ[0, 1]
     Zb = ZZ[0, 1]
@@ -103,7 +109,7 @@ def dibujar_Tee(ZZ, return_components=False):
     if not Zc.is_zero:
         d = dibujar_elemento_serie(d, "Z", Zc)
 
-    d = dibujar_puerto_salida(d, port_name='')
+    d = dibujar_puerto_salida(d)
 
     display(d)
 
@@ -165,7 +171,7 @@ def dibujar_Pi(YY, return_components=False):
     # Dibujo la red Pi
     d = Drawing(unit=4)
 
-    d = dibujar_puerto_entrada(d, port_name='')
+    d = dibujar_puerto_entrada(d)
 
     Ya = YY[0, 0] + YY[0, 1]
     Yb = -YY[0, 1]
@@ -191,7 +197,7 @@ def dibujar_Pi(YY, return_components=False):
     if (bSymbolic and (not Yc.is_zero) or (not bSymbolic) and Yc != 0):
         d = dibujar_elemento_derivacion(d, "Z", Zc)
 
-    d = dibujar_puerto_salida(d, port_name='')
+    d = dibujar_puerto_salida(d)
 
     display(d)
 
@@ -279,7 +285,7 @@ def dibujar_lattice(ZZ, return_components=False):
     # Dibujo la red Lattice
     with Drawing() as d:
         d.config(fontsize=16, unit=4)
-        d = dibujar_puerto_entrada(d, port_name='')
+        d = dibujar_puerto_entrada(d)
 
         if (bSymbolic and (not Za.is_zero) or (not bSymbolic) and Za != 0):
             d += (Za_d := ResistorIEC().right().label(Za_lbl).dot().idot())
@@ -299,7 +305,7 @@ def dibujar_lattice(ZZ, return_components=False):
             d += (Zb_d := Line().endpoints(Za_d.start, line_down.start).dot())
 
         d.pop()
-        d = dibujar_puerto_salida(d, port_name='')
+        d = dibujar_puerto_salida(d)
 
     if return_components:
         return [Za, Zb]
@@ -921,11 +927,11 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -963,7 +969,7 @@ def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl 
     d += Gap().up().label( '' )
     d.push()
     
-    if isinstance(port_name , str):
+    if isinstance(current_lbl , str):
         d += Line().left().length(d.unit*.25)
         d += Arrow(reverse=True).left().label( current_lbl, fontsize=16).length(d.unit*.25)
     else:
@@ -1013,11 +1019,11 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1098,13 +1104,13 @@ def dibujar_espaciador( d ):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_espaciador, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
     >>> d = dibujar_espaciador(d)
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
     >>> d = dibujar_espaciador(d)
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1175,15 +1181,15 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_funcion_exc_abajo, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
     >>> d = dibujar_funcion_exc_abajo(d, 
     >>>                                  'Z',  
     >>>                                  ZZ, 
     >>>                                  hacia_salida = True)
     >>> d = dibujar_elemento_serie(d, "Z", Za)
     >>> d = dibujar_elemento_derivacion(d, "Z", Zb)
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1297,15 +1303,15 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_funcion_exc_arriba, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
     >>> d = dibujar_funcion_exc_arriba(d, 
     >>>                                  'Z',  
     >>>                                  ZZ, 
     >>>                                  hacia_salida = True)
     >>> d = dibujar_elemento_serie(d, "Z", Za)
     >>> d = dibujar_elemento_derivacion(d, "Z", Zb)
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1376,14 +1382,26 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     Dibuja un elemento en serie para una red eléctrica diagramada mediante 
     :mod:`schemdraw`.
     
+    
+elementos_dic = { 'R': Resistor, 
+                  'Z': ResistorIEC, 
+                  'Y': ResistorIEC, 
+                  'C': Capacitor, 
+                  'L': Inductor,
+                  'V': SourceV,
+                  'I': SourceI,
+    
+    
 
     Parameters
     ----------
     d:  schemdraw.Drawing
         Objeto Drawing del módulo :mod:`schemdraw`.
-    elemento:  schemdraw.elements
-        Un elemento a dibujar implementado en :mod:`schemdraw`. Ej. Resistor, 
-        ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow.
+    elemento:  str o elemento en schemdraw.elements
+        Un elemento a dibujar implementado en :mod:`schemdraw.elements` o un 
+        string que apunte al elemento. Ej. 'R': Resistor, 
+        'Z' o 'Y': ResistorIEC, 'C': Capacitor, 'L': Inductor, Line, Dot, Gap, 
+        Arrow.
     sym_label:  string, Real, symbolic expr.
         Un valor o expresión simbólica del elemento a dibujar.
     
@@ -1410,11 +1428,11 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1436,7 +1454,8 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     elif isinstance(sym_label, np.number):
         sym_label = to_latex('{:3.3f}'.format(sym_label))
     elif isinstance(sym_label, str):
-        sym_label = to_latex(sym_label)
+        if sym_label != '':
+            sym_label = to_latex(sym_label)
     else:
         sym_label = '$ ?? $'
 
@@ -1482,13 +1501,13 @@ def dibujar_espacio_derivacion(d):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_espacio_derivacion, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1537,10 +1556,10 @@ def dibujar_cierre(d):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_cierre, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
     >>> d = dibujar_cierre(d)
     >>> display(d)
     
@@ -1556,7 +1575,7 @@ def dibujar_cierre(d):
 
     return(d)
 
-def dibujar_elemento_derivacion(d, elemento, sym_label=''):
+def dibujar_elemento_derivacion(d, elemento, with_nodes = True, sym_label=''):
     '''
     Dibuja un elemento en derivación para una red eléctrica diagramada mediante 
     :mod:`schemdraw`.
@@ -1571,7 +1590,10 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
         ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow.
     sym_label:  string, Real, symbolic expr.
         Un valor o expresión simbólica del elemento a dibujar.
-    
+    with_nodes = bool, opcional
+        Este booleano controla si la rama dibujada tendrá nodos o no. Es útil 
+        al dibujar el primer elemento de una red, donde el nodo no suele ser 
+        necesario.
 
     Returns
     -------
@@ -1595,13 +1617,13 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_espacio_derivacion, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
     >>> d = dibujar_espacio_derivacion(d)
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1611,6 +1633,10 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     
     if not (isinstance(elemento, str) and elemento in elementos_keys):
         raise ValueError('El argumento elemento debe ser un string contenido en (R, L, C, Z o Y).')
+
+    if not isinstance(with_nodes, bool):
+        raise ValueError('El argumento with_nodes debe ser un booleano.')
+    
     
     # convertir el elemento en su correspondiente objeto schemdraw
     sch_elemento = elementos_dic[elemento]
@@ -1620,15 +1646,25 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     elif isinstance(sym_label, np.number):
         sym_label = to_latex('{:3.3f}'.format(sym_label))
     elif isinstance(sym_label, str):
-        sym_label = to_latex(sym_label)
+        if sym_label != '':
+            sym_label = to_latex(sym_label)
     else:
         sym_label = '$ ?? $'
     
-    d += Dot()
-    d.push()
-    d += sch_elemento().down().label(sym_label, fontsize=16)
-    d += Dot()
-    d.pop()
+    # esto dibuja de abajo para arriba
+    d += Gap().down().label( '' )
+    if with_nodes:
+        d += Dot()
+    d += sch_elemento().up().label(sym_label, fontsize=16)
+    if with_nodes:
+        d += Dot()
+    
+    # esto dibuja de arriba para abajo
+    # d += Dot()
+    # d.push()
+    # d += sch_elemento().down().label(sym_label, fontsize=16)
+    # d += Dot()
+    # d.pop()
 
     return(d)
 
@@ -1670,11 +1706,11 @@ def dibujar_tanque_RC_serie(d, resistor_label='', capacitor_lbl=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RC_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
     >>> d = dibujar_tanque_RC_serie(d, "R_a", "C_a")
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1752,11 +1788,11 @@ def dibujar_tanque_RC_derivacion(d, resistor_label='', capacitor_lbl=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RC_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
     >>> d = dibujar_tanque_RC_derivacion(d, "R_b", "C_b")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1827,11 +1863,11 @@ def dibujar_tanque_RL_serie(d, resistor_label='', inductor_label=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RL_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
     >>> d = dibujar_tanque_RL_serie(d, "R_a", "L_a")
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1909,11 +1945,11 @@ def dibujar_tanque_RL_derivacion(d, resistor_label='', inductor_label=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_RL_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
     >>> d = dibujar_tanque_RL_derivacion(d, "R_b", "L_b")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -1984,11 +2020,11 @@ def dibujar_tanque_serie(d, inductor_label='', capacitor_label=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_serie, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
+    >>> d = dibujar_puerto_entrada(d)
     >>> d = dibujar_tanque_serie(d, "L_a", "C_a")
-    >>> d = dibujar_elemento_derivacion(d, "Z", "Zb")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_derivacion(d, "Z", sym_label="Zb")
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    
@@ -2065,11 +2101,11 @@ def dibujar_tanque_derivacion(d, inductor_label='', capacitor_label=''):
     >>> from schemdraw import Drawing
     >>> from pytc2.dibujar import dibujar_puerto_entrada, dibujar_tanque_derivacion, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida
     >>> d = Drawing(unit=4)
-    >>> d = dibujar_puerto_entrada(d, port_name='')
-    >>> d = dibujar_elemento_serie(d, "Z", "Za")
+    >>> d = dibujar_puerto_entrada(d)
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Za")
     >>> d = dibujar_tanque_derivacion(d, "L_a", "C_a")
-    >>> d = dibujar_elemento_serie(d, "Z", "Zc")
-    >>> d = dibujar_puerto_salida(d, port_name='')
+    >>> d = dibujar_elemento_serie(d, "Z", sym_label="Zc")
+    >>> d = dibujar_puerto_salida(d)
     >>> display(d)
     
     '''    

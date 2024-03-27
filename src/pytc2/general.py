@@ -45,7 +45,17 @@ En caso de necesitar usarla, importar el símbolo desde este módulo.
  ## Funciones generales ##
 #########################
 #%%
-  
+
+def get_home_directory():
+    
+    if os.name == 'posix':  # Linux/MacOS
+        return os.environ['HOME']
+    elif os.name == 'nt':  # Windows
+        return os.path.expanduser('~')
+    else:
+        raise RuntimeError("Unsupported operating system")
+
+
 def pp(z1, z2):
     """
     Asocia en paralelo dos impedancias o en serie dos admitancias.
@@ -101,6 +111,8 @@ def pp(z1, z2):
         raise ValueError('z1 y z2 deben ser AMBOS de tipo Symbolic o float')
         
     return(z1*z2/(z1+z2))
+
+
 
 #%%
   ##################################
@@ -278,12 +290,13 @@ def a_equal_b_latex_s(a, b):
     if not isinstance(a, (sp.Expr, str)):
         raise ValueError("a debe ser un símbolo o una cadena.")
     
-    if not isinstance(b, (list, sp.Expr)):
+    if not isinstance(b, (str, list, sp.Expr)):
         raise ValueError("b debe ser un símbolo o una lista de símbolos.")
     
     a_str = sp.latex(a) if isinstance(a, sp.Expr) else a
+    b_str = sp.latex(b) if isinstance(b, sp.Expr) else b
     
-    return '$' + a_str + '=' + sp.latex(b) + '$'
+    return '$' + a_str + '=' + b_str + '$'
 
 def expr_simb_expr(a, b, symbol='='):
     '''
