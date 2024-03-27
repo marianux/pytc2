@@ -28,6 +28,10 @@ from fractions import Fraction
 
 from .general import s
 
+
+phase_change_thr = 3/5*np.pi
+
+
 def tfcascade(tfa, tfb):
     """
     Realiza la cascada de dos funciones de transferencia.
@@ -1016,27 +1020,46 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
             * uno o una lista de objetos TransferFunction
             * una matriz que define varias secciones de segundo orden (SOS).
             
-        Si *all_sys* es una matriz SOS, la función muestra cada una de las SOS y el sistema resultante de la cascada de todas las SOS.
+        Si *all_sys* es una matriz SOS, la función muestra cada una de las SOS 
+        y el sistema resultante de la cascada de todas las SOS.
     
-    Esta función toma un sistema lineal (ya sea una lista de objetos TransferFunction o una matriz que define una cascada de secciones de segundo orden) y realiza un análisis completo del comportamiento del sistema, incluyendo trazado de gráficos de Bode, mapa de polos y ceros, y gráfico de retardo de grupo. Los parámetros opcionales permiten personalizar el análisis según las necesidades del usuario.
+    Esta función toma un sistema lineal (ya sea una lista de objetos 
+    TransferFunction o una matriz que define una cascada de secciones de segundo 
+    orden) y realiza un análisis completo del comportamiento del sistema, 
+    incluyendo trazado de gráficos de Bode, mapa de polos y ceros, y gráfico de 
+    retardo de grupo. Los parámetros opcionales permiten personalizar el análisis 
+    según las necesidades del usuario.
     
     
     Parameters
     -----------
-    all_sys : lista o matriz (Nx6)
-        El sistema lineal a analizar. Ya sea una lista de objetos TransferFuncion de scipy.signal o una matriz que define una cascada de SOS.
+    all_sys : TransferFunction o lista, tupla de TransferFunction o matriz numérica (Nx6)
+        El sistema lineal a analizar como objeto/s *TransferFunction*. Ya sea una 
+        lista de objetos TransferFuncion de scipy.signal o una matriz que define 
+        una cascada de SOS.
     sys_name : string o lista, opcional
         Las etiquetas o descripción del sistema. Por defecto es None.
     img_ext : string ['none', 'png', 'svg'], opcional
-        Cuando es diferente de 'none', la función guarda los resultados del gráfico en un archivo con la extensión indicada. Por defecto es 'none'.
+        Cuando es diferente de 'none', la función guarda los resultados del 
+        gráfico en un archivo con la extensión indicada. Por defecto es 'none'.
     same_figs : booleano, opcional
-        Usa siempre los mismos números de figura para trazar resultados. Cuando es False, cada llamada produce un nuevo grupo de figuras en un contenedor de gráficos separado. Por defecto es True.
+        Usa siempre los mismos números de figura para trazar resultados. 
+        Cuando es False, cada llamada produce un nuevo grupo de figuras en un 
+        contenedor de gráficos separado. Por defecto es True.
     annotations : booleano, opcional
-        Agrega anotaciones al gráfico del mapa de polos y ceros. Cuando es True, cada singularidad estará acompañada del valor de omega (es decir, la distancia radial al origen) y Q (es decir, una medida de proximidad al eje jw). Por defecto es True.
+        Agrega anotaciones al gráfico del mapa de polos y ceros. Cuando es True, 
+        cada singularidad estará acompañada del valor de omega (es decir, la 
+        distancia radial al origen) y Q (es decir, una medida de proximidad al 
+        eje jw). Por defecto es True.
     xaxis : string, opcional ['omega', 'freq', 'norm']
-        El significado del eje X: "omega" se mide en radianes/s y se prefiere para sistemas analógicos. "freq" se mide en Hz (1/s) y es válido tanto para sistemas digitales como analógicos. "norm" es una versión normalizada con la norma definida por fs. Por defecto es 'omega'.
+        El significado del eje X: "omega" se mide en radianes/s y se prefiere 
+        para sistemas analógicos. "freq" se mide en Hz (1/s) y es válido tanto 
+        para sistemas digitales como analógicos. "norm" es una versión 
+        normalizada con la norma definida por fs. Por defecto es 'omega'.
     fs : valor real, opcional
-        La frecuencia de muestreo del sistema digital o la norma para xaxis igual a "norm". Solo es válido si digital es True. Por defecto es None (definido en 1/dlti.dt).
+        La frecuencia de muestreo del sistema digital o la norma para xaxis 
+        igual a "norm". Solo es válido si digital es True. Por defecto es None 
+        (definido en 1/dlti.dt).
     
     
     Raises
@@ -1051,7 +1074,8 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     Returns
     --------
     return_values : lista
-        Lista con tres pares de manijas de figuras y ejes de cada gráfico mostrado.
+        Lista con tres pares de manijas de figuras y ejes de cada gráfico 
+        mostrado.
 
 
     See Also
@@ -1095,6 +1119,9 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     if isinstance(all_sys, np.ndarray):
         if all_sys.shape[1] != 6:
             raise ValueError('La matriz all_sys debe tener 6 columnas')
+        cant_sys = 1
+        all_sys = [all_sys]
+    elif isinstance(all_sys, TransferFunction):
         cant_sys = 1
         all_sys = [all_sys]
     elif isinstance(all_sys, list):
@@ -1678,7 +1705,6 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
     if not isinstance(fs, (Integral, Real)):
         raise ValueError("fs debe ser un número.")
 
-
     if isinstance(myFilter, np.ndarray):
         # Sección SOS
         cant_sos = myFilter.shape[0]
@@ -1720,7 +1746,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         phaseRad = phaseRad.reshape((npoints, 1+cant_sos))
 
         # Filtrar huecos y saltos en la respuesta de fase
-        all_jump_x, all_jump_y = (np.abs(np.diff(phaseRad, axis=0)) > 4/5*np.pi).nonzero()
+        all_jump_x, all_jump_y = (np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr).nonzero()
 
         for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y):
             phaseRad[this_jump_x+1:, this_jump_y] = phaseRad[this_jump_x+1:, this_jump_y] - np.pi
@@ -1741,14 +1767,15 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
         phaseRad = phaseRad.reshape((npoints, 1))
 
-        # Filtrar huecos y saltos en la respuesta de fase
-        all_jump = np.where(np.abs(np.diff(phaseRad, axis=0)) > 4/5*np.pi)[0]
+        all_jump = np.where(np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr)[0]
 
         for this_jump_x in all_jump:
-            phaseRad[this_jump_x+1:] = phaseRad[this_jump_x+1] - np.pi
+            phaseRad[this_jump_x+1:] = phaseRad[this_jump_x+1:] - np.pi
 
     # Calcular el retardo de grupo
     groupDelay = -np.diff(phaseRad, axis=0) / np.diff(w).reshape((npoints-1, 1))
+
+    groupDelay = np.vstack((groupDelay[1,:], groupDelay[1:,:]))
 
     # Convertir frecuencia a Hz si se solicita
     if xaxis == "freq":
@@ -1926,6 +1953,15 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         sos_label += [filter_description]
 
         filter_description = sos_label
+        
+        phase = np.pi / 180 * phase
+        
+        # Filtrar huecos y saltos en la respuesta de fase
+        all_jump_x, all_jump_y = (np.abs(np.diff(phase, axis=0)) > phase_change_thr).nonzero()
+
+        for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y):
+            phase[this_jump_x+1:, this_jump_y] = phase[this_jump_x+1:, this_jump_y] - np.pi
+        
 
     else:
         # Si myFilter es un objeto TransferFunction
@@ -1938,6 +1974,13 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             ww, mag, phase = myFilter.bode(n=np.linspace(0, np.pi, npoints))
         else:
             ww, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp))) - 1, np.ceil(np.log10(np.max(this_zzpp))) + 1, npoints))
+
+        phase = np.pi / 180 * phase
+
+        all_jump = np.where(np.abs(np.diff(phase, axis=0)) > phase_change_thr)[0]
+
+        for this_jump_x in all_jump:
+            phase[this_jump_x+1:] = phase[this_jump_x+1:] - np.pi
 
     # Convertir frecuencia a Hz si se solicita
     if xaxis == "freq":
@@ -1997,14 +2040,14 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     plt.sca(phase_ax_hdl)
     if digital:
         if filter_description is None:
-            aux_hdl = plt.plot(ww, np.pi / 180 * phase)    # Bode phase plot
+            aux_hdl = plt.plot(ww, phase)    # Bode phase plot
         else:
-            aux_hdl = plt.plot(ww, np.pi / 180 * phase, label=filter_description)    # Bode phase plot
+            aux_hdl = plt.plot(ww, phase, label=filter_description)    # Bode phase plot
     else:
         if filter_description is None:
-            aux_hdl = plt.semilogx(ww, np.pi / 180 * phase)    # Bode phase plot
+            aux_hdl = plt.semilogx(ww, phase)    # Bode phase plot
         else:
-            aux_hdl = plt.semilogx(ww, np.pi / 180 * phase, label=filter_description)    # Bode phase plot
+            aux_hdl = plt.semilogx(ww, phase, label=filter_description)    # Bode phase plot
 
     # Escalar los ejes para ajustar
     ylim = plt.gca().get_ylim()
