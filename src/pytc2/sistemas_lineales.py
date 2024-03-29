@@ -26,11 +26,32 @@ from fractions import Fraction
  ##########################################
 #%%
 
-from .general import s
+from .general import s, small_val
+"""
+Variable compleja de Laplace s = σ + j.ω
+En caso de necesitar usarla, importar el símbolo desde este módulo.
+"""
 
+#%%
+  ##############################################
+ ## Variables para el funcionamiento general ##
+##############################################
+#%%
 
 phase_change_thr = 3/5*np.pi
+"""
+Representa la máxima variación en una función de fase de muestra a muestra.
+Es útil para detectar cuando una función atraviesa un cero y se produce un
+salto de :math:`\\pi` radianes. Por cuestiones de muestreo y de variaciones 
+muy rápidas de fase, a veces conviene que sea un poco menor a :math:`\\pi`.
+"""
 
+
+#%%
+  #########################
+ ## Funciones generales ##
+#########################
+#%%
 
 def tfcascade(tfa, tfb):
     """
@@ -494,6 +515,9 @@ def zpk2sos_analog(zz, pp, kk):
     gains = np.ones(n_sections, np.array(kk).dtype)
     tf_j = TransferFunction(1.0, 1.0)
 
+    #a veces se pone pesado con warnings al calcular logaritmos.
+    np.seterr(divide = 'ignore') 
+
     # Calcular ganancias y construir la función de transferencia para cada sección SOS
     for si in range(n_sections):
         this_zz = z_sos[si, np.logical_not(np.isnan(z_sos[si]))]
@@ -502,9 +526,12 @@ def zpk2sos_analog(zz, pp, kk):
         tf_j = tfcascade(tf_j, TransferFunction(num, den))
         this_zzpp = np.abs(np.concatenate([this_zz, this_pp]))
         this_zzpp = this_zzpp[this_zzpp > 0]
-        _, mag, _ = tf_j.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp))) - 2,
-                                          np.ceil(np.log10(np.max(this_zzpp))) + 2, 100))
+        _, mag, _ = tf_j.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 2,
+                                          np.ceil(np.log10(small_val+np.max(this_zzpp))) + 2, 100))
         mmi[si] = 10 ** (np.max(mag) / 20)
+
+    #a veces se pone pesado con warnings al calcular logaritmos.
+    np.seterr(divide = 'warn') 
 
     # Calcular la primera ganancia para optimizar el rango dinámico
     gains[0] = kk * (mmi[-1] / mmi[0])
@@ -1719,12 +1746,19 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
             this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
             this_zzpp = this_zzpp[this_zzpp > 0]
 
+            #a veces se pone pesado con warnings al calcular logaritmos.
+            np.seterr(divide = 'ignore') 
+            
             if digital:
                 w, _, phase[:, ii] = thisFilter.bode(np.linspace(0, np.pi, npoints))
             else:
-                w, _, phase[:, ii] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp))) - 1, np.ceil(np.log10(np.max(this_zzpp))) + 1, npoints))
+                w, _, phase[:, ii] = thisFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+
+            #a veces se pone pesado con warnings al calcular logaritmos.
+            np.seterr(divide = 'warn') 
 
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
+
 
         # Filtro completo
         thisFilter = sos2tf_analog(myFilter)
@@ -1732,10 +1766,16 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
         this_zzpp = this_zzpp[this_zzpp > 0]
 
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'ignore') 
+
         if digital:
             w, _, phase[:, cant_sos] = thisFilter.bode(np.linspace(0, np.pi, npoints))
         else:
-            w, _, phase[:, cant_sos] = thisFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp))) - 1, np.ceil(np.log10(np.max(this_zzpp))) + 1, npoints))
+            w, _, phase[:, cant_sos] = thisFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'warn') 
 
         sos_label += [filter_description]
 
@@ -1758,10 +1798,16 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
         this_zzpp = this_zzpp[this_zzpp > 0]
 
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'ignore') 
+
         if digital:
             w, _, phase = myFilter.bode(np.linspace(0, np.pi, npoints))
         else:
-            w, _, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp))) - 1, np.ceil(np.log10(np.max(this_zzpp))) + 1, npoints))
+            w, _, phase = myFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'warn') 
 
         phaseRad = phase * np.pi / 180.0
 
@@ -1928,12 +1974,15 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         if digital:
             ww = np.linspace(0, np.pi, npoints)
         else:
-            ww = np.logspace(np.floor(np.log10(np.min(this_zzpp))) - 1, np.ceil(np.log10(np.max(this_zzpp))) + 1, npoints)
+            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
 
         cant_sos = myFilter.shape[0]
         mag = np.empty((npoints, cant_sos + 1))
         phase = np.empty_like(mag)
         sos_label = []
+
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'ignore') 
 
         # Calcular la respuesta de magnitud y fase para cada sección SOS y el filtro completo
         for ii in range(cant_sos):
@@ -1949,6 +1998,9 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
 
         _, mag[:, cant_sos], phase[:, cant_sos] = wholeFilter.bode(ww)
+
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'warn') 
 
         sos_label += [filter_description]
 
@@ -1970,10 +2022,16 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
         this_zzpp = this_zzpp[this_zzpp > 0]
 
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'ignore') 
+
         if digital:
             ww, mag, phase = myFilter.bode(n=np.linspace(0, np.pi, npoints))
         else:
-            ww, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(np.min(this_zzpp))) - 1, np.ceil(np.log10(np.max(this_zzpp))) + 1, npoints))
+            ww, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'warn') 
 
         phase = np.pi / 180 * phase
 

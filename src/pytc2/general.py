@@ -17,16 +17,29 @@ from numbers import Integral, Real, Complex
 from IPython.display import display, Math, Markdown
 import os
 
+#%%
   ##############################################
  ## Variables para el funcionamiento general ##
 ##############################################
+#%%
 
 # Obtener el directorio base o raíz del código fuente
 pytc2_full_path = os.path.dirname(os.path.abspath(__file__))
+"""
+Path a donde se encuentra pyTC2 localmente.
+"""
 
+small_val = np.finfo(float).eps
+"""
+Es un valor muy pequeño para que las funciones que tienen restringido su evaluación 
+en 0 no arrojen warnings ni errores. e.g. los cálculos de los logaritmos
+"""
+
+#%%
   ##########################################
  ## Variables para el análisis simbólico ##
 ##########################################
+#%%
 
 s = sp.symbols('s', complex=True) 
 """
@@ -653,7 +666,7 @@ def db2nepper(at_en_db):
     if not isinstance(at_en_db, Real):
         raise ValueError('at_en_db debe ser float')
 
-    return at_en_db / (20. * np.log10(np.exp(1.)))
+    return at_en_db / (20. * np.log10(small_val+np.exp(1.)))
 
 def nepper2db(at_en_np):
     '''
@@ -695,5 +708,5 @@ def nepper2db(at_en_np):
     if not isinstance(at_en_np, Real):
         raise ValueError('at_en_np debe ser float')
 
-    return at_en_np * (20. * np.log10(np.exp(1.)))
+    return at_en_np * (20. * np.log10(small_val+np.exp(1.)))
     
