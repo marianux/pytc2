@@ -394,6 +394,7 @@ def zpk2sos_analog(zz, pp, kk):
     Notes:
     -------
     .. _schau13:
+        
     Schaumann, Rolf, Haiqiao Xiao, and Van Valkenburg Mac. Design of analog filters 2nd. Edition. Oxford University Press, 2013. ISBN	0195373944, 9780195373943.
 
     """

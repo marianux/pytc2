@@ -750,9 +750,9 @@ def Model_conversion(src_model, dst_model):
         - 'dep_var': variables dependientes del modelo.
         - 'indep_var': variables independientes del modelo.
         - 'proxy_matrix': (opcional) matriz de parámetros auxiliar. Por ejemplo para 
-                          relacionar modelos que no tengan variables en común (S->Z).
-                          Se necesitará una conversión intermedia, en PyTC2 se
-                          adopta :math:`T_{ABCD}` como modelo intermedio.                          
+        relacionar modelos que no tengan variables en común (S->Z).
+        Se necesitará una conversión intermedia, en PyTC2 se
+        adopta :math:`T_{ABCD}` como modelo intermedio.                          
         - 'neg_i2_current': (opcional) indicador booleano si la corriente i2 se define con signo negativo.
 
     dst_model : dict

@@ -1185,7 +1185,7 @@ def remover_valor_en_dc( imit, sigma_zero = None):
     imit_r : Symbolic
         Imitancia luego de la remoción
     k_0 : Symbolic
-        Expresión completa del término removido :math:`k_0 `.
+        Expresión completa del término removido :math:`k_0`.
 
         
     Raises
@@ -1211,9 +1211,9 @@ def remover_valor_en_dc( imit, sigma_zero = None):
     >>> ZZ = (s**2 + 13*s + 32)/(3*s**2 + 27*s+ 44)
     >>> Z2, Z1 = remover_valor_en_dc(1/ZZ)
     >>> print_latex(a_equal_b_latex_s('Z_1(s)', Z1))
-    '$Z_1(s)=\frac{11}{8}$'
+    :math:`$Z_1(s)=\\frac{11}{8}$`
     >>> print_latex(a_equal_b_latex_s('Z_2(s)', Z2))
-    '$Z_2(s)=\frac{s \left(13 s + 73\right)}{8 \left(s^{2} + 13 s + 32\right)}$'
+    :math:`$Z_2(s)=\\frac{s \\left(13 s + 73\\right)}{8 \\left(s^{2} + 13 s + 32\\right)}$`
     
     '''
 

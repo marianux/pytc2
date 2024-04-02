@@ -160,7 +160,7 @@ def cauer_RC( imm, remover_en_inf=True ):
         # error
         print_console_alert('Fallo la expansión')
         print_latex(expr_simb_expr(imm, imm_as_cauer, ' \\neq '))
-        raise ValueError('Fallo la expansión Cauer. Revisar!!')
+        RuntimeWarning('Fallo la expansión Cauer. Revisar!!')
 
     return(ko, imm_as_cauer, rem)
 
@@ -301,7 +301,7 @@ def cauer_LC( imm, remover_en_inf = True ):
     return(ko, imm_as_cauer, rem)
 
 # TODO: me gustaría documentar y probar mejor esta función
-def foster_zRC2yRC( k0 = None, koo = None, ki_wi = None, kk = None, ZRC_foster = None ):
+def foster_zRC2yRC( k0 = sp.Rational(0), koo = sp.Rational(0), ki_wi = sp.Rational(0), kk = sp.Rational(0), ZRC_foster = sp.Rational(0) ):
     '''
     Permite llegar a la forma foster de una inmitancia :math:`I(s)` (YRC - ZRL), 
     a partir de la propia función :func:`foster` de expansión en fracciones 
@@ -318,19 +318,19 @@ def foster_zRC2yRC( k0 = None, koo = None, ki_wi = None, kk = None, ZRC_foster =
     Parameters
     ----------
     k0:  simbólica, opcional
-        Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es None.
+        Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es 0.
     koo:  simbólica, opcional
-        Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es None.
+        Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es 0.
     ki_wi:  simbólica, list o tuple opcional
-        Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es None.
+        Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es 0.
     kk:  simbólica, opcional
-        Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es None.
+        Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es 0.
     ZRC_foster: simbólica
         Función inmitancia :math:`I(s)` a expresar como :math:`I_F(s)`
 
     Returns
     -------
-    k0:  None
+    k0:  simbólica, opcional
         No está permitido para esta forma el residuo en 0.
     koo:  simbólica, opcional
         Residuo de la función en infinito o :math:`s \\to \\infty`.
@@ -369,19 +369,19 @@ def foster_zRC2yRC( k0 = None, koo = None, ki_wi = None, kk = None, ZRC_foster =
 
     '''    
     
-    if koo is None:
-    # koo tiene que ser None para ZRC ya que en inf habrá
+    if koo.is_zero:
+    # koo tiene que ser 0 para ZRC ya que en inf habrá
     # o 0 o cte.
         
-        if not(kk is None):
+        if not(kk.is_zero):
             koo = kk
-            kk = None
+            kk = sp.Rational(0)
             
-        if not(k0 is None):
+        if not(k0.is_zero):
             kk = k0
-            k0 = None
+            k0 = sp.Rational(0)
             
-        if not(ki_wi is None):
+        if (isinstance(ki_wi, sp.Expr) and not (ki_wi.is_zero)) or isinstance(ki_wi, list):
             
             ki = ki_wi
             # ki = []
@@ -412,26 +412,26 @@ def foster( imm ):
     Parameters
     ----------
     k0:  simbólica, opcional
-        Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es None.
+        Residuo de la función en DC o :math:`s \\to 0`. El valor predeterminado es 0.
     koo:  simbólica, opcional
-        Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es None.
+        Residuo de la función en infinito o :math:`s \\to \\infty`. El valor predeterminado es 0.
     ki:  simbólica, list o tuple opcional
-        Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es None.
+        Residuo de la función en :math:`\\omega_i` o :math:`s^2 \\to -\\omega^2_i`. El valor predeterminado es 0.
     kk:  simbólica, opcional
-        Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es None.
+        Residuo de la función en :math:`\\sigma_i` o :math:`\\omega \\to -\\omega_i`. El valor predeterminado es 0.
     
 
     Returns
     -------
-    k0:  None
+    k0: simbólica, opcional
         El residuo en 0, expresado matemáticamente como :math:`\\frac{k_0}{s}`.
-    koo:  simbólica, opcional
+    koo: simbólica, opcional
         Residuo de la función en infinito o :math:`s \\to \\infty`, que se 
         corresponde al término :math:`k_\\infty*s`.
-    ki:  simbólica, list o tuple opcional
+    ki: simbólica, list o tuple opcional
         Residuo de la función en :math:`s^2 \\to -\\omega_i^2`, matemáticamente
         :math:`\\frac{2.k_i.s}{s^2+\\omega_i^2}`.
-    kk:  simbólica, opcional
+    kk: simbólica, opcional
         Residuo de la función en :math:`\\sigma = 0`, para funciones disipativas.
     foster_form: simbólica
         Función YRC expresada como :math:`I_F(s) = I(s)*s`    
@@ -479,9 +479,9 @@ def foster( imm ):
     
     all_terms = imm_foster.as_ordered_terms()
     
-    kk = None
-    k0 = None
-    koo = None
+    kk = sp.Rational(0)
+    k0 = sp.Rational(0)
+    koo = sp.Rational(0)
     ki = []
     ii = 0
     
@@ -518,8 +518,8 @@ def foster( imm ):
             # tanque
             tank_el = (den / num).expand().as_ordered_terms()
     
-            koo_i = None
-            k0_i = None
+            koo_i = sp.Rational(0)
+            k0_i = sp.Rational(0)
             
             for this_el in tank_el:
                 
@@ -542,7 +542,7 @@ def foster( imm ):
             assert('Error al expandir en fracciones simples.')
     
     if ii == 0:
-        ki = None
+        ki = sp.Rational(0)
 
     if not (sp.simplify(sp.expand(foster_form - imm))).is_zero:
         # error

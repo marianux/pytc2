@@ -303,11 +303,11 @@ def a_equal_b_latex_s(a, b):
     if not isinstance(a, (sp.Expr, str)):
         raise ValueError("a debe ser un símbolo o una cadena.")
     
-    if not isinstance(b, (str, list, sp.Expr)):
+    if not isinstance(b, (str, list, sp.Expr, sp.MatrixBase)):
         raise ValueError("b debe ser un símbolo o una lista de símbolos.")
     
     a_str = sp.latex(a) if isinstance(a, sp.Expr) else a
-    b_str = sp.latex(b) if isinstance(b, sp.Expr) else b
+    b_str = sp.latex(b) if isinstance(b, (sp.Expr, sp.MatrixBase, list)) else b
     
     return '$' + a_str + '=' + b_str + '$'
 

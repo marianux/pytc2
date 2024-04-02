@@ -1381,17 +1381,7 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     '''
     Dibuja un elemento en serie para una red eléctrica diagramada mediante 
     :mod:`schemdraw`.
-    
-    
-elementos_dic = { 'R': Resistor, 
-                  'Z': ResistorIEC, 
-                  'Y': ResistorIEC, 
-                  'C': Capacitor, 
-                  'L': Inductor,
-                  'V': SourceV,
-                  'I': SourceI,
-    
-    
+
 
     Parameters
     ----------
@@ -1575,7 +1565,7 @@ def dibujar_cierre(d):
 
     return(d)
 
-def dibujar_elemento_derivacion(d, elemento, with_nodes = True, sym_label=''):
+def dibujar_elemento_derivacion(d, elemento, sym_label='', with_nodes = True):
     '''
     Dibuja un elemento en derivación para una red eléctrica diagramada mediante 
     :mod:`schemdraw`.

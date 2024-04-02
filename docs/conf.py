@@ -47,4 +47,12 @@ myst_enable_extensions = [
     "html_image",
 ]
 
+# myst_heading_anchors = 1
+
+suppress_warnings = ["myst.xref_missing","myst.header"]
+
 myst_url_schemes = ("http", "https", "mailto")
+
+
+
+
