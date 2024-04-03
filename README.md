@@ -26,5 +26,5 @@ $ pip install pytc2
 
 ## Créditos
 
-`pytc2` se creó con [`cookiecutter`](https://cookiecutter.readthedocs.io/en/latest/) y la [plantilla](https://github.com/py- paquetes/py-pkgs-cookiecutter) `py-pkgs-cookiecutter`. 
+`pytc2` se creó con [`cookiecutter`](https://cookiecutter.readthedocs.io/en/latest/) y la plantilla [`py-pkgs-cookiecutter`](https://github.com/py-pkgs/py-pkgs-cookiecutter). 
 
