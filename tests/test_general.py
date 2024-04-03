@@ -180,7 +180,7 @@ def test_a_equal_b_latex_s_invalid_input():
         simplified_tt = test_module.a_equal_b_latex_s('tt', 1.)
 
     with pytest.raises(ValueError):
-        simplified_tt = test_module.a_equal_b_latex_s('tt', '1.')
+        simplified_tt = test_module.a_equal_b_latex_s(['tt', '1.'], '1.')
 
     with pytest.raises(ValueError):
         simplified_tt = test_module.a_equal_b_latex_s( 1., ['tt', '1.'])

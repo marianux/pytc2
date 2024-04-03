@@ -123,8 +123,8 @@ def test_foster_conversion_valid():
         pytest.fail("Se levantó un ValueError incorrectamente.")
         
     # Verificar que el tipo de resultado sea sp.Expr
-    assert isinstance(k0, type(None)) 
-    assert isinstance(koo, type(None)) 
+    assert isinstance(k0, sp.Expr) and k0.is_zero
+    assert isinstance(koo, sp.Expr) and koo.is_zero 
     
     for ii in ki_wi:
         for result in ii:

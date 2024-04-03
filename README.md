@@ -1,29 +1,30 @@
 # pytc2
 
-A circuit theory module for students at Universidad Tecnológica Nacional, en Buenos Aires, Argentina.
+Un módulo de teoría de circuitos para estudiantes de la Universidad Tecnológica Nacional, en Buenos Aires (UTN-BA), Argentina.
 
-* Free software: MIT license
-* [online Documentation](https://pytc2.readthedocs.io)
+* Software libre: licencia MIT
+* [Documentación en línea](https://pytc2.readthedocs.io)
 
-## Installation
+
+## Instalación
 
 ```bash
 $ pip install pytc2
 ```
 
-## Usage
+## Uso
 
-- Check the jupyter notebook examples in the documentation for fast starting.
+- Consulte los ejemplos de jupyter notebook en la documentación para un inicio rápido.
 
-## Contributing
+## Contribuciones
 
-Interested in contributing? Check out the contributing guidelines. Please note that this project is released with a Code of Conduct. By contributing to this project, you agree to abide by its terms.
+¿Interesado en contribuir? Consulte las pautas de contribución. Tenga en cuenta que este proyecto se publica con un Código de conducta. Al contribuir a este proyecto, usted acepta cumplir con sus términos.
 
-## License
+## Licencia
 
-`pytc2` was created by Mariano Llamedo Soria. It is licensed under the terms of the MIT license.
+`pytc2` fue creado por Mariano Llamedo Soria bajo los términos de la licencia MIT.
 
-## Credits
+## Créditos
 
-`pytc2` was created with [`cookiecutter`](https://cookiecutter.readthedocs.io/en/latest/) and the `py-pkgs-cookiecutter` [template](https://github.com/py-pkgs/py-pkgs-cookiecutter).
+`pytc2` se creó con [`cookiecutter`](https://cookiecutter.readthedocs.io/en/latest/) y la plantilla [`py-pkgs-cookiecutter`](https://github.com/py-pkgs/py-pkgs-cookiecutter). 
 

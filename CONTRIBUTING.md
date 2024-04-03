@@ -1,73 +1,73 @@
-# Contributing
+# Contribuyendo
 
-Contributions are welcome, and they are greatly appreciated! Every little bit
-helps, and credit will always be given.
+¡Las contribuciones son bienvenidas y se agradecen mucho! cada poquito
+ayuda y siempre se dará crédito a quien colabore en este proyecto.
 
-## Types of Contributions
+## Tipos de contribuciones
 
-### Report Bugs
+### Informar errores
 
-If you are reporting a bug, please include:
+Si está informando un error, incluya:
 
-* Your operating system name and version.
-* Any details about your local setup that might be helpful in troubleshooting.
-* Detailed steps to reproduce the bug.
+* Nombre y versión de su sistema operativo.
+* Cualquier detalle sobre su configuración local que pueda ser útil para solucionar problemas.
+* Pasos detallados para reproducir el error.
 
-### Fix Bugs
+### Corrección de errores
 
-Look through the GitHub issues for bugs. Anything tagged with "bug" and "help
-wanted" is open to whoever wants to implement it.
+Busque errores en *GitHub issues*. Cualquier entrada etiquetada con "bug" y/o "help wanted"
+está abierto a quien quiera colaborar.
 
-### Implement Features
+### Implementar nuevas funcionalidades
 
-Look through the GitHub issues for features. Anything tagged with "enhancement"
-and "help wanted" is open to whoever wants to implement it.
+Busque entradas en los *GitHub issues* que estén etiquetadas como "enhancement"
+y/o "help wanted".
 
-### Write Documentation
+### Escribir documentación
 
-You can never have enough documentation! Please feel free to contribute to any
-part of the documentation, such as the official docs, docstrings, or even
-on the web in blog posts, articles, and such.
+¡Nunca es posible tener suficiente documentación! Por favor siéntase libre de contribuir a cualquier
+parte de la documentación, como los documentos oficiales, cadenas de documentos o incluso
+en la web en publicaciones de blogs, artículos y demás.
 
-### Submit Feedback
+### Enviar comentarios
 
-If you are proposing a feature:
+Si está proponiendo una nueva característica:
 
-* Explain in detail how it would work.
-* Keep the scope as narrow as possible, to make it easier to implement.
-* Remember that this is a volunteer-driven project, and that contributions
-  are welcome :)
+* Explicar detalladamente cómo funcionaría.
+* Mantenga el alcance lo más limitado posible, para que sea más fácil de implementar.
+* Recuerde que este es un proyecto impulsado por voluntarios, y que las aportaciones
+   son bienvenidas :)
 
-## Get Started!
+## ¡Comenzar a contribuir!
 
-Ready to contribute? Here's how to set up `pytc2` for local development.
+¿Listo para contribuir? A continuación se explica cómo configurar `pytc2` para el desarrollo local.
 
-1. Download a copy of `pytc2` locally.
-2. Install `pytc2` using `poetry`:
+1. Descargue una copia de `pytc2` localmente.
+2. Instale `pytc2` usando `poetry`:
 
-    ```console
-    $ poetry install
-    ```
+     ```console
+     $ poetry install
+     ```
 
-3. Use `git` (or similar) to create a branch for local development and make your changes:
+3. Utilice `git` (o similar) para crear una rama para desarrollo local y realizar sus cambios:
 
-    ```console
-    $ git checkout -b name-of-your-bugfix-or-feature
-    ```
+     ```console
+     $ git checkout -b name-of-your-bugfix-or-feature
+     ```
 
-4. When you're done making changes, check that your changes conform to any code formatting requirements and pass any tests.
+4. Cuando haya terminado de realizar cambios, verifique que sus cambios cumplan con los requisitos de formato del código y pase las pruebas.
 
-5. Commit your changes and open a pull request.
+5. Haga un *commit* y abra un *pull-request*.
 
-## Pull Request Guidelines
+## Directrices para pull-request's
 
-Before you submit a pull request, check that it meets these guidelines:
+Antes de enviar un *pull-request*, verifique que cumpla con estas pautas:
 
-1. The pull request should include additional tests if appropriate.
-2. If the pull request adds functionality, the docs should be updated.
-3. The pull request should work for all currently supported operating systems and versions of Python.
+1. El *pull-request* debe incluir pruebas adicionales, si corresponde. Revise la carpeta *test* y el formato de las pruebas incluidas.
+2. Si el *pull-request* agrega funcionalidad, los documentos deben actualizarse. Revise la carpeta *docs* para ver el formato y estilo de la documentación.
+3. El *pull-request* debería funcionar para todos los sistemas operativos y versiones de Python actualmente compatibles.
 
-## Code of Conduct
+## Código de conducta
 
-Please note that the `pytc2` project is released with a
-Code of Conduct. By contributing to this project you agree to abide by its terms.
+Tenga en cuenta que el proyecto `pytc2` se lanza con un *Código de conducta*. Al contribuir a este proyecto, usted acepta cumplir con sus términos.
+

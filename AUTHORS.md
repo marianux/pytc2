@@ -1,9 +1,10 @@
-# Credits
+# Créditos
 
-## Development Lead
+## Desarrollador del proyecto
 
-* Mariano Llamedo Soria <llamedom@gmail.com>
+* Mariano Llamedo Soria <llamedom@gmail.com>. Profesor Titular en la Universidad Tecnológica Nacional, Regional Buenos Aires (UTN-BA).
 
-## Contributors
+## Contribuciones
 
-None yet. Why not be the first?
+* David Moharos <@gmail.com>. Estudiante de Ingeniería Electrónica en UTN-BA.
+
