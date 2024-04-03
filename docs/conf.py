@@ -40,7 +40,6 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 html_theme = "sphinx_rtd_theme"
 
-
 myst_enable_extensions = [
     "amsmath",
     "dollarmath",
