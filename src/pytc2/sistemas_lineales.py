@@ -2021,7 +2021,11 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         cant_sos = 0
 
         this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
+        
         this_zzpp = this_zzpp[this_zzpp > 0]
+        
+        if this_zzpp.shape[0] == 0:
+            this_zzpp = np.array([1.])
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'ignore') 

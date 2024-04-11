@@ -15,7 +15,7 @@ from numbers import Real
 #%% Variables para el análisis simbólico #
 ##########################################
 
-from .general import s, a_equal_b_latex_s, print_latex, print_console_alert
+from .general import s, a_equal_b_latex_s, print_latex, to_latex, print_console_alert
 
 
 sig = sp.symbols('sig', real=True)
@@ -570,7 +570,7 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
     if not isinstance(imm , sp.Expr):
         raise ValueError('Hay que definir imm como una expresión simbólica.')
 
-    if not isinstance(sigma , Real):
+    if not isinstance(sigma , (Real, sp.Expr)):
         raise ValueError('Sigma debe ser un flotante.')
 
     if not isinstance(isImpedance, bool):
@@ -606,7 +606,8 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
             else:
                 kk = sp.limit(yy*(s + sigma), s, -sigma)
         
-        assert not kk.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
+        
+        assert (sp.simplify(sp.im(kk)) == sp.Rational('0') and sp.re(kk) >= sp.Rational('0')), 'Residuo en {:3.3f}: {:s}. Verificar Z/Y RC/RL'.format(-sigma, str(kk))
         
         
     else:
@@ -626,7 +627,8 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
             else:
                 kk = sp.simplify(sp.expand(yy*(s + sigma))).subs(s, -sigma_zero)
 
-        assert not kk.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
+        assert (sp.simplify(sp.im(kk)) == sp.Rational('0') and sp.re(kk) >= sp.Rational('0')), 'Residuo en {:3.3f}: {:s}. Verificar Z/Y RC/RL'.format(-sigma, str(kk))
+        
     
     # extraigo kk
     if isImpedance:

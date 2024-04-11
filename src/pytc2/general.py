@@ -12,6 +12,7 @@ by Mariano Llamedo llamedom _at_ frba_utn_edu_ar
 
 import sympy as sp
 import numpy as np
+from scipy.signal import TransferFunction
 from numbers import Integral, Real, Complex
 
 from IPython.display import display, Math, Markdown
@@ -134,6 +135,59 @@ def pp(z1, z2):
 
 #%%
 
+def symbfunc2tf(tt):
+    '''
+    Convierte una función racional simbólica, con coeficientes numéricos 
+    (convertibles a flotante), en un objeto transfer function.
+
+
+    Parameters
+    ----------
+    tt : Expr. simbólica
+        Función racional simbólica.
+
+
+    Returns
+    -------
+    TransferFunction
+        TransferFunction que representa numéricamente la función.
+
+
+    Raises
+    ------
+    ValueError
+        Si la entrada no es una expresión simbólica.
+
+
+    See Also
+    --------
+    :func:`simplify_n_monic`
+    :func:`to_latex`
+    :func:`a_equal_b_latex_s`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, symbfunc2tf
+    >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
+    >>> simplified_tt = symbfunc2tf(tt)
+    >>> print(simplified_tt)
+    (s + 2)/(2*s + 3)
+    
+    '''
+    if not isinstance(tt, sp.Expr):
+        raise ValueError("La entrada debe ser una expresión simbólica.")
+
+    num, den = sp.fraction(tt)
+        
+    aa = np.array( [ float(ii) for ii in num.as_poly(s).all_coeffs()])
+    bb = np.array( [ float(ii) for ii in den.as_poly(s).all_coeffs()])
+    
+    cc = TransferFunction(aa, bb)
+
+    return cc
+
 def simplify_n_monic(tt):
     '''
     Simplifica un polinomio de fracciones en forma mónica.
@@ -167,8 +221,7 @@ def simplify_n_monic(tt):
     Examples
     --------
     >>> import sympy as sp
-    >>> from pytc2.general import simplify_n_monic
-    >>> s = sp.symbols('s')
+    >>> from pytc2.general import s, simplify_n_monic
     >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
     >>> simplified_tt = simplify_n_monic(tt)
     >>> print(simplified_tt)
