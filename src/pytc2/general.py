@@ -135,6 +135,114 @@ def pp(z1, z2):
 
 #%%
 
+def factorSOS(ratfunc, decimals = 4):
+    '''
+    Factoriza una función racional simbólica, en polinomios de segundo y primer
+    orden. 
+
+
+    Parameters
+    ----------
+    ratfunc : Expr. simbólica
+        Función racional simbólica.
+    decimals : entero
+        Cantidad de decimales para la evaluación simbólica.
+
+
+    Returns
+    -------
+    Expr. simbólica
+        Función racional simbólica factorizada.
+
+
+    Raises
+    ------
+    ValueError
+        Si la entrada no es una expresión simbólica.
+
+
+    See Also
+    --------
+    :func:`symbfunc2tf`
+    :func:`simplify_n_monic`
+    :func:`a_equal_b_latex_s`
+
+
+    Examples
+    --------
+    >>> import sympy as sp
+    >>> from pytc2.general import s, factorSOS
+    >>> tt = (s**4 + 8*s**3 + 18*s**2 + 11*s + 2)/(s**3 + 16*s**2 + 65*s + 14)
+    >>> factorized_tt, _, _ = factorSOS(tt)
+    >>> print(factorized_tt)
+    (s + 0.382)*(s + 0.438)*(s + 2.62)*(s + 4.56)/((s + 0.228)*(s + 7.0)*(s + 8.77))
+    
+    '''
+    if not isinstance(ratfunc, sp.Expr):
+        raise ValueError("La entrada debe ser una expresión simbólica.")
+    
+    if not isinstance(decimals, Integral):
+        raise ValueError("La cantidad de decimales debe ser un número entero.")
+
+    num, den = sp.fraction(ratfunc)
+    
+    num = sp.Poly(num,s)
+    den = sp.Poly(den,s)
+
+    polySOS = num.LC() / den.LC()
+    
+    raices = sp.roots(num, s)
+    
+    # Separa las raíces complejas conjugadas y las raíces reales
+    raices_complejas_conjugadas_num = []
+    raices_reales_num = []
+    
+    for raiz, multiplicidad in raices.items():
+        if raiz.is_real:
+            raices_reales_num.extend([raiz]*multiplicidad)
+            polySOS = polySOS * (s - raiz.evalf(decimals))**(multiplicidad)
+        else:
+           # Busca si ya hay un grupo para la parte real
+            grupo_existente = False
+            for grupo in raices_complejas_conjugadas_num:
+                # pregunto por la parte Real.
+                if sp.ask(sp.Q.real((grupo + raiz))):
+                    grupo_existente = True
+                    break
+            if not grupo_existente:
+                raices_complejas_conjugadas_num.extend([raiz]*multiplicidad)
+                raices_complejas_conjugadas_num.extend([sp.conjugate(raiz)]*multiplicidad)
+                this_sos = sp.simplify(sp.expand((s - raiz) * (s - sp.conjugate(raiz))) )
+                polySOS = polySOS * this_sos.evalf(decimals)**(multiplicidad)
+                
+
+    raices = sp.roots(den, s)
+    
+    # Separa las raíces complejas conjugadas y las raíces reales
+    raices_complejas_conjugadas_den = []
+    raices_reales_den = []
+    
+    for raiz, multiplicidad in raices.items():
+        if raiz.is_real:
+            raices_reales_den.extend([raiz]*multiplicidad)
+            polySOS = polySOS / (s - raiz.evalf(decimals))**(multiplicidad)
+        else:
+           # Busca si ya hay un grupo para la parte real
+            grupo_existente = False
+            for grupo in raices_complejas_conjugadas_den:
+                # pregunto por la parte Real.
+                if sp.ask(sp.Q.real((grupo + raiz))):
+                    grupo_existente = True
+                    break
+            if not grupo_existente:
+                raices_complejas_conjugadas_den.extend([raiz]*multiplicidad)
+                raices_complejas_conjugadas_den.extend([sp.conjugate(raiz)]*multiplicidad)
+                this_sos = sp.simplify(sp.expand((s - raiz) * (s - sp.conjugate(raiz))) )
+                polySOS = polySOS / this_sos.evalf(decimals)**(multiplicidad)
+
+
+    return(polySOS, [ [raices_reales_num],[raices_reales_den] ], [[raices_complejas_conjugadas_num], [raices_complejas_conjugadas_den]])
+
 def symbfunc2tf(tt):
     '''
     Convierte una función racional simbólica, con coeficientes numéricos 
@@ -163,7 +271,7 @@ def symbfunc2tf(tt):
     --------
     :func:`simplify_n_monic`
     :func:`to_latex`
-    :func:`a_equal_b_latex_s`
+    :func:`factorSOS`
 
 
     Examples
@@ -173,8 +281,11 @@ def symbfunc2tf(tt):
     >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
     >>> simplified_tt = symbfunc2tf(tt)
     >>> print(simplified_tt)
-    (s + 2)/(2*s + 3)
-    
+    TransferFunctionContinuous(
+    array([0.5, 1.5, 1. ]),
+    array([1. , 2.5, 1.5]),
+    dt: None
+    )    
     '''
     if not isinstance(tt, sp.Expr):
         raise ValueError("La entrada debe ser una expresión simbólica.")

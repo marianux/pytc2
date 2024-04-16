@@ -11,9 +11,12 @@ import sympy as sp
 from pytc2 import general as test_module
 from numbers import Real
 
+from scipy.signal import TransferFunction
+import numpy as np
+
 
 k, o = sp.symbols('k, o')
-s = sp.symbols('s ', complex=True)
+s = test_module.s
 z1, z2 = sp.symbols('z1, z2')
 
 @pytest.mark.parametrize(
@@ -75,31 +78,78 @@ def test_cauer_invalid_input():
     with pytest.raises(ValueError):
         out = test_module.pp('a', 2.)
 
-
-def test_simplify_n_monic_valid():
+def test_symbfunc2tf_valid():
     
-    tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
-    truev = (s + 2)/(2*s + 3)
-    
+    args = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
+    true_val = TransferFunction( np.array([0.5, 1.5, 1. ]), np.array([1. , 2.5, 1.5]))
     # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
     try:
-        simplified_tt = test_module.simplify_n_monic(tt)
+        tff = test_module.symbfunc2tf(args)
     except ValueError:
         pytest.fail("Se levantó un ValueError incorrectamente.")
         
     # Verificar que el tipo de resultado sea sp.Matrix
-    assert isinstance(simplified_tt, sp.Expr) 
+    assert isinstance(tff, type(true_val)) 
 
     # Verificar el correcto resultado
-    assert sp.simplify(simplified_tt - truev).is_zero 
+    assert np.all((true_val.num - tff.num) == 0) and np.all((true_val.den - tff.den) == 0)
     
+
+def test_simplify_n_monic_valid():
     
-def test_simplify_n_monic_invalid_input():
+    args = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
+    true_val = (s + 2)/(2*s + 3)
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        simplified_tt = test_module.simplify_n_monic(args)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(simplified_tt, type(true_val)) 
+
+    # Verificar el correcto resultado
+    assert sp.simplify(simplified_tt - true_val).is_zero 
+
+
+def test_factorSOS_valid():
+    
+    args = (s**4 + 8*s**3 + 18*s**2 + 11*s + 2)/(s**3 + 16*s**2 + 65*s + 14)
+    true_val = (s + 0.381966)*(s + 0.438447)*(s + 2.61803)*(s + 4.56155)/((s + 0.227998)*(s + 7.0)*(s + 8.772))
+    
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        simplified_tt = test_module.factorSOS(args)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        simplified_tt = test_module.factorSOS(args, 6)
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(simplified_tt[0], type(true_val)) 
+
+    # Verificar el correcto resultado
+    assert np.abs(sp.simplify(simplified_tt[0] - true_val).subs(s,0)) < 10**-3
+    
+
+@pytest.mark.parametrize(
+    "func_ptr",
+    [
+           test_module.factorSOS,
+           test_module.symbfunc2tf,
+           test_module.simplify_n_monic,
+    ]
+)   
+def test_simplify_n_monic_invalid_input(func_ptr):
     
     # Verificar que se levante un ValueError 
     with pytest.raises(ValueError):
-        simplified_tt = test_module.simplify_n_monic('tt')
-    
+        simplified_tt = func_ptr('tt')
+
     
 w = test_module.w    
 
