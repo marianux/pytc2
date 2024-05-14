@@ -1198,7 +1198,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
 
     for ii in range(cant_sys):
         
-        if isinstance(all_sys, list) and isinstance(all_sys[ii], TransferFunction):
+        if isinstance(all_sys[ii], TransferFunction):
         
             if all_sys[ii].dt is None:
                 this_digital = False
@@ -1206,6 +1206,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
                 this_digital = True
 
         else:
+            # SOS
             this_digital = False
 
         fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs)
@@ -1243,13 +1244,13 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     for ii in range(cant_sys):
     
         if isinstance(all_sys[ii], np.ndarray):
-            
+            # SOS
             thisFilter = sos2tf_analog(all_sys[ii])
 
             analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id=analog_fig_id, axes_hdl=analog_axes_hdl, annotations=annotations, digital=this_digital, fs=fs)
             
         else:
-                
+            # TF
             if all_sys[ii].dt is None:
                 analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id=analog_fig_id, axes_hdl=analog_axes_hdl, annotations=annotations)
                 
@@ -1283,10 +1284,20 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     
     for ii in range(cant_sys):
         
-        if isinstance(all_sys, list) and isinstance(all_sys[ii], TransferFunction) and all_sys[ii].dt is None:
+        if isinstance(all_sys[ii], np.ndarray):
+            # SOS
             this_digital = False
         else:
-            this_digital = True
+            # TF
+            if all_sys[ii].dt is None:
+                this_digital = False
+            else:
+                this_digital = True
+       
+        # if isinstance(all_sys, list) and isinstance(all_sys[ii], TransferFunction) and all_sys[ii].dt is None:
+        #     this_digital = False
+        # else:
+        #     this_digital = True
         
         fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs)
     
@@ -1735,6 +1746,21 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
     if isinstance(myFilter, np.ndarray):
         # Sección SOS
+
+        # Convertir sección SOS a una TransferFunction completa
+        wholeFilter = sos2tf_analog(myFilter)
+
+        # Obtener todas las singularidades
+        this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
+        this_zzpp = this_zzpp[this_zzpp > 0]
+
+        # Calcular el eje de frecuencia según las singularidades del filtro completo
+        if digital:
+            ww = np.linspace(0, np.pi, npoints)
+        else:
+            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
+        
+        
         cant_sos = myFilter.shape[0]
         phase = np.empty((npoints, cant_sos+1))
         sos_label = []
@@ -1744,16 +1770,13 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
             num, den = _one_sos2tf(myFilter[ii, :])
             thisFilter = TransferFunction(num, den)
 
-            this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
-            this_zzpp = this_zzpp[this_zzpp > 0]
+            # this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
+            # this_zzpp = this_zzpp[this_zzpp > 0]
 
             #a veces se pone pesado con warnings al calcular logaritmos.
             np.seterr(divide = 'ignore') 
             
-            if digital:
-                w, _, phase[:, ii] = thisFilter.bode(np.linspace(0, np.pi, npoints))
-            else:
-                w, _, phase[:, ii] = thisFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+            _, _, phase[:, ii] = thisFilter.bode(ww)
 
             #a veces se pone pesado con warnings al calcular logaritmos.
             np.seterr(divide = 'warn') 
@@ -1770,10 +1793,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'ignore') 
 
-        if digital:
-            w, _, phase[:, cant_sos] = thisFilter.bode(np.linspace(0, np.pi, npoints))
-        else:
-            w, _, phase[:, cant_sos] = thisFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+        _, _, phase[:, cant_sos] = thisFilter.bode(ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 
@@ -1796,16 +1816,20 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         # Objeto LTI
         cant_sos = 0
 
-        this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
+        # Obtener todas las singularidades
+        this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
         this_zzpp = this_zzpp[this_zzpp > 0]
+
+        # Calcular el eje de frecuencia según las singularidades del filtro completo
+        if digital:
+            ww = np.linspace(0, np.pi, npoints)
+        else:
+            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'ignore') 
 
-        if digital:
-            w, _, phase = myFilter.bode(np.linspace(0, np.pi, npoints))
-        else:
-            w, _, phase = myFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+        _, _, phase = myFilter.bode(ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 
@@ -1820,13 +1844,13 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
             phaseRad[this_jump_x+1:] = phaseRad[this_jump_x+1:] - np.pi
 
     # Calcular el retardo de grupo
-    groupDelay = -np.diff(phaseRad, axis=0) / np.diff(w).reshape((npoints-1, 1))
+    groupDelay = -np.diff(phaseRad, axis=0) / np.diff(ww).reshape((npoints-1, 1))
 
     groupDelay = np.vstack((groupDelay[1,:], groupDelay[1:,:]))
 
     # Convertir frecuencia a Hz si se solicita
     if xaxis == "freq":
-        ww = w / 2 / np.pi
+        ww = ww / 2 / np.pi
     elif xaxis == "norm":
         if fs is None:
             # Normalizar cada respuesta a su propio Nyquist
@@ -1834,9 +1858,9 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         else:
             # Normalizado a fs
             wnorm = 2 * np.pi * fs
-        ww = w / wnorm
+        ww = ww / wnorm
     else:
-        ww = w
+        ww = ww
 
     # Crear o recuperar figura
     if fig_id == 'none':
@@ -1991,8 +2015,8 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             num, den = _one_sos2tf(myFilter[ii, :])
             thisFilter = TransferFunction(num, den)
 
-            this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
-            this_zzpp = this_zzpp[this_zzpp > 0]
+            # this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
+            # this_zzpp = this_zzpp[this_zzpp > 0]
 
             _, mag[:, ii], phase[:, ii] = thisFilter.bode(ww)
 
