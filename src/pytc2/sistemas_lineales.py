@@ -20,6 +20,9 @@ from IPython.display import display, Math
 
 from fractions import Fraction
 
+import warnings
+
+
 #%%
    ##########################################
   ## Variables para el análisis simbólico #
@@ -902,9 +905,16 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
 
     if den is None:
         if len(num) != 6:
-            raise ValueError("Los coeficientes de una SOS deben tener una longitud de 6 elementos.")
+            raise ValueError("Los coeficientes de una SOS deben tener una longitud de 6 elementos y tiene {:d}.".format(len(num)))
         this_sos = num.reshape((1, 6))
     else:
+
+        if len(num) > 3 :
+            raise ValueError("Los coeficientes de *num* deben tener una longitud de 3 elementos o menos.")
+
+        if len(den) > 3:
+            raise ValueError("Los coeficientes de *den* deben tener una longitud de 3 elementos o menos.")
+        
         this_sos = np.hstack((
             np.pad(num, (3 - len(num), 0)),
             np.pad(den, (3 - len(den), 0)))
@@ -928,8 +938,14 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
         else:
             omega = np.sqrt(num[2] / kk)
             num_str_aux = r'{:3.4g}(s^2 + {:3.4g}^2)'.format(kk, omega)
+    elif np.all(num[[1, 2]] == 0) and num[0] > 0:
+        # Estilo pasa altas
+        kk = num[0]
+        num_str_aux = r'{:3.4g} \cdot s^2'.format(kk)
+
     else:
-        num_str_aux = _build_poly_str(num)
+        # Estilo pasa bajas: kk . omega²
+        num_str_aux = _build_omegayq_str(num, den=den)
 
     den_str_aux = _build_omegayq_str(den)
 
@@ -1817,7 +1833,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         cant_sos = 0
 
         # Obtener todas las singularidades
-        this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
+        this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
         this_zzpp = this_zzpp[this_zzpp > 0]
 
         # Calcular el eje de frecuencia según las singularidades del filtro completo
@@ -2676,21 +2692,50 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
 
 
     """
-    if not isinstance(this_quad_poly, np.ndarray):
-        raise ValueError("El argumento 'this_quad_poly' debe ser un array de numpy.")
+    if not isinstance(this_quad_poly, np.ndarray) or this_quad_poly.shape[0] != 3:
+        raise ValueError("El argumento 'this_quad_poly' debe ser un array de numpy de 3 elementos (polinomio orden 2) y tiene {:d}.".format(den.shape[0]))
 
     if not isinstance(den, np.ndarray):
-        raise ValueError("El argumento 'den' debe ser un array de numpy.")
+        raise ValueError("El argumento 'den' debe ser un array de numpy de 3 elementos (polinomio orden 2).")
 
     if den.shape[0] > 0:
         # Estilo de numerador para banda pasante s. hh . omega/ Q
         
         omega = np.sqrt(den[2]) # del denominador
-        Q = omega / den[1] # del denominador
         
-        hh = this_quad_poly[1] * Q / omega
+        if np.all(this_quad_poly[[0, 2]] == 0) and this_quad_poly[1] > 0:
+            # Estilo pasa banda: s . k = s . H . omega/Q
+
+            Q = omega / den[1] # del denominador
+
+            hh = this_quad_poly[1] * Q / omega
+            
+            poly_str = r's\,{:3.4g}\,\cdot \frac{{{:3.4g}}}{{{:3.4g}}}'.format(hh, omega, Q )
+            
+        elif this_quad_poly[2] > 0 and np.all(this_quad_poly[[0, 1]] == 0):
+            # Estilo pasa bajas: kk . omega²
+            
+            kk = this_quad_poly[2] / omega**2
+            
+            if kk == 1.:
+                poly_str = r'{:3.4g}^2'.format(omega)
+            else:
+                poly_str = r'{:3.4g} \cdot {:3.4g}^2'.format(kk, omega)
+            
+        else:
+            # todos los demás estilos son independientes del denominador
+            warnings.warn("Se ignora la variable provisa *den*", RuntimeWarning)
+            print(this_quad_poly)
+            print(den)
+            
+            omega = np.sqrt(this_quad_poly[2])
+            
+            if this_quad_poly[1] == 0:
+                poly_str = r's^2 + {:3.4g}^2'.format(omega)
+            else:
+                Q = omega / this_quad_poly[1]
+                poly_str = r's^2 + s \frac{{{:3.4g}}}{{{:3.4g}}} + {:3.4g}^2'.format(omega, Q, omega)
         
-        poly_str = r's\,{:3.4g}\,\frac{{{:3.4g}}}{{{:3.4g}}}'.format(hh, omega, Q )
     
     else:
         # Todos los demás polinomios cuadráticos completos
