@@ -926,10 +926,10 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
     if np.all(np.abs(num) > 0):
         # Segundo orden completo, parametrización omega y Q
         num_str_aux = _build_omegayq_str(num)
-    elif np.all(num[[0, 2]] == 0) and num[1] > 0:
+    elif np.all(num[[0, 2]] == 0) and np.abs(num[1]) > 0:
         # Estilo pasa banda: s . k = s . H . omega/Q
         num_str_aux = _build_omegayq_str(num, den=den)
-    elif num[1] == 0 and np.all(num[[0, 2]] > 0):
+    elif num[1] == 0 and np.all(np.abs(num[[0, 2]]) > 0):
         # Estilo ceros complejos conjugados: s² + omega²
         kk = num[0]
         if kk == 1.0:
@@ -938,7 +938,7 @@ def pretty_print_bicuad_omegayq(num, den=None, displaystr=True):
         else:
             omega = np.sqrt(num[2] / kk)
             num_str_aux = r'{:3.4g}(s^2 + {:3.4g}^2)'.format(kk, omega)
-    elif np.all(num[[1, 2]] == 0) and num[0] > 0:
+    elif np.all(num[[1, 2]] == 0) and np.abs(num[0]) > 0:
         # Estilo pasa altas
         kk = num[0]
         num_str_aux = r'{:3.4g} \cdot s^2'.format(kk)
@@ -2703,7 +2703,7 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
         
         omega = np.sqrt(den[2]) # del denominador
         
-        if np.all(this_quad_poly[[0, 2]] == 0) and this_quad_poly[1] > 0:
+        if np.all(this_quad_poly[[0, 2]] == 0) and np.abs(this_quad_poly[1]) > 0:
             # Estilo pasa banda: s . k = s . H . omega/Q
 
             Q = omega / den[1] # del denominador
@@ -2712,7 +2712,7 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
             
             poly_str = r's\,{:3.4g}\,\cdot \frac{{{:3.4g}}}{{{:3.4g}}}'.format(hh, omega, Q )
             
-        elif this_quad_poly[2] > 0 and np.all(this_quad_poly[[0, 1]] == 0):
+        elif np.abs(this_quad_poly[2]) > 0 and np.all(this_quad_poly[[0, 1]] == 0):
             # Estilo pasa bajas: kk . omega²
             
             kk = this_quad_poly[2] / omega**2
@@ -2727,26 +2727,61 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
             warnings.warn("Se ignora la variable provisa *den*", RuntimeWarning)
             print(this_quad_poly)
             print(den)
+
+            kk = this_quad_poly[0]
+            this_quad_poly = this_quad_poly / kk
+            omega = np.sqrt(np.abs(this_quad_poly[2]))
+            omega_sign = np.sign(this_quad_poly[2])
             
-            omega = np.sqrt(this_quad_poly[2])
+            if omega_sign > 0:
+                omega_str = '+'
+            else:
+                omega_str = '-'
             
             if this_quad_poly[1] == 0:
-                poly_str = r's^2 + {:3.4g}^2'.format(omega)
+                poly_str = r's^2 {:s} {:3.4g}^2'.format(omega_str, omega)
             else:
-                Q = omega / this_quad_poly[1]
-                poly_str = r's^2 + s \frac{{{:3.4g}}}{{{:3.4g}}} + {:3.4g}^2'.format(omega, Q, omega)
-        
+                Q = omega / np.abs(this_quad_poly[1])
+                Q_sign = np.sign(this_quad_poly[1])
+                
+                if Q_sign > 0:
+                    Q_sign_str = '+'
+                else:
+                    Q_sign_str = '-'
+    
+                poly_str = r's^2 {:s} s \frac{{{:3.4g}}}{{{:3.4g}}} {:s} {:3.4g}^2'.format(Q_sign_str, omega, Q, omega_str, omega)
+    
+            if kk != 1.0:
+                poly_str = r'{:3.4g} \cdot ('.format(kk) + poly_str + r')'
     
     else:
         # Todos los demás polinomios cuadráticos completos
-        omega = np.sqrt(this_quad_poly[2])
+        kk = this_quad_poly[0]
+        this_quad_poly = this_quad_poly / kk
+        omega = np.sqrt(np.abs(this_quad_poly[2]))
+        omega_sign = np.sign(this_quad_poly[2])
+        
+        if omega_sign > 0:
+            omega_str = '+'
+        else:
+            omega_str = '-'
         
         if this_quad_poly[1] == 0:
-            poly_str = r's^2 + {:3.4g}^2'.format(omega)
+            poly_str = r's^2 {:s} {:3.4g}^2'.format(omega_str, omega)
         else:
-            Q = omega / this_quad_poly[1]
-            poly_str = r's^2 + s \frac{{{:3.4g}}}{{{:3.4g}}} + {:3.4g}^2'.format(omega, Q, omega)
-        
+            Q = omega / np.abs(this_quad_poly[1])
+            Q_sign = np.sign(this_quad_poly[1])
+
+            if Q_sign > 0:
+                Q_sign_str = '+'
+            else:
+                Q_sign_str = '-'
+
+            poly_str = r's^2 {:s} s \frac{{{:3.4g}}}{{{:3.4g}}} {:s} {:3.4g}^2'.format(Q_sign_str, omega, Q, omega_str, omega)
+
+        if kk != 1.0:
+            poly_str = r'{:3.4g} \cdot ('.format(kk) + poly_str + r')'
+            
                 
     return poly_str
 
