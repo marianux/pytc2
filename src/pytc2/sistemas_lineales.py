@@ -1671,7 +1671,7 @@ def group_delay(freq, phase):
     # Agregar el último valor para que tenga la misma longitud que el arreglo original
     return np.append(groupDelay, groupDelay[-1])
 
-def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, digital=False, xaxis='omega', fs=2*np.pi):
+def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
     """
     Calcula y grafica el retardo de grupo de un filtro.
 
@@ -1690,6 +1690,10 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         Indicador de si el filtro es digital. Por defecto es False.
     xaxis : str, opcional
         Tipo de eje x ('omega', 'freq', 'norm'). Por defecto es 'omega'.
+    unwrap_phase : bool, opcional
+        Evita que la respuesta de fase tenga saltos, habitualmente producidos 
+        al haber ceros sobre el eje j.omega o la circunsferencia unitaria. 
+        Por defecto es False.
     fs : float, opcional
         Frecuencia de muestreo. Por defecto es 2*pi.
 
@@ -1751,6 +1755,10 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
     # Verificar si digital es un booleano
     if not isinstance(digital, bool):
         raise ValueError("digital debe ser un booleano.")
+
+    # Verificar si unwrap_phase es un booleano
+    if not isinstance(unwrap_phase, bool):
+        raise ValueError("unwrap_phase debe ser un booleano.")
 
     # Verificar si xaxis es uno de los valores permitidos
     if xaxis not in ['omega', 'freq', 'norm']:
@@ -1822,11 +1830,12 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
         phaseRad = phaseRad.reshape((npoints, 1+cant_sos))
 
-        # Filtrar huecos y saltos en la respuesta de fase
-        all_jump_x, all_jump_y = (np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr).nonzero()
-
-        for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y):
-            phaseRad[this_jump_x+1:, this_jump_y] = phaseRad[this_jump_x+1:, this_jump_y] - np.pi
+        if unwrap_phase:
+            # Filtrar huecos y saltos en la respuesta de fase
+            all_jump_x, all_jump_y = (np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr).nonzero()
+    
+            for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y):
+                phaseRad[this_jump_x+1:, this_jump_y] = phaseRad[this_jump_x+1:, this_jump_y] - np.pi
 
     else:
         # Objeto LTI
@@ -1854,10 +1863,12 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
         phaseRad = phaseRad.reshape((npoints, 1))
 
-        all_jump = np.where(np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr)[0]
+        if unwrap_phase:
 
-        for this_jump_x in all_jump:
-            phaseRad[this_jump_x+1:] = phaseRad[this_jump_x+1:] - np.pi
+            all_jump = np.where(np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr)[0]
+    
+            for this_jump_x in all_jump:
+                phaseRad[this_jump_x+1:] = phaseRad[this_jump_x+1:] - np.pi
 
     # Calcular el retardo de grupo
     groupDelay = -np.diff(phaseRad, axis=0) / np.diff(ww).reshape((npoints-1, 1))
@@ -1926,7 +1937,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, npoints=1000, digital=False, xaxis='omega', fs=2*np.pi):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, npoints=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
     """
     Grafica el diagrama de Bode (magnitud y fase) de un filtro.
 
@@ -1947,6 +1958,10 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         Indicador de si el filtro es digital. Por defecto es False.
     xaxis : str, opcional
         Tipo de eje x ('omega', 'freq', 'norm'). Por defecto es 'omega'.
+    unwrap_phase : bool, opcional
+        Evita que la respuesta de fase tenga saltos, habitualmente producidos 
+        al haber ceros sobre el eje j.omega o la circunsferencia unitaria. 
+        Por defecto es False.
     fs : float, opcional
         Frecuencia de muestreo. Por defecto es 2*pi.
 
@@ -1997,6 +2012,14 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     # Verificar si axes_hdl es válido
     if not isinstance(axes_hdl, (str, list, np.ndarray)):
         raise ValueError("axes_hdl debe ser una cadena de caracteres, una lista o un handle de Axes.")
+
+    # Verificar si digital es un booleano
+    if not isinstance(digital, bool):
+        raise ValueError("digital debe ser un booleano.")
+
+    # Verificar si unwrap_phase es un booleano
+    if not isinstance(unwrap_phase, bool):
+        raise ValueError("unwrap_phase debe ser un booleano.")
 
     # Verificar si xaxis es uno de los valores permitidos
     if xaxis not in ['omega', 'freq', 'norm']:
@@ -2049,11 +2072,13 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         
         phase = np.pi / 180 * phase
         
-        # Filtrar huecos y saltos en la respuesta de fase
-        all_jump_x, all_jump_y = (np.abs(np.diff(phase, axis=0)) > phase_change_thr).nonzero()
-
-        for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y):
-            phase[this_jump_x+1:, this_jump_y] = phase[this_jump_x+1:, this_jump_y] - np.pi
+        if unwrap_phase:
+        
+            # Filtrar huecos y saltos en la respuesta de fase
+            all_jump_x, all_jump_y = (np.abs(np.diff(phase, axis=0)) > phase_change_thr).nonzero()
+    
+            for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y):
+                phase[this_jump_x+1:, this_jump_y] = phase[this_jump_x+1:, this_jump_y] - np.pi
         
 
     else:
@@ -2080,10 +2105,12 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
         phase = np.pi / 180 * phase
 
-        all_jump = np.where(np.abs(np.diff(phase, axis=0)) > phase_change_thr)[0]
+        if unwrap_phase:
 
-        for this_jump_x in all_jump:
-            phase[this_jump_x+1:] = phase[this_jump_x+1:] - np.pi
+            all_jump = np.where(np.abs(np.diff(phase, axis=0)) > phase_change_thr)[0]
+    
+            for this_jump_x in all_jump:
+                phase[this_jump_x+1:] = phase[this_jump_x+1:] - np.pi
 
     # Convertir frecuencia a Hz si se solicita
     if xaxis == "freq":
