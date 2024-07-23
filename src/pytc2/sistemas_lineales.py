@@ -632,7 +632,7 @@ def pretty_print_lti(num, den=None, displaystr=True):
     else:
         return strout
 
-def parametrize_sos(num, den):
+def parametrize_sos(num, den = sp.Rational(1)):
     '''
     Parametriza una función de transferencia de segundo orden en función de sus coeficientes.
 
@@ -707,10 +707,23 @@ def parametrize_sos(num, den):
     Q_n = sp.Rational('0')
     K = sp.Rational('0')
     
-    if not isinstance(num, sp.Poly):
-        raise ValueError("El argumento 'num' debe ser un Poly.")
-    if not isinstance(den, sp.Poly):
-        raise ValueError("El argumento 'den' debe ser un Poly.")
+    if not isinstance(num, (sp.Expr, sp.Poly)):
+        raise ValueError("El argumento 'num' debe ser una expresión simbólica.")
+
+    if not isinstance(den, (sp.Expr, sp.Poly)):
+        raise ValueError("El argumento 'den' debe ser una expresión simbólica.")
+    
+    if den == sp.Rational(1):
+        # num debería ser una función racional
+        num, den = sp.fraction(num)
+        bRationalFunc = True
+        
+    else:
+        bRationalFunc = False
+            
+        
+    num = sp.Poly(num,s)
+    den = sp.Poly(den,s)
 
     den_coeffs = den.all_coeffs()
     num_coeffs = num.all_coeffs()
@@ -852,6 +865,13 @@ def parametrize_sos(num, den):
             num = sp.poly( s + w_on, s)        
     
         K = sp.simplify(sp.expand(k_n / k_d))
+
+
+    if bRationalFunc:
+        # devuelve también una func. racional
+        num = K*num/den
+        den = sp.Rational(1)
+        
 
     return (num, den, w_on, Q_n, w_od, Q_d, K )
 
