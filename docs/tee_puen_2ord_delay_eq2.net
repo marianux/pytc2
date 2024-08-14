@@ -1,0 +1,17 @@
+* Z:\home\mariano\mariano\Docencia\TC2\scripts\analog filters\python\pytc2\docs\tee_puen_2ord_delay_eq2.asc
+V1 N001 0 0 AC 1 0 Rser=0
+R1 vi N001 {R}
+R2 0 vo {R}
+C1 va 0 {2*cv2} Rser=0
+C2 vo vi {cv1/2} Rser=0
+L1 va vi {(lv1+lv2)/2} Rser=0
+L2 va vo {(lv1+lv2)/2} Rser=0
+.net I(R2) V1
+.ac dec 100 .001 100
+.param lv1=a/b*R cv1=1/a/R lv2=1/a*R cv2=a/b/R
+.param a=w0/Q b = w0**2
+k L1 L2 {(lv2-lv1)/(lv2+lv1)}
+* V_o/V1 = (s**2 - a*s + b)/(s**2 + a*s + b)
+.param w0=1 Q = sqrt(2)/2 R =1
+.backanno
+.end

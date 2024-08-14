@@ -18,7 +18,6 @@ from numbers import  Real
 #%% Variables para dibujar elementos circuitales #
 ##################################################
 
-elementos_keys = ( 'R', 'L', 'C', 'Z', 'Y', 'V', 'I')
 elementos_dic = { 'R': Resistor, 
                   'Z': ResistorIEC, 
                   'Y': ResistorIEC, 
@@ -27,6 +26,12 @@ elementos_dic = { 'R': Resistor,
                   'V': SourceV,
                   'I': SourceI,
                   }
+
+elementos_keys = list(elementos_dic.keys())
+
+# Unir la lista en un solo string separado por comas
+elementos_keys_str = [f"'{key}'" for key in elementos_dic.keys()]
+elementos_keys_str = ", ".join(elementos_keys_str)
 
 ##########################################
 #%% Variables para el análisis simbólico #
@@ -1434,7 +1439,7 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
         raise ValueError('El argumento sym_label debe ser un string, float, o expresión simbólica.')
 
     if not (isinstance(elemento, str) and elemento in elementos_keys):
-        raise ValueError('El argumento elemento debe ser un string contenido en (R, L, C, Z o Y).')
+        raise ValueError(f'El argumento elemento debe ser un string contenido en {elementos_keys_str}.')
     
     # convertir el elemento en su correspondiente objeto schemdraw
     sch_elemento = elementos_dic[elemento]
@@ -1622,7 +1627,7 @@ def dibujar_elemento_derivacion(d, elemento, sym_label='', with_nodes = True):
         raise ValueError('El argumento d debe ser un objeto schemdraw.Drawing.')
     
     if not (isinstance(elemento, str) and elemento in elementos_keys):
-        raise ValueError('El argumento elemento debe ser un string contenido en (R, L, C, Z o Y).')
+        raise ValueError(f'El argumento elemento debe ser un string contenido en {elementos_keys_str}.')
 
     if not isinstance(with_nodes, bool):
         raise ValueError('El argumento with_nodes debe ser un booleano.')

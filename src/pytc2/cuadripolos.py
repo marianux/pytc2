@@ -10,6 +10,15 @@ import numpy as np
 import sympy as sp
 from numbers import Real, Complex
 
+import pandas as pd
+import re as re
+
+from pytc2.general import s, print_console_alert
+
+import platform
+import subprocess
+import os
+
 
 #%%
    #############################################################################
@@ -2222,4 +2231,1218 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
         print(f"ZZ: {ZZ}")
 
     return ZZ
+
+#%%
+   ##################################
+  ## Análisis Nodal Modificado MNA #
+ ##################################
+#%%
+
+# Modelos usados para los OpAmps. Ver 2.1 Schaumann, R. Design of Analog Filters.
+opamp_models_str = ['OA_ideal','OA_1polo', 'OA_integrador']
+
+# parámetros típicos en los opamps de LTspice.
+parametros_opamp = ( 'aop', 'gbw', 'aol' )
+
+# posibles nombres para puertos de entrada/salida en el esquemático.
+posibles_entradas = ( 'v_v1', 'v_vi', 'v_vin' )
+posibles_salidas = ( 'v_v2', 'v_vo', 'v_vout' )
+
+def smna(file_schematic, opamp_model = 'OA_ideal', bAplicarValoresComponentes = True, bAplicarParametros = True):
+    """Realiza el análisis nodal modificado (simbólico) al circuito definido en 
+    el archivo *file_schematic*. Los formatos aceptados son LTspice 
+    y Netlist (ver ejemplos).
+    
+    El código se basa en el [publicado](https://tiburonboy.github.io/Symbolic-Modified-Nodal-Analysis-using-Python/Introduction.html) por Tony a.k.a @tiburonboy.
+
+    Parameters
+    ----------
+    file_schematic : nombre de archivo del circuito
+        Los formatos de esquemáticos aceptados son de LTspice y Netlist.
+    opamp_model : string
+        Cómo se van a tratar a los OpAmps que haya en el esquemático. Las opciones son:
+            
+        * 'OA_ideal': El opamp tiene ganancia y ancho de banda infinito.
+        * 'OA_1polo': El opamp tiene una ganancia con un solo polo situado en :math:`:math:`\\frac{G_{BW}}{s+\\frac{G_{BW}}{A_{OL}}}``.
+        * 'OA_integrador': El opamp se comporta como un integrador: :math:`\\frac{G_{BW}}{s}`.
+        
+    bAplicarValoresComponentes : bool, optional
+        Se aplicarán los valores de cada componente a la ecuación MNA.
+    bAplicarParametros : bool, optional
+        Se aplicarán los valores de cada parámerto hallado en el esquemático a la ecuación MNA.
+
+    Returns
+    -------
+    report: text string
+            The net list report.
+    df_netlist: pandas dataframe
+            circuit net list info loaded into a dataframe
+    df_netlist_unknown_currents: pandas dataframe
+            branches with unknown currents
+    A: sympy matrix
+            The A matrix is (m+n) by (m+n) and is the combination of 4 smaller matrices, G, B, C, and D.
+            The G matrix is n by n, where n is the number of nodes. The matrix is formed by the interconnections
+            between the resistors, capacitors and VCCS type elements. In the original paper G is called Yr, 
+            where Yr is a reduced form of the nodal matrix excluding the contributions due to voltage 
+            sources, current controlling elements, etc. In python row and columns are: G[row, column]
+            The B matrix is an n by m matrix with only 0, 1 and -1 elements, where n = number of nodes
+            and m is the number of current unknowns, i_unk. There is one column for each unknown current.
+            The code loop through all the branches and process elements that have stamps for the B matrix: 
+            The C matrix is an m by n matrix with only 0, 1 and -1 elements (except for controlled sources).
+            The code is similar to the B matrix code, except the indices are swapped. The code loops through 
+            all the branches and process elements that have stamps for the C matrix: 
+            The D matrix is an m by m matrix, where m is the number of unknown currents. 
+    X: list
+            The X matrix is an (n+m) by 1 vector that holds the unknown quantities (node voltages 
+            and the currents through the independent voltage sources). The top n elements are the n node 
+            voltages. The bottom m elements represent the currents through the m independent voltage 
+            sources in the circuit. The V matrix is n by 1 and holds the unknown voltages. The J matrix 
+            is m by 1 and holds the unknown currents through the voltage sources
+    Z: list
+            The Z matrix holds the independent voltage and current sources and is the combination
+            of 2 smaller matrices I and Ev. The Z matrix is (m+n) by 1, n is the number of nodes, 
+            and m is the number of independent voltage sources. The I matrix is n by 1 and contains 
+            the sum of the currents through the passive elements into the corresponding node (either 
+            zero, or the sum of independent current sources). The Ev matrix is m by 1 and holds the 
+            values of the independent voltage sources.
+
+    Raises
+    ------
+    ValueError
+        Si el archivo no existe o no es un nombre válido.
+
+    Examples
+    --------
+    >>> # Para la siguiente red eléctrica:
+    >>> # Numeramos los polos de 0 a n=3
+    >>> # 
+    >>> #     0-------+--Y1----2---Y3--3---
+    >>> #                      |           /
+    >>> #                     Y2           / R
+    >>> #                      |           /
+    >>> #     1----------------+-------1----
+    >>> #  
+    >>> from pytc2.general import print_latex, a_equal_b_latex_s
+    >>> from pytc2.cuadripolos import calc_MAI_impedance_ij
+    >>> import sympy as sp
+    >>> input_port = [0, 1]
+    >>> output_port = [3, 1]
+    >>> Y1, Y2, Y3 = sp.symbols('Y1 Y2 Y3', complex=True)
+    >>> G = sp.symbols('G', real=True, positive=True)
+    >>> #      Nodos: 0      1        2        3
+    >>> Ymai = sp.Matrix([  
+    >>>                  [ Y1,    0,      -Y1,      0],
+    >>>                  [ 0,    Y2+G,    -Y2,     -G],
+    >>>                  [ -Y1,  -Y2,    Y1+Y2+Y3, -Y3],
+    >>>                  [ 0,    -G,      -Y3,      Y3+G ]
+    >>>                  ])
+    >>> s = sp.symbols('s ', complex=True)
+    >>> # Butter de 3er orden doblemente cargado
+    >>> Ymai = Ymai.subs(Y1, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1'))
+    >>> Ymai = Ymai.subs(Y2, s*sp.Rational('2'))
+    >>> # con_detalles = False
+    >>> con_detalles = True
+    >>> # Calculo la Z en el puerto de entrada a partir de la MAI
+    >>> Zmai = calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=con_detalles)
+    >>> print_latex(a_equal_b_latex_s('Z(s)', Zmai  ))
+    Zmai  = (2*G*s + 2*s**2*(G*s + 1) + 1)/(2*G*s**2 + G + 2*s)
+
+    """
+    
+    if not isinstance(file_schematic, str) or not os.path.exists(file_schematic):
+        raise ValueError("file_schematic debe ser el nombre de un archivo que exista.")
+    
+    if not (isinstance(opamp_model, str) and opamp_model in opamp_models_str):
+        raise ValueError(f'El argumento elemento debe ser un string contenido en {opamp_models_str}.')
+    
+    # Obtener la carpeta (directorio)
+    folder_name = os.path.dirname(file_schematic)
+    
+    # Obtener el nombre del archivo con la extensión
+    filename_with_extension = os.path.basename(file_schematic)
+    
+    # Separar el nombre del archivo de la extensión
+    baseFileName, extension = os.path.splitext(filename_with_extension)
+    
+    fileName_netlist = os.path.join(folder_name, baseFileName + '.net')
+    
+    if os.path.exists(fileName_netlist) or ( os.path.exists(fileName_netlist) and (os.path.getmtime(file_schematic) > os.path.getmtime(fileName_netlist))  ) :
+        print(f'Utilizando netlist: {fileName_netlist}')
+    else:
+        
+        if platform.system() == 'Windows':
+            
+            print_console_alert('Esta parte no ha sido probada')
+            
+            ltspice_bin = os.path.expanduser('c:\\Program Files\\LTC\\LTspiceXVII\\XVIIx64.exe')
+            subprocess.run([ltspice_bin, '-netlist', file_schematic])
+        else:
+            home_directory = os.path.expanduser("~")
+            ltspice_bin = os.path.expanduser('~/.wine/drive_c/Program Files/LTC/LTspiceXVII/XVIIx64.exe')
+            
+            # Configurar la variable de entorno WINEPREFIX
+            os.environ['WINEPREFIX'] = os.path.join(home_directory, '.wine')    
+            print(f'Actualizando netlist a partir de: {file_schematic} ...')
+            subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', file_schematic], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+            print(f'Netlist generado: {fileName_netlist} ...')
+    
+    with open(fileName_netlist, 'r', encoding='latin-1') as file:
+        # Read the content of the file
+        example_net_list = file.read()
+    
+    def parse_param_line(param_line):
+        # Eliminar el prefijo ".param" y los espacios en blanco adicionales
+        param_line = param_line.replace('.param', '').strip()
+        
+        # Usar una expresión regular para encontrar los pares de parámetros y sus definiciones
+        pattern = re.compile(r'(\w+)\s*=\s*([^=]+?)(?=\s+\w+\s*=|$)')
+        
+        # Encontrar todos los pares de parámetros y sus definiciones
+        matches = pattern.findall(param_line)
+        
+        # Convertir los pares en un diccionario
+        param_dict = {param.strip(): definition.strip() for param, definition in matches}
+        
+        return param_dict
+
+
+    # parámetros que almacenaré del netlist
+    dic_params = {}
+    
+    # initialize variables
+    num_rlc = 0 # number of passive elements
+    num_ind = 0 # number of inductors
+    num_v = 0    # number of independent voltage sources
+    num_i = 0    # number of independent current sources
+    i_unk = 0  # number of current unknowns
+    num_opamps = 0   # number of op amps
+    num_vcvs = 0     # number of controlled sources of various types
+    num_vccs = 0
+    num_cccs = 0
+    num_ccvs = 0
+    num_cpld_ind = 0 # number of coupled inductors
+
+    content = example_net_list.splitlines()
+
+    content = [x.strip() for x in content]  #remove leading and trailing white space
+    # remove empty lines
+    while '' in content:
+        content.pop(content.index(''))
+
+    # remove comment lines, these start with a asterisk *
+    content = [n for n in content if not n.startswith('*')]
+    content = [n for n in content if not n.startswith('#')]
+    # remove other comment lines, these start with a semicolon ;
+    content = [n for n in content if not n.startswith(';')]
+    # remove spice directives, these start with a period, .
+    #content = [n for n in content if not n.startswith('.')]
+    # converts 1st letter to upper case
+    #content = [x.upper() for x in content] <- this converts all to upper case
+    content = [x.capitalize() for x in content]
+    # removes extra spaces between entries
+    content = [' '.join(x.split()) for x in content]
+
+    line_cnt = len(content) # number of lines in the netlist
+    branch_cnt = 0  # number of branches in the netlist
+    # check number of entries on each line, count each element type
+    for i in range(line_cnt):
+        x = content[i][0]
+        tkn = content[i].split()
+        tk_cnt = len(tkn) # split the line into a list of words
+
+        if (x == 'R') or (x == 'L') or (x == 'C'):
+            # if tk_cnt != 4:
+            #     raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+            #     "had {:d} items and should only be 4".format(tk_cnt))
+            num_rlc += 1
+            branch_cnt += 1
+            if x == 'L':
+                num_ind += 1
+        
+        elif x == 'V':
+            if tk_cnt < 4:
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 4".format(tk_cnt))
+            num_v += 1
+            branch_cnt += 1
+        elif x == 'I':
+            if tk_cnt != 4:
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 4".format(tk_cnt))
+            num_i += 1
+            branch_cnt += 1
+        elif x == 'O':
+            if tk_cnt != 4:
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 4".format(tk_cnt))
+            num_opamps += 1
+        
+        #subcircuits
+        elif x == 'X':
+            
+            # opamp subcircuit
+            if tkn[4] == 'opamp':
+                pattern = r"X(\w+) (\w+) (\w+) (\w+) opamp aol=([\d\w]+) gbw=([\d\w]+)"
+                
+                # matchear la línea de los opamps ideales
+                match = re.match(pattern, content[i])
+                
+                if not match:
+                    raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                    "Se esperaba una línea estilo: XU1 nodo_v- nodo_v+ nodo_vout opamp Aol=100K GBW=10Meg")
+                
+                num_opamps += 1
+                
+        elif x == 'E':
+            if (tk_cnt != 6):
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 6".format(tk_cnt))
+            num_vcvs += 1
+            branch_cnt += 1
+        elif x == 'G':
+            if (tk_cnt != 6):
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 6".format(tk_cnt))
+            num_vccs += 1
+            branch_cnt += 1
+        elif x == 'F':
+            if (tk_cnt != 5):
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 5".format(tk_cnt))
+            num_cccs += 1
+            branch_cnt += 1
+        elif x == 'H':
+            if (tk_cnt != 5):
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 5".format(tk_cnt))
+            num_ccvs += 1
+            branch_cnt += 1
+        elif x == 'K':
+            if (tk_cnt != 4):
+                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+                "had {:d} items and should only be 4".format(tk_cnt))
+            num_cpld_ind += 1
+
+        # parámetros, includes, y otros comandos
+        elif x == '.':
+            pass
+            
+        else:
+            raise Exception("unknown element type in branch {:d}: {:s}".format(i,content[i]))
+
+
+    ''' The parser performs the following operations.
+     1. puts branch elements into data frame  
+     2. counts number of nodes  
+
+     data frame labels:
+     - element: type of element  
+     - p node: positive node  
+     - n node: negative node, for a current source, the arrow point terminal, LTspice 
+     puts the inductor phasing dot on this terminal  
+     - cp node: controlling positive node of branch  
+     - cn node: controlling negative node of branch  
+     - Vout: opamp output node  
+     - value: value of element or voltage  
+     - Vname: voltage source through which the controlling current flows. Need to 
+     add a zero volt voltage source to the controlling branch.  
+     - Lname1: name of coupled inductor 1  
+     - Lname2: name of coupled inductor 2'''  
+
+
+    # build the pandas data frame
+    df_netlist = pd.DataFrame(columns=['element','p node','n node','cp node','cn node',
+        'Vout','value','Vname','Lname1','Lname2'])
+
+    # this data frame is for branches with unknown currents
+    df_netlist_unknown_currents = pd.DataFrame(columns=['element','p node','n node'])
+
+    # lista de nombre de los nodos
+    node_names = ['0'] # nodo 0 es GND en LTspice
+    cant_nodos = 1
+
+    # node_names = [] # nodo 0 es GND en LTspice
+    # cant_nodos = 0
+    
+
+    # ### Functions to load branch elements into data frame and check for gaps in node numbering
+
+
+        
+    def parse_value_or_expression(input_string):
+        # Patrón para expresiones matemáticas entre llaves
+        expression_pattern = r'^\{(.+)\}$'
+    
+        # Intentar parsear como expresión matemática
+        match = re.match(expression_pattern, input_string)
+        if match:
+            expr_str = match.group(1)
+            try:
+                sp_expr = sp.sympify(expr_str)
+                return(sp_expr) 
+            except sp.sympifyError:
+                raise ValueError(f"No se pudo parsear la expresión matemática: {expr_str}")
+    
+        # Si no es una expresión matemática, intentar parsear como número
+        number_pattern = r'^-?\d+(\.\d+)?$'
+        if re.match(number_pattern, input_string):
+            return float(input_string) if '.' in input_string else int(input_string)
+    
+        raise ValueError(f"El string: {input_string} no es un número válido ni una expresión matemática entre llaves.")
+        
+
+    def parse_nodes(str_node):
+        
+        nonlocal cant_nodos, node_names
+        
+        pattern = r'^n(\d{3})$'
+        match = re.match(pattern, str_node)
+    
+        if match:
+            # valor numérico consecutivo que asigna LTspice a los nodos.
+            
+            bAux = np.asarray(node_names) == str_node
+            if np.any(bAux):
+                this_node_int = np.flatnonzero(bAux)[0]
+            else:
+                # agrego nodo a la lista    
+                this_node_int = cant_nodos
+                node_names += [str_node]
+                cant_nodos += 1
+        else:
+            # etiqueta de nodo
+            bAux = np.asarray(node_names) == str_node
+            if np.any(bAux):
+                this_node_int = np.flatnonzero(bAux)[0]
+            else:
+                # agrego nodo a la lista    
+                this_node_int = cant_nodos
+                node_names += [str_node]
+                cant_nodos += 1
+           
+        #     raise ValueError("El string: {:s} no tiene el formato 'nXXX' donde XXX es un número entero con tres dígitos.".format(str_node))
+    
+        return this_node_int
+
+    # Diccionario de conversión de sufijos a escala
+    suffix_scale = {
+        'T': 1e12, 't': 1e12,
+        'G': 1e9, 'g': 1e9,
+        'MEG': 1e6, 'meg': 1e6, 'Meg': 1e6,
+        'K': 1e3, 'k': 1e3,
+        'M': 1e-3, 'm': 1e-3,
+        'U': 1e-6, 'u': 1e-6, 'µ': 1e-6,
+        'N': 1e-9, 'n': 1e-9,
+        'P': 1e-12, 'p': 1e-12,
+        'F': 1e-15, 'f': 1e-15
+    }
+
+    def parse_opamp(opamp_tokens):
+    
+        value_str = opamp_tokens[5]
+        pattern = re.compile(r'aol=(\d+(\.\d+)?)([TtGgMmUuNnPpFf]|[Kk]|MEG|meg|Meg)?')
+        match = pattern.match(value_str)
+        if not match:
+            raise ValueError(f"El valor '{value_str}' no tiene un formato válido")
+        
+        value = float(match.group(1))
+        suffix = match.group(3)
+       
+        if suffix:
+            aol = value * suffix_scale[suffix]
+        else:
+            aol = np.nan
+            
+        value_str = opamp_tokens[6]
+        pattern = re.compile(r'gbw=(\d+(\.\d+)?)([TtGgMmUuNnPpFf]|[Kk]|MEG|meg|Meg)?')
+        match = pattern.match(value_str)
+        if not match:
+            raise ValueError(f"El valor '{value_str}' no tiene un formato válido")
+        
+        value = float(match.group(1))
+        suffix = match.group(3)
+       
+        if suffix:
+            gbw = value * suffix_scale[suffix]
+        else:
+            gbw = np.nan
+        
+        return [aol, gbw]
+
+    # loads voltage or current sources into branch structure
+    def indep_source(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        df_netlist.loc[line_df_netlist,'element'] = tk[0]
+        df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[1])
+        df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[2])
+        if tk[3] == 'ac':
+            df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[4])
+        else:
+            df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[3])
+
+    # loads passive elements into branch structure
+    def rlc_element(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        df_netlist.loc[line_df_netlist,'element'] = tk[0]
+        df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[1])
+        df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[2])
+        df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[3])
+
+    # loads multi-terminal elements into branch structure
+    # O - Op Amps
+    def opamp_sub_network(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        
+        # forzamos tipo de elemento O
+        this_element = tk[0]
+        if this_element[0] == 'O':
+            
+            bOpampInvertInput = False
+        else:
+            bOpampInvertInput = True
+            this_element = 'O' + this_element
+
+        df_netlist.loc[line_df_netlist,'element'] = this_element
+        
+        if bOpampInvertInput:
+            df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[2])
+            df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[1])
+        else:
+            df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[1])
+            df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[2])
+                
+        df_netlist.loc[line_df_netlist,'Vout'] = parse_nodes(tk[3])
+
+        if( len(tk) > 4 and tk[4] == 'opamp' ):
+            # usamos el modelo que impone LTspice o el ideal
+            aol, gbw = parse_opamp(tk)
+        else:
+            # usamos valores idealizadamente altos
+            aol, gbw = [10e10 , 10e20]
+        
+        if opamp_model == 'OA_integrador':
+            # integrator opamp model
+            df_netlist.loc[line_df_netlist,'value'] = gbw/s
+            
+        elif opamp_model == 'OA_1polo':
+            # one-pole opamp model
+            df_netlist.loc[line_df_netlist,'value'] = gbw/(s+gbw/aol)
+            
+        else:
+            # modelo ideal de opamp
+            aop = sp.symbols('aop', Real = True)
+            df_netlist.loc[line_df_netlist,'value'] = aop
+                
+
+    # G - VCCS
+    def vccs_sub_network(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        df_netlist.loc[line_df_netlist,'element'] = tk[0]
+        df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[1])
+        df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[2])
+        df_netlist.loc[line_df_netlist,'cp node'] = parse_nodes(tk[3])
+        df_netlist.loc[line_df_netlist,'cn node'] = parse_nodes(tk[4])
+        df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[5])
+
+    # E - VCVS
+    # in sympy E is the number 2.718, replacing E with Ea otherwise, sp.sympify() errors out
+    def vcvs_sub_network(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        df_netlist.loc[line_df_netlist,'element'] = tk[0].replace('E', 'Ea')
+        df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[1])
+        df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[2])
+        df_netlist.loc[line_df_netlist,'cp node'] = parse_nodes(tk[3])
+        df_netlist.loc[line_df_netlist,'cn node'] = parse_nodes(tk[4])
+        df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[5])
+
+    # F - CCCS
+    def cccs_sub_network(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        df_netlist.loc[line_df_netlist,'element'] = tk[0]
+        df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[1])
+        df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[2])
+        df_netlist.loc[line_df_netlist,'Vname'] = tk[3].capitalize()
+        df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[4])
+
+    # H - CCVS
+    def ccvs_sub_network(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        df_netlist.loc[line_df_netlist,'element'] = tk[0]
+        df_netlist.loc[line_df_netlist,'p node'] = parse_nodes(tk[1])
+        df_netlist.loc[line_df_netlist,'n node'] = parse_nodes(tk[2])
+        df_netlist.loc[line_df_netlist,'Vname'] = tk[3].capitalize()
+        df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[4])
+
+    # K - Coupled inductors
+    def cpld_ind_sub_network(line_df_netlist, line_nu):
+        tk = content[line_nu].split()
+        df_netlist.loc[line_df_netlist,'element'] = tk[0]
+        df_netlist.loc[line_df_netlist,'Lname1'] = tk[1].capitalize()
+        df_netlist.loc[line_df_netlist,'Lname2'] = tk[2].capitalize()
+        df_netlist.loc[line_df_netlist,'value'] = parse_value_or_expression(tk[3])
+
+    # function to scan df_netlist and get largest node number
+    def count_nodes():
+        # need to check that nodes are consecutive
+        # fill array with node numbers
+        p = np.zeros(cant_netlist_valid)
+        for i in range(cant_netlist_valid):
+            # need to skip coupled inductor 'K' statements
+            if df_netlist.loc[i,'element'][0] != 'K': #get 1st letter of element name
+                p[df_netlist['p node'][i]] = df_netlist['p node'][i]
+                p[df_netlist['n node'][i]] = df_netlist['n node'][i]
+
+        # find the largest node number
+        if df_netlist['n node'].max() > df_netlist['p node'].max():
+            largest = df_netlist['n node'].max()
+        else:
+            largest =  df_netlist['p node'].max()
+
+        largest = int(largest)
+        # check for unfilled elements, skip node 0
+        for i in range(1,largest):
+            if p[i] == 0:
+                raise Exception('nodes not in continuous order, node {:.0f} is missing'.format(p[i-1]+1))
+        return largest
+
+    # load branch info into data frame
+    jj = 0
+    
+    for i in range(line_cnt):
+        x = content[i][0]
+        
+        tkn = content[i].split()
+        tk_cnt = len(tkn) # split the line into a list of words
+
+        if (x == 'R') or (x == 'L') or (x == 'C'):
+            rlc_element(jj, i)
+            jj += 1
+            
+        elif x == '.':
+            # parámetros
+            if tkn[0] == '.param':
+                dic_this_pars = parse_param_line(content[i])
+                dic_params.update(dic_this_pars)
+                
+        elif (x == 'V') or (x == 'I'):
+            indep_source(jj, i)
+            jj += 1
+        elif x == 'O' or (x == 'X' and tkn[4] == 'opamp'):
+            opamp_sub_network(jj, i)
+            jj += 1
+        elif x == 'E':
+            vcvs_sub_network(jj, i)
+            jj += 1
+        elif x == 'G':
+            vccs_sub_network(jj, i)
+            jj += 1
+        elif x == 'F':
+            cccs_sub_network(jj, i)
+            jj += 1
+        elif x == 'H':
+            ccvs_sub_network(jj, i)
+            jj += 1
+        elif x == 'K':
+            cpld_ind_sub_network(jj, i)
+            jj += 1
+        else:
+            raise Exception("unknown element type in branch {:d}, {:s}".format(i,content[i]))
+
+    '''29 Nov 2023:  When the D matrix is built, independent voltage sources are processed
+    in the data frame order when building the D matrix. If the voltage source followed element
+    L, H, F, K types in the netlist, a row was inserted that put the voltage source in a different
+    row in relation to its position in the Ev matrix. This would cause the node attached to 
+    the terminal of the voltage source to be zero volts.  
+    Solution - The following block of code was added to move voltage source types to the 
+    beginning of the net list dataframe before any calculations are performed.''' 
+
+    cant_netlist_valid = len(df_netlist)
+
+    # Check for position of voltages sources in the dataframe.
+    source_index = [] # keep track of voltage source row number
+    other_index = [] # make a list of all other types
+    for i in range(cant_netlist_valid):
+        # process all the elements creating unknown currents
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if (x == 'V'):
+            source_index.append(i)
+        else:
+            other_index.append(i)
+
+    df_netlist = df_netlist.reindex(source_index+other_index,copy=True) # re-order the data frame
+    df_netlist.reset_index(drop=True, inplace=True) # renumber the index
+
+    # count number of nodes
+    num_nodes = count_nodes()
+
+    # Build df_netlist_unknown_currents: consists of branches with current unknowns, used for C & D matrices
+    # walk through data frame and find these parameters
+    count = 0
+    for i in range(cant_netlist_valid):
+        # process all the elements creating unknown currents
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if (x == 'L') or (x == 'V') or (x == 'O') or (x == 'E') or (x == 'H') or (x == 'F'):
+            df_netlist_unknown_currents.loc[count,'element'] = df_netlist.loc[i,'element']
+            df_netlist_unknown_currents.loc[count,'p node'] = df_netlist.loc[i,'p node']
+            df_netlist_unknown_currents.loc[count,'n node'] = df_netlist.loc[i,'n node']
+            count += 1
+
+    # print the netlist report
+    report = 'Net list report\n'
+    report = report+('number of lines in netlist: {:d}\n'.format(line_cnt))
+    report = report+'number of branches: {:d}\n'.format(branch_cnt)
+    report = report+'number of nodes: {:d}\n'.format(num_nodes)
+    # count the number of element types that affect the size of the B, C, D, E and J arrays
+    # these are current unknows
+    i_unk = num_v+num_opamps+num_vcvs+num_ccvs+num_cccs+num_ind
+    report = report+'number of unknown currents: {:d}\n'.format(i_unk)
+    report = report+'number of RLC (passive components): {:d}\n'.format(num_rlc)
+    report = report+'number of inductors: {:d}\n'.format(num_ind)
+    report = report+'number of independent voltage sources: {:d}\n'.format(num_v)
+    report = report+'number of independent current sources: {:d}\n'.format(num_i)
+    report = report+'number of op amps: {:d}\n'.format(num_opamps)
+    report = report+'number of E - VCVS: {:d}\n'.format(num_vcvs)
+    report = report+'number of G - VCCS: {:d}\n'.format(num_vccs)
+    report = report+'number of F - CCCS: {:d}\n'.format(num_cccs)
+    report = report+'number of H - CCVS: {:d}\n'.format(num_ccvs)
+    report = report+'number of K - Coupled inductors: {:d}\n'.format(num_cpld_ind)
+
+    # initialize some sp.Symbolic matrix with sp.zeros
+    # A is formed by [[G, C] [B, D]]
+    # Z = [I,E]
+    # X = [V, J]
+    V = sp.zeros(num_nodes,1)
+    I = sp.zeros(num_nodes,1)
+    G = sp.zeros(num_nodes,num_nodes)  # also called Yr, the reduced nodal matrix
+
+    # count the number of element types that affect the size of the B, C, D, E and J arrays
+    # these are element types that have unknown currents
+    i_unk = num_v+num_opamps+num_vcvs+num_ccvs+num_ind+num_cccs
+    # if i_unk == 0, just generate empty arrays
+    B = sp.zeros(num_nodes,i_unk)
+    C = sp.zeros(i_unk,num_nodes)
+    D = sp.zeros(i_unk,i_unk)
+    Ev = sp.zeros(i_unk,1)
+    J = sp.zeros(i_unk,1)
+
+    ''' The G matrix is n by n, where n is the number of nodes. 
+    The matrix is formed by the interconnections between the resistors, 
+    capacitors and VCCS type elements.  In the original paper G is called Yr, 
+    where Yr is a reduced form of the nodal matrix excluding the contributions 
+    due to voltage sources, current controlling elements, etc.  In python row 
+    and columns are: G[row, column]'''
+    for i in range(cant_netlist_valid):  # process each row in the data frame
+        n1 = df_netlist.loc[i,'p node']
+        n2 = df_netlist.loc[i,'n node']
+        cn1 = df_netlist.loc[i,'cp node']
+        cn2 = df_netlist.loc[i,'cn node']
+        # process all the passive elements, save conductance to temp value
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if x == 'R':
+            g = 1/sp.sympify(df_netlist.loc[i,'element'])
+        if x == 'C':
+            g = s*sp.sympify(df_netlist.loc[i,'element'])
+        if x == 'G':   #vccs type element
+            g = sp.sympify(df_netlist.loc[i,'element'].lower())  # use a sp.Symbol for gain value
+
+        if (x == 'R') or (x == 'C'):
+            # If neither side of the element is connected to ground
+            # then subtract it from the appropriate location in the matrix.
+            if (n1 != 0) and (n2 != 0):
+                G[n1-1,n2-1] += -g
+                G[n2-1,n1-1] += -g
+
+            # If node 1 is connected to ground, add element to diagonal of matrix
+            if n1 != 0:
+                G[n1-1,n1-1] += g
+
+            # same for for node 2
+            if n2 != 0:
+                G[n2-1,n2-1] += g
+
+        if x == 'G':    #vccs type element
+            # check to see if any terminal is grounded
+            # then stamp the matrix
+            if n1 != 0 and cn1 != 0:
+                G[n1-1,cn1-1] += g
+
+            if n2 != 0 and cn2 != 0:
+                G[n2-1,cn2-1] += g
+
+            if n1 != 0 and cn2 != 0:
+                G[n1-1,cn2-1] -= g
+
+            if n2 != 0 and cn1 != 0:
+                G[n2-1,cn1-1] -= g
+
+    '''The B matrix is an n by m matrix with only 0, 1 and -1 elements, where 
+    n = number of nodes and m is the number of current unknowns, i_unk. There is 
+    one column for each unknown current. The code loop through all the branches 
+    and process elements that have stamps for the B matrix:  
+     - Voltage sources (V)  
+     - Opamps (O)  
+     - CCVS (H)  
+     - CCCS (F)  
+     - VCVS (E)  
+     - Inductors (L)    
+
+    The order of the columns is as they appear in the netlist.  CCCS (F) does not get
+    its own column because the controlling current is through a zero volt voltage source,
+    called Vname and is already in the net list.'''
+    sn = 0   # count source number as code walks through the data frame
+    for i in range(cant_netlist_valid):
+        n1 = df_netlist.loc[i,'p node']
+        n2 = df_netlist.loc[i,'n node']
+        n_vout = df_netlist.loc[i,'Vout'] # node connected to op amp output
+
+        # process elements with input to B matrix
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if x == 'V':
+            if i_unk > 1:  #is B greater than 1 by n?, V
+                if n1 != 0:
+                    B[n1-1,sn] = 1
+                if n2 != 0:
+                    B[n2-1,sn] = -1
+            else:
+                if n1 != 0:
+                    B[n1-1] = 1
+                if n2 != 0:
+                    B[n2-1] = -1
+            sn += 1   #increment source count
+        if x == 'O':  # op amp type, output connection of the opamp goes in the B matrix
+            B[n_vout-1,sn] = 1
+            sn += 1   # increment source count
+        if (x == 'H') or (x == 'F'):  # H: ccvs, F: cccs,
+            if i_unk > 1:  #is B greater than 1 by n?, H, F
+                # check to see if any terminal is grounded
+                # then stamp the matrix
+                if n1 != 0:
+                    B[n1-1,sn] = 1
+                if n2 != 0:
+                    B[n2-1,sn] = -1
+            else:
+                if n1 != 0:
+                    B[n1-1] = 1
+                if n2 != 0:
+                    B[n2-1] = -1
+            sn += 1   #increment source count
+        if x == 'E':   # vcvs type, only ik column is altered at n1 and n2
+            if i_unk > 1:  #is B greater than 1 by n?, E
+                if n1 != 0:
+                    B[n1-1,sn] = 1
+                if n2 != 0:
+                    B[n2-1,sn] = -1
+            else:
+                if n1 != 0:
+                    B[n1-1] = 1
+                if n2 != 0:
+                    B[n2-1] = -1
+            sn += 1   #increment source count
+        if x == 'L':
+            if i_unk > 1:  #is B greater than 1 by n?, L
+                if n1 != 0:
+                    B[n1-1,sn] = 1
+                if n2 != 0:
+                    B[n2-1,sn] = -1
+            else:
+                if n1 != 0:
+                    B[n1-1] = 1
+                if n2 != 0:
+                    B[n2-1] = -1
+            sn += 1   #increment source count
+
+    # check source count
+    if sn != i_unk:
+        raise Exception('source number, sn={:d} not equal to i_unk={:d} in matrix B'.format(sn,i_unk))
+
+    ''' The C matrix is an m by n matrix with only 0, 1 and -1 elements (except for controlled sources).  
+    The code is similar to the B matrix code, except the indices are swapped.   The code loops through 
+    all the branches and process elements that have stamps for the C matrix:  
+     - Voltage sources (V)  
+     - Opamps (O)  
+     - CCVS (H)  
+     - CCCS (F)  
+     - VCVS (E)  
+     - Inductors (L)  
+
+     Op Amp elements
+     The op amp element is assumed to be an ideal op amp and use of this component is valid only when 
+     used in circuits with a DC path (a short or a resistor) from the output terminal to the negative 
+     input terminal of the op amp. No error checking is provided and if the condition is violated, 
+     the results likely will be erroneous.   
+
+     References use in the debugging of the opamp stamp:   
+     1. Design of Analog Circuits Through sp.Symbolic Analysis, edited by Mourad Fakhfakh, Esteban Tlelo-Cuautle, Francisco V. Fernández   
+     2. Computer Aided Design and Design Automation, edited by Wai-Kai Chen  
+
+     find the the column position in the C and D matrix for controlled sources
+     needs to return the node numbers and branch number of controlling branch'''
+    def find_vname(name):
+        # need to walk through data frame and find these parameters
+        for i in range(len(df_netlist_unknown_currents)):
+            # process all the elements creating unknown currents
+            if name == df_netlist_unknown_currents.loc[i,'element']:
+                n1 = df_netlist_unknown_currents.loc[i,'p node']
+                n2 = df_netlist_unknown_currents.loc[i,'n node']
+                return n1, n2, i  # n1, n2 & col_num are from the branch of the controlling element
+
+        raise Exception('failed to find matching branch element in find_vname')
+
+    # generate the C Matrix
+    sn = 0   # count source number as code walks through the data frame
+    for i in range(cant_netlist_valid):
+        n1 = df_netlist.loc[i,'p node']
+        n2 = df_netlist.loc[i,'n node']
+        cn1 = df_netlist.loc[i,'cp node'] # nodes for controlled sources
+        cn2 = df_netlist.loc[i,'cn node']
+        n_vout = df_netlist.loc[i,'Vout'] # node connected to op amp output
+
+        # process elements with input to B matrix
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if x == 'V':
+            if i_unk > 1:  #is B greater than 1 by n?, V
+                if n1 != 0:
+                    C[sn,n1-1] = 1
+                if n2 != 0:
+                    C[sn,n2-1] = -1
+            else:
+                if n1 != 0:
+                    C[n1-1] = 1
+                if n2 != 0:
+                    C[n2-1] = -1
+            sn += 1   #increment source count
+
+        if x == 'O':  # op amp type, input connections of the opamp go into the C matrix
+
+            #is B greater than 1 by n?, O            
+            if i_unk > 1:  
+                # check to see if any terminal is grounded
+                # then stamp the matrix
+                if n1 != 0:
+                    C[sn,n1-1] = 1
+                if n2 != 0:
+                    C[sn,n2-1] = -1
+
+                # if opamp_model != 'OA_ideal':
+                # la salida del opamp, tendrá un valor de A(s)(V+ - V-)
+                # el valor de A(s) indica el modelo que usamos del opamp.
+                # la matriz C modela A(s) como B = -1/A(s) según: 
+                # (Vlach1994) Vlach, Jiri - Linear Circuit Theory_ Matrices in 
+                # Computer Applications-Apple Academic Press.
+                C[sn,n_vout-1] = -1/df_netlist.loc[i,'value']
+                    
+            else:
+                if n1 != 0:
+                    C[n1-1] = 1
+                if n2 != 0:
+                    C[n2-1] = -1
+
+                # if opamp_model != 'OA_ideal':
+                C[n_vout-1] = -1/df_netlist.loc[i,'value']
+            
+            sn += 1   # increment source count
+
+        if x == 'F':  # need to count F (cccs) types
+            sn += 1   #increment source count
+        if x == 'H':  # H: ccvs
+            if i_unk > 1:  #is B greater than 1 by n?, H
+                # check to see if any terminal is grounded
+                # then stamp the matrix
+                if n1 != 0:
+                    C[sn,n1-1] = 1
+                if n2 != 0:
+                    C[sn,n2-1] = -1
+            else:
+                if n1 != 0:
+                    C[n1-1] = 1
+                if n2 != 0:
+                    C[n2-1] = -1
+            sn += 1   #increment source count
+        if x == 'E':   # vcvs type, ik column is altered at n1 and n2, cn1 & cn2 get value
+            if i_unk > 1:  #is B greater than 1 by n?, E
+                if n1 != 0:
+                    C[sn,n1-1] = 1
+                if n2 != 0:
+                    C[sn,n2-1] = -1
+                # add entry for cp and cn of the controlling voltage
+                if cn1 != 0:
+                    C[sn,cn1-1] = -sp.sympify(df_netlist.loc[i,'element'].lower())
+                if cn2 != 0:
+                    C[sn,cn2-1] = sp.sympify(df_netlist.loc[i,'element'].lower())
+            else:
+                if n1 != 0:
+                    C[n1-1] = 1
+                if n2 != 0:
+                    C[n2-1] = -1
+                vn1, vn2, df_netlist_unknown_currents_index = find_vname(df_netlist.loc[i,'Vname'])
+                if vn1 != 0:
+                    C[vn1-1] = -sp.sympify(df_netlist.loc[i,'element'].lower())
+                if vn2 != 0:
+                    C[vn2-1] = sp.sympify(df_netlist.loc[i,'element'].lower())
+            sn += 1   #increment source count
+
+        if x == 'L':
+            if i_unk > 1:  #is B greater than 1 by n?, L
+                if n1 != 0:
+                    C[sn,n1-1] = 1
+                if n2 != 0:
+                    C[sn,n2-1] = -1
+            else:
+                if n1 != 0:
+                    C[n1-1] = 1
+                if n2 != 0:
+                    C[n2-1] = -1
+            sn += 1   #increment source count
+
+    # check source count
+    if sn != i_unk:
+        raise Exception('source number, sn={:d} not equal to i_unk={:d} in matrix C'.format(sn,i_unk))
+
+    ''' The D matrix is an m by m matrix, where m is the number of unknown currents.  
+    m = i_unk = num_v+num_opamps+num_vcvs+num_ccvs+num_ind+num_cccs
+
+    Stamps that affect the D matrix are: inductor, ccvs and cccs  
+    inductors: minus sign added to keep current flow convention consistent  
+
+    Coupled inductors notes:  
+    Can the K statement be anywhere in the net list, even before Lx and Ly?   
+    12/6/2017 doing some debugging on with coupled inductors  
+    LTspice seems to put the phasing dot on the neg node when it generates the netlist   
+    This code uses M for mutual inductance, LTspice uses k for the coupling coefficient.
+    Nota: Lo cambiamos ya que M = k.sqrt(L1.L2)
+    '''  
+    
+
+    # generate the D Matrix
+    sn = 0   # count source number as code walks through the data frame
+    for i in range(cant_netlist_valid):
+        n1 = df_netlist.loc[i,'p node']
+        n2 = df_netlist.loc[i,'n node']
+        #cn1 = df_netlist.loc[i,'cp node'] # nodes for controlled sources
+        #cn2 = df_netlist.loc[i,'cn node']
+        #n_vout = df_netlist.loc[i,'Vout'] # node connected to op amp output
+
+        # process elements with input to D matrix
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if (x == 'V') or (x == 'O') or (x == 'E'):  # need to count V, E & O types
+            sn += 1   #increment source count
+
+        if x == 'L':
+            if i_unk > 1:  #is D greater than 1 by 1?
+                D[sn,sn] += -s*sp.sympify(df_netlist.loc[i,'element'])
+            else:
+                D[sn] += -s*sp.sympify(df_netlist.loc[i,'element'])
+            sn += 1   #increment source count
+
+        if x == 'H':  # H: ccvs
+            # if there is a H type, D is m by m
+            # need to find the vn for Vname
+            # then stamp the matrix
+            vn1, vn2, df_netlist_unknown_currents_index = find_vname(df_netlist.loc[i,'Vname'])
+            D[sn,df_netlist_unknown_currents_index] += -sp.sympify(df_netlist.loc[i,'element'].lower())
+            sn += 1   #increment source count
+
+        if x == 'F':  # F: cccs
+            # if there is a F type, D is m by m
+            # need to find the vn for Vname
+            # then stamp the matrix
+            vn1, vn2, df_netlist_unknown_currents_index = find_vname(df_netlist.loc[i,'Vname'])
+            D[sn,df_netlist_unknown_currents_index] += -sp.sympify(df_netlist.loc[i,'element'].lower())
+            D[sn,sn] = 1
+            sn += 1   #increment source count
+
+        if x == 'K':  # K: coupled inductors, KXX LYY LZZ value
+            # if there is a K type, D is m by m
+            vn1, vn2, ind1_index = find_vname(df_netlist.loc[i,'Lname1'])  # get i_unk position for Lx
+            vn1, vn2, ind2_index = find_vname(df_netlist.loc[i,'Lname2'])  # get i_unk position for Ly
+            # enter sM on diagonals = value*sqrt(LXX*LZZ)
+
+            this_M = 'M{:s}'.format(df_netlist.loc[i,'element'].lower()[1:])
+            D[ind1_index,ind2_index] += -s*sp.sympify(this_M)  # s*Mxx
+            D[ind2_index,ind1_index] += -s*sp.sympify(this_M)  # -s*Mxx
+            
+            # el valor del trafo para a ser M = k*sqrt(L1.L2)
+            if bAplicarValoresComponentes:
+                inductor_rows = df_netlist[df_netlist['element'].isin([df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2']])]            
+                dic_params.update({this_M : df_netlist.loc[i,'value'] * sp.sqrt(inductor_rows['value'].values[0]*inductor_rows['value'].values[1])})
+            else:
+                dic_params.update({this_M : df_netlist.loc[i,'value'] * sp.sympify('sqrt({:s}*{:s})'.format(df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2'] ))} )
+
+            # D[ind1_index,ind2_index] += -s*sp.sympify('{:s}*sqrt({:s}*{:s})'.format(df_netlist.loc[i,'element'], df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2'] ))  # -s*k*sqrt(L1.L2)
+            # D[ind2_index,ind1_index] += -s*sp.sympify('{:s}*sqrt({:s}*{:s})'.format(df_netlist.loc[i,'element'], df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2'] ))  # -s*k*sqrt(L1.L2)
+
+    ''' The V matrix is an n by 1 matrix formed of the node voltages, where n is the number of nodes. Each element in V corresponds to the voltage at the node.  
+    Maybe make small v's v_1 so as not to confuse v1 with V1.'''
+    # generate the V matrix
+    for i in range(num_nodes):
+        # V[i] = sp.sympify('v{:d}'.format(i+1))
+        V[i] = sp.Symbol( 'v_{:s}'.format(node_names[i+1]) )
+
+    ''' The J matrix is an m by 1 matrix, where m is the number of unknown currents.
+    i_unk = num_v+num_opamps+num_vcvs+num_ccvs+num_ind+num_cccs
+    The J matrix is an m by 1 matrix, with one entry for each i_unk from a source'''
+    for i in range(len(df_netlist_unknown_currents)):
+        # process all the unknown currents
+        J[i] = sp.sympify('I_{:s}'.format(df_netlist_unknown_currents.loc[i,'element']))
+
+    ''' The I matrix is an n by 1 matrix, where n is the number of nodes. The value
+    of each element of I is determined by the sum of current sources into the 
+    corresponding node. If there are no current sources connected to the node, the value is zero.'''
+
+    # generate the I matrix, current sources have n2 = arrow end of the element
+    sni = 0   # count current source 
+    for i in range(cant_netlist_valid):
+        n1 = df_netlist.loc[i,'p node']
+        n2 = df_netlist.loc[i,'n node']
+        # process all the passive elements, save conductance to temp value
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if x == 'I':
+            sni += 1   # count current source 
+            g = sp.sympify(df_netlist.loc[i,'element'])
+            # sum the current into each node
+            if n1 != 0:
+                I[n1-1] -= g
+            if n2 != 0:
+                I[n2-1] += g
+
+    # The Ev matrix is m by 1 and holds the values of the independent voltage sources.
+    sn = 0   # count source number
+    for i in range(cant_netlist_valid):
+        # process all the passive elements
+        x = df_netlist.loc[i,'element'][0]   #get 1st letter of element name
+        if x == 'V':
+            Ev[sn] = sp.sympify(df_netlist.loc[i,'element'])
+            sn += 1
+
+    if (sn + sni) == 0:
+        print_console_alert('No se han encontrado generadores en el esquem')
+        
+        
+
+    ''' The Z matrix holds the independent voltage and current sources and is the combination of 2
+    smaller matrices I and Ev. The Z matrix is (m+n) by 1, n is the number of nodes, and m is the
+    number of independent voltage sources. The I matrix is n by 1 and contains the sum of the currents
+    through the passive elements into the corresponding node (either zero, or the sum of independent
+    current sources). The Ev matrix is m by 1 and holds the values of the independent voltage sources.'''
+    Z = I[:] + Ev[:]  # the + operator in python concatenates the lists
+
+    # Put matricies into SymPy 
+    Z = sp.Matrix(Z)
+
+    ''' The X matrix is an (n+m) by 1 vector that holds the unknown quantities (node voltages and the currents through
+    the independent voltage sources). The top n elements are the n node voltages. The bottom m elements represent the
+    currents through the m independent voltage sources in the circuit. The V matrix is n by 1 and holds the unknown voltages.
+    The J matrix is m by 1 and holds the unknown currents through the voltage sources '''
+    X = V[:] + J[:]  # the + operator in python concatenates the lists
+
+    # Put matricies into SymPy 
+    X = sp.Matrix(X)
+
+    # The A matrix is (m+n) by (m+n) and will be developed as the combination of 4 smaller matrices, G, B, C, and D.
+    n = num_nodes
+    m = i_unk
+    A = sp.zeros(m+n,m+n)
+    for i in range(n):
+        for j in range(n):
+            A[i,j] = G[i,j]
+
+    if i_unk > 1:
+        for i in range(n):
+            for j in range(m):
+                A[i,n+j] = B[i,j]
+                A[n+j,i] = C[j,i]
+
+        for i in range(m):
+            for j in range(m):
+                A[n+i,n+j] = D[i,j]
+
+    if i_unk == 1:
+        for i in range(n):
+            A[i,n] = B[i]
+            A[n,i] = C[i]
+        A[n,n] = D[0] # added 1/7/2024 while debugging source free circuit with one inductor
+
+    # recolecto los símbolos 
+    dic_comp_name_vals = dict(zip(df_netlist['element'][1:], df_netlist['value'][1:]))
+    
+    def convert_index_to_name(x): 
+        if pd.isna(x):
+            return x
+        return node_names[int(x)]
+    
+    def translate_node_names(df_in):
+    
+        df_out = df_in.copy()
+        df_out['p node'] = df_in['p node'].apply(convert_index_to_name)
+        df_out['n node'] = df_in['n node'].apply(convert_index_to_name)
+        df_out['Vout'] = df_in['Vout'].apply(convert_index_to_name)
+        
+        # print(df_out)
+        
+        return df_out
+    
+    df_netlist = translate_node_names(df_netlist)
+
+
+    node_sym = [ ii for ii in X.free_symbols ]
+    node_sym_names = [ str(ii) for ii in X.free_symbols ]
+    _, v_in_idx, _ = np.intersect1d(node_sym_names, posibles_entradas, return_indices=True)
+    _, v_out_idx, _ = np.intersect1d(node_sym_names, posibles_salidas, return_indices=True)
+    
+    if len(v_in_idx) > 0:
+        v_in = node_sym[v_in_idx[0]]
+    else:
+        v_in = 0
+        
+    if len(v_out_idx) > 0:
+        v_out = node_sym[v_out_idx[0]]
+    else:
+        v_out = 0
+
+    # aplicar los valores de los componentes.
+    if bAplicarValoresComponentes:
+        A = A.subs(dic_comp_name_vals)
+    
+    # aplicar parametrizaciones del esquemático.
+    if bAplicarParametros:
+        A = A.subs(dic_params)
+    
+    mna_sym = [ ii for ii in A.free_symbols ]
+    mna_sym_names = [ str(ii) for ii in A.free_symbols ]
+    
+    _, opamp_idx, _ = np.intersect1d( mna_sym_names, parametros_opamp, return_indices=True)
+    
+    # Los parámetros del opamp que figuren en las ecuaciones se resguardan. 
+    if len(opamp_idx) > 0:
+        aop = mna_sym[opamp_idx[0]]
+    else:
+        aop = 0
+    
+    # eps es un valor cercano a 0 útil para la simulación circuital. 
+    # Externamente puede anularse para facilitar el análisis simbólico
+    _, this_idx, _ = np.intersect1d( mna_sym_names, ('eps', ), return_indices=True)
+    
+    if len(this_idx) > 0:
+        eps = mna_sym[this_idx[0]]
+    else:
+        eps = 0
+
+    equ_smna = sp.Eq(A*X,Z)
+    
+    extra_results = {
+        "A": A,
+        "X": X,
+        "Z": Z,
+        "v_in": v_in,
+        "v_out": v_out,
+        "eps": eps,
+        "aop": aop,
+        "comp_name_values": dic_comp_name_vals,
+        "df_netlist": df_netlist,
+        "df_unk_currents": df_netlist_unknown_currents,
+        "dic_params": dic_params
+    }
+    
+    return equ_smna, extra_results
 

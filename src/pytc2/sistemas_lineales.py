@@ -869,7 +869,11 @@ def parametrize_sos(num, den = sp.Rational(1)):
 
     if bRationalFunc:
         # devuelve también una func. racional
-        num = K*num/den
+        if K == 0:
+            num = num/den
+        else:
+            num = sp.Mul(K, num/den, evaluate=False)
+            
         den = sp.Rational(1)
         
 

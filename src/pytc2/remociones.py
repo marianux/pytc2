@@ -286,124 +286,124 @@ def trim_func_s( rat_func, tol = 10**-6 ):
     
     return(num/den)
 
-# def modsq2mod_s( this_func ):
-    # '''
-    # Esta función halla una función de variable compleja T(s), cuyo módulo se 
-    # expresa como la factorización:
+def modsq2mod_s( this_func ):
+    '''
+    Esta función halla una función de variable compleja T(s), cuyo módulo se 
+    expresa como la factorización:
         
-    # .. math:: \\vert T(j\\omega) \\vert^2 = T(j\\omega).T(-j\\omega)
+    .. math:: \\vert T(j\\omega) \\vert^2 = T(j\\omega).T(-j\\omega)
     
-    # .. math:: T(s) = T(j\\omega)\\Big\\vert_{\\omega = s/j}
+    .. math:: T(s) = T(j\\omega)\\Big\\vert_{\\omega = s/j}
     
-    # Es decir que de todas la singularidades presentes en :math:`\\vert T(j\\omega) \\vert^2`, 
-    # el factor :math:`T(s)` sólo contendrá aquellas que se encuentren en el semiplano izquierdo.
+    Es decir que de todas la singularidades presentes en :math:`\\vert T(j\\omega) \\vert^2`, 
+    el factor :math:`T(s)` sólo contendrá aquellas que se encuentren en el semiplano izquierdo.
 
-    # Parameters
-    # ----------
-    # this_func : Symbolic expresion
-    #     Expresión simbólica de la función :math:`\\vert T(j\\omega) \\vert^2` a factorizar.
-
-
-    # Returns
-    # -------
-    # trim_func : Symbolic
-    #     Función :math:`T(s)` factorizada.
+    Parameters
+    ----------
+    this_func : Symbolic expresion
+        Expresión simbólica de la función :math:`\\vert T(j\\omega) \\vert^2` a factorizar.
 
 
-    # Raises
-    # ------
-    # ValueError
-    #     Si this_func no es una instancia de sympy.Expr.
+    Returns
+    -------
+    trim_func : Symbolic
+        Función :math:`T(s)` factorizada.
 
 
-    # See Also
-    # --------
-    # :func:`isFRP`
-    # :func:`trim_func_s`
-    # :func:`trim_poly_s`
+    Raises
+    ------
+    ValueError
+        Si this_func no es una instancia de sympy.Expr.
 
 
-    # Examples
-    # --------
-    # >>> import sympy as sp 
-    # >>> from pytc2.general import s
-    # >>> from pytc2.remociones import modsq2mod_s
-    # >>> this_func = (  s**4 + 6*s**2 + 9)/( s**4 - 2*s**2 + 1)
-    # >>> factor_func = modsq2mod_s( this_func )
-    # >>> print(factor_func)
-    # (s**2 + 3)/(s**2 + 2*s + 1)
+    See Also
+    --------
+    :func:`isFRP`
+    :func:`trim_func_s`
+    :func:`trim_poly_s`
 
-    # '''
+
+    Examples
+    --------
+    >>> import sympy as sp 
+    >>> from pytc2.general import s
+    >>> from pytc2.remociones import modsq2mod_s
+    >>> this_func = (  s**4 + 6*s**2 + 9)/( s**4 - 2*s**2 + 1)
+    >>> factor_func = modsq2mod_s( this_func )
+    >>> print(factor_func)
+    (s**2 + 3)/(s**2 + 2*s + 1)
+
+    '''
     # TODO: todavía la función no funciona correctamente. Probar el ejemplo.
             
-    # if not isinstance(this_func , sp.Expr):
-    #     raise ValueError('Hay que definir this_func como una expresión simbólica.')
+    if not isinstance(this_func , sp.Expr):
+        raise ValueError('Hay que definir this_func como una expresión simbólica.')
 
-    # num, den = sp.fraction(this_func)
+    num, den = sp.fraction(this_func)
 
-    # k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
+    k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
     
-    # # roots_num = num.as_poly(s).all_roots()
-    
-    # # poly_acc = sp.Rational('1')
-    
-    # roots_num = sp.roots(num)
+    # roots_num = num.as_poly(s).all_roots()
     
     # poly_acc = sp.Rational('1')
+    
+    roots_num = sp.roots(num)
+    
+    poly_acc = sp.Rational('1')
 
-    # for this_root in roots_num.keys():
+    for this_root in roots_num.keys():
         
-    #     if sp.re(this_root) <= 0:
+        if sp.re(this_root) <= 0:
             
-    #         # multiplicidad
-    #         mult = roots_num[this_root]
+            # multiplicidad
+            mult = roots_num[this_root]
 
-    #         if mult > 1:
-    #             poly_acc *= (s-this_root)**sp.Rational(mult/2)
-    #         else:
-    #             poly_acc *= (s-this_root)
+            if mult > 1:
+                poly_acc *= (s-this_root)**sp.Rational(mult/2)
+            else:
+                poly_acc *= (s-this_root)
 
-    # assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
+    assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
 
-    # num = sp.simplify(sp.expand(poly_acc))
+    num = sp.simplify(sp.expand(poly_acc))
 
 
-
-    # # poly_acc = 0
-    
-    # # for each_term in num.as_poly(s).all_terms():
-        
-    # #     poly_acc += np.abs(each_term[1]) * s**each_term[0][0]
-
-    # # num = poly_acc
-    
-    # roots_num = sp.roots(den)
-    
-    # poly_acc = sp.Rational('1')
-
-    # for this_root in roots_num.keys():
-        
-    #     if sp.re(this_root) <= 0:
-            
-    #         # multiplicidad
-    #         mult = roots_num[this_root]
-
-    #         if mult > 1:
-    #             poly_acc *= (s-this_root)**sp.Rational(mult/2)
-    #         else:
-    #             poly_acc *= (s-this_root)
-    
-    # den = sp.simplify(sp.expand(poly_acc))
 
     # poly_acc = 0
     
-    # for each_term in den.as_poly(s).all_terms():
+    # for each_term in num.as_poly(s).all_terms():
         
     #     poly_acc += np.abs(each_term[1]) * s**each_term[0][0]
 
-    # den = poly_acc
+    # num = poly_acc
+    
+    roots_num = sp.roots(den)
+    
+    poly_acc = sp.Rational('1')
 
-    # return(sp.simplify(sp.expand(sp.sqrt(k) * num/den))) 
+    for this_root in roots_num.keys():
+        
+        if sp.re(this_root) <= 0:
+            
+            # multiplicidad
+            mult = roots_num[this_root]
+
+            if mult > 1:
+                poly_acc *= (s-this_root)**sp.Rational(mult/2)
+            else:
+                poly_acc *= (s-this_root)
+    
+    den = sp.simplify(sp.expand(poly_acc))
+
+    poly_acc = 0
+    
+    for each_term in den.as_poly(s).all_terms():
+        
+        poly_acc += np.abs(each_term[1]) * s**each_term[0][0]
+
+    den = poly_acc
+
+    return(sp.simplify(sp.expand(sp.sqrt(k) * num/den))) 
 
 ################################################################
 #%% Bloque de funciones para la síntesis gráfica de imitancias #

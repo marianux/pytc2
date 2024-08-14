@@ -1,0 +1,49 @@
+* Z:\home\mariano\mariano\Docencia\TC2\scripts\analog filters\python\pytc2\docs\ACKMOSS bicuad.asc
+R1 va vi {R/(d+eps)}
+R2 vo va {Q*R}
+R3 vd va {R}
+R4 vb vo {R}
+R5 vc N001 {R}
+R6 vd vc {R}
+C1 N001 vb {C0}
+C2 vo va {C0}
+XU1 va 0 vo opamp Aol=100K GBW=10Meg
+XU2 0 vb vd opamp Aol=100K GBW=10Meg
+XU3 vc 0 N001 opamp Aol=100K GBW=10Meg
+V2 vi 0 AC 1 1
+C3 va vi {C0*a}
+R7 vb vi {R/(c+eps)}
+R8 vc vi {R/(b+eps)}
+.inc opamp.sub
+.ac dec 1000 {f0/100} {f0*100}
+#.param Qz=5 wz=0.5 * w0
+* Versión normalizada
+.param znorm=1 wnorm=1 f0=w0/2/pi
+* Full bicuad config
+.param R=znorm/w0/C0 C0 = 1
+* Configuración de la simulación
+#.param c= k*wz*wz/w0/w0 a = (k+c)/2 b = k * wz / 2 / w0 *(Q/Qz + wz/w0)
+* Low/High pass notch
+.param a = k b = 0 c= k*wz*wz/w0/w0 d = 0
+.param  wz=10 * wnorm
+* Highpass config
+#.param a = k b= 0 c = 0 d = 0
+.param k=10 Q=sqrt(2)/2 w0=1 * wnorm
+* Allpass config
+#.param a = 1 b= 1/Q c = 1 d = 0
+* Lowpass config
+#.param a = 0 b= 0 c = k d = 0
+* Bandpass config
+#.param a = 0 c = 0
+* Parámetros generales
+.param eps = 1e-10
+* eps es un nro muy pequeño para\nevitar divisiones por cero, etc
+* SOS parametrization
+* Notch config
+#.param a = 1 b= 0 c = 1 d = 0
+* inverting
+* Non-inverting
+#.param b = 0 d = k/Q
+#.param d = 0 b = k/Q
+.backanno
+.end
