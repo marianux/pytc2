@@ -2367,7 +2367,7 @@ def smna(file_schematic, opamp_model = 'OA_ideal', bAplicarValoresComponentes = 
     
     fileName_netlist = os.path.join(folder_name, baseFileName + '.net')
     
-    if os.path.exists(fileName_netlist) or ( os.path.exists(fileName_netlist) and (os.path.getmtime(file_schematic) > os.path.getmtime(fileName_netlist))  ) :
+    if os.path.exists(fileName_netlist) and (os.path.getmtime(file_schematic) < os.path.getmtime(fileName_netlist)):
         print(f'Utilizando netlist: {fileName_netlist}')
     else:
         
