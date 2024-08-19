@@ -18,7 +18,6 @@ author = u"Mariano Llamedo Soria"
 Sphinx = "^5.3.0"
 docutils = "^0.18.1"
 
-# needs_extensions = {'myst_nb': '1.5'}
 
 extensions = [
     "myst_nb",
@@ -42,8 +41,8 @@ html_theme = "sphinx_rtd_theme"
 
 myst_enable_extensions = [
     "amsmath",
-    "dollarmath",
     "html_image",
+    "dollarmath"
 ]
 
 # myst_heading_anchors = 1
@@ -52,6 +51,6 @@ suppress_warnings = ["myst.xref_missing","myst.header"]
 
 myst_url_schemes = ("http", "https", "mailto")
 
-
+#html_extra_path =  ['img']
 
 
