@@ -1,4 +1,4 @@
-* Z:\home\mariano\mariano\Docencia\TC2\scripts\analog filters\python\pytc2\docs\lattice_2ord_delay_eq.asc
+* Z:\home\mariano\scripts\pytc2\docs\notebooks\schematics\lattice_2ord_delay_eq.asc
 V1 N001 0 0 AC 1 0 Rser=0
 R1 1 N001 {R}
 R2 4 3 {R}

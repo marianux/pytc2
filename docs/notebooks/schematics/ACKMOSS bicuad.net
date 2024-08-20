@@ -1,4 +1,4 @@
-* Z:\home\mariano\mariano\Docencia\TC2\scripts\analog filters\python\pytc2\docs\ACKMOSS bicuad.asc
+* Z:\home\mariano\scripts\pytc2\docs\notebooks\schematics\ACKMOSS bicuad.asc
 R1 va vi {R/(d+eps)}
 R2 vo va {Q*R}
 R3 vd va {R}

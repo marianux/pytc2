@@ -1,4 +1,4 @@
-* Z:\home\mariano\mariano\Docencia\TC2\scripts\analog filters\python\pytc2\docs\GIC bicuad.asc
+* Z:\home\mariano\scripts\pytc2\docs\notebooks\schematics\GIC bicuad.asc
 R1 va vi {Q*R/(b+eps)}
 RG1 va vb {R}
 RG3 vc vo {R}
