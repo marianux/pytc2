@@ -604,7 +604,7 @@ def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
         print('Nada para dibujar')
 
 # TODO: debería poder dibujar YRC/YRL
-def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc = None):
+def dibujar_foster_derivacion(k0 = sp.Rational(0), koo = sp.Rational(0), ki = sp.Rational(0), kk = sp.Rational(0), y_exc = None):
     '''
     Dibuja una red no disipativa a partir de una expansión en fracciones simples 
     (Método de Foster). La forma matemática es:
@@ -659,7 +659,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
 
     '''    
 
-    if not(k0 is None and koo is None and ki is None and kk is None):
+    if not(k0.is_zero and koo.is_zero and ki is None and kk.is_zero):
         
         if not isinstance(y_exc , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
@@ -698,14 +698,13 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
                                                       hacia_salida = True,
                                                       k_gap_width = 0.5)
 
-
-        if not(kk is None):
+        if not(kk.is_zero):
             
             d = dibujar_elemento_derivacion(d, 'R', 1/kk)
 
             bComponenteDibujado = True
 
-        if not(k0 is None):
+        if not(k0.is_zero):
 
             if bComponenteDibujado:
                 
@@ -716,7 +715,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
             bComponenteDibujado = True
             
             
-        if not(koo is None):
+        if not(koo.is_zero):
         
             if bComponenteDibujado:
                 
@@ -736,7 +735,7 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
                 
                 if bDisipativo:
                     
-                    if k0 is None:
+                    if not(k0.is_zero):
                         d = dibujar_tanque_RC_derivacion(d, capacitor_lbl = 1/un_tanque[0], resistor_label = un_tanque[1] )
                         bComponenteDibujado = True
                     else:
@@ -756,7 +755,8 @@ def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, kk = None, y_exc
         print('Nada para dibujar')
 
 # TODO: debería poder dibujar ZRC/ZRL
-def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = None):
+def dibujar_foster_serie(k0 = sp.Rational(0), koo = sp.Rational(0), ki = sp.Rational(0), kk = sp.Rational(0), z_exc = None):
+                          
     '''
     Dibuja una red no disipativa a partir de una expansión en fracciones simples 
     (Método de Foster). La forma matemática es:
@@ -812,7 +812,7 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
 
     '''    
 
-    if not(k0 is None and koo is None and ki is None and kk is None):
+    if not(k0.is_zero and koo.is_zero and ki is None and kk.is_zero):
         
         if not isinstance(z_exc , sp.Expr):
             raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
@@ -829,7 +829,7 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
         if not isinstance(kk , (sp.Expr, type(None))):
             raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
         
-        if kk is None:
+        if kk.is_zero:
             bDisipativo = False
         else:
             bDisipativo = True
@@ -849,15 +849,15 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
                                                       hacia_salida = True,
                                                       k_gap_width = 0.5)
 
-        if not(kk is None):
+        if not(kk.is_zero):
             
             d = dibujar_elemento_serie(d, 'R', kk)
             
-        if not(k0 is None):
+        if not(k0.is_zero):
         
             d = dibujar_elemento_serie(d, 'C', 1/k0)
             
-        if not(koo is None):
+        if not(koo.is_zero):
         
             d = dibujar_elemento_serie(d, 'L', koo)
             
@@ -867,7 +867,7 @@ def dibujar_foster_serie(k0 = None, koo = None, ki = None, kk = None, z_exc = No
                 
                 if bDisipativo:
                     
-                    if k0 is None:
+                    if k0.is_zero:
                         d = dibujar_tanque_RL_serie(d, inductor_label = 1/un_tanque[0], resistor_label = 1/un_tanque[1] )
                     else:
                         d = dibujar_tanque_RC_serie(d, resistor_label = 1/un_tanque[0], capacitor_lbl = un_tanque[1] )
