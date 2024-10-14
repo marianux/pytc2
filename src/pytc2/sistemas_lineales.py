@@ -2771,7 +2771,7 @@ def _build_omegayq_str(this_quad_poly, den=np.array([])):
             if kk == 1.:
                 poly_str = r'{:3.4g}^2'.format(omega)
             else:
-                poly_str = r'{:3.4g} \cdot {:3.4g}^2'.format(kk, omega)
+                poly_str = r'{:3.4g} < {:3.4g}^2'.format(kk, omega)
             
         else:
             # todos los demás estilos son independientes del denominador

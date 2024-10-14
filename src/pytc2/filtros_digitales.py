@@ -10,6 +10,8 @@ from numbers import Integral, Real
 import matplotlib.pyplot as plt
 
 from scipy.signal import find_peaks
+from scipy.linalg import (toeplitz, hankel, solve, LinAlgError, LinAlgWarning,
+                          lstsq)
 
 import warnings
 
@@ -46,6 +48,425 @@ muy rápidas de fase, a veces conviene que sea un poco menor a :math:`\\pi`.
  ## Funciones generales ##
 #########################
 #%%
+
+
+def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16, 
+                  fs = 2.0, filter_type = 'multiband', max_iter = 25, debug=False):
+    """
+    Algoritmo de Parks-McClellan para el diseño de filtros FIR de fase lineal
+    utilizando un criterio minimax. El algoritmo está basado en RERMEZ_FIR de 
+    :ref:`Tapio Saramaki y Lars Whannamar <DSPMatlab20>` y el detallado trabajo
+    en el material suplementario de :ref:`Thomas Holton <holton21>`. La imple_
+    mentación del algoritmo ha sido ampliamente modificada con fines didácticos
+    respecto a la version original de Saramaki y Parks McClellan.
+    
+    Parameters
+    -----------
+    order : TransferFunction
+        Orden del filtro a diseñar. El tamaño del filtro será de *orden+1*.
+    band_edges : array_like
+        Los límites de cada banda indicada en la plantilla de diseño del filtro.
+        Habrá dos valores, principio y fin, por cada banda definida en *fr_desiredired*.
+        Ej: [0., 0.3, 0.7, 1.] Para un pasabajos con corte en 0.3
+    fr_desiredired : array_like
+        El valor numérico fr_desiredado por cada banda. Ej: [1.0, 0.] para un pasabajos.
+    weight : array_like
+        Un valor postivo que pesará cada banda al momento de calcular el error.
+    grid_density : int, numeric
+        Un entero que indicará por cuanto interpolar la respuesta del filtro al
+        calcular el error del filtro. El valor de interpolación se calcula 
+        *aproximadamente* por grid_density*orden/2. Por defecto se usa 16.
+    fs : float, numeric
+        Frecuencia de muestreo a la que se implementará el filtro digital. Por
+        defecto se usa 2.0, es decir se normaliza a la f. de Nyquist.
+    filter_type : string, 
+        Un string que identifica el filtro que se diseñará. Se admiten tres 
+        posibilidafr_desired: 'multiband' o 'm'. Filtros FIR tipo 1 o 2 de propósitos 
+        generales. 'differentiator' o 'd', se utilizará para diseñar filtro FIR 
+        derivadores de tipo 3 o 4 dependiendo el orden. Finalmente, 'hilbert' o
+        'h' para implementar filtros FIR que permiten calcular la parte 
+        imaginaria de una señal analítica. Es decir tener una transferencia 
+        aproximadamente constante y una rotación constante de pi/2 para todas 
+        las frecuencias.
+    max_iter : int, numeric
+        Cantidad máxima de iteraciones del algoritmo de Remez para hallar las 
+        frecuencias extremas.
+    debug : boolean
+        Un valor booleano para activar la depuración de la propia función.
+    
+    order - filter order
+    band_edges  - specifies the upper and lower band_edgess of the bands under consideration.
+            The program, however, uses band efr_desired in terms of fractions of pi rad.
+    	    band_edges = band_edges/pi;
+    fr_desiredired -    specifies the fr_desiredired values at the band_edgess of each band.
+
+    Returns
+    --------
+    h_coeffs : array_like
+        Los coeficientes de la respuesta al impulso del filtro FIR diseñado.
+    err : float, numeric
+        Error máximo obtenido de la iteración del algoritmo Remez.
+    w_extremas : array_like
+        Las frecuencias extremas obtenidas de la iteración del algoritmo Remez.
+
+    Raises
+    ------
+    ValueError
+        Si no se cumple con el formato y valores indicados en la documentación.
+
+    See Also
+    -----------
+    :func:``
+    :func:``
+
+    Examples
+    --------
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+
+    Notes:
+    -------
+    .. _pm73:
+        
+    J. H. McClellan, T. W. Parks, and L. R. Rabiner, "A computer program for fr_desiredigning optimum FIR linear phase digital filters," IEEE Transactions on Audio and Electroacoustics, vol. AU-21, no. 6, pp. 506 - 526, December 1973.
+    .. _DSPMatlab20:
+
+    L. Wanhammar, T. Saramäki. Digital Filters Using MATLAB. Springer 2020.
+    M. Ahsan and T. Saramäki, "A MATLAB based optimum multiband FIR filters fr_desiredign program following the original idea of the Remez multiple exchange algorithm," in Proc. 2011 IEEE International Symposium on Circuits and Systems, Rio de Janeiro, Brazil, May 15-17, 2011, pp. 137-140. 
+    .. _holton21:
+
+    T. Holton, Digital Signal Processing: Principles and Applications. Cambridge University Press, 2021. 
+    	
+    """
+
+    if not (isinstance(order, (Integral, Real)) and order > 0 ):
+        raise ValueError("El argumento 'order' debe ser un número positivo.")
+                  
+    if not (isinstance(grid_density, (Integral, Real)) and grid_density > 0 ):
+        raise ValueError("El argumento 'grid_density' debe ser un número positivo.")
+                  
+    if not (isinstance(max_iter, (Integral, Real)) and max_iter > 0 ):
+        raise ValueError("El argumento 'max_iter' debe ser un número positivo.")
+
+    if not isinstance(debug, bool):
+        raise ValueError('displaystr debe ser un booleano')
+
+    if not (isinstance(fs, Real) and fs > 0 ):
+        raise ValueError("El argumento 'fs' debe ser un número positivo.")
+
+    valid_filters = ['multiband', 'lowpass', 'highpass', 'bandpass', 
+                     'bandstop', 'notch',
+                     'h', 'd', 'm', 'lp', 'hp', 'lp', 'bp',
+                     'differentiator', 'hilbert']
+
+    if not isinstance(filter_type, str):
+        raise ValueError("El argumento 'filter_type' debe ser un string de %s" % (valid_filters))
+
+	#==========================================================================
+	#  Find out jtype that was used in the PM code.
+	#  This not necessary but simplifies the undertanding of this code snippet.
+	#==========================================================================
+    if filter_type.lower().startswith('d'):
+        jtype = 2  # Differentiator
+    elif 'hilbert' == filter_type.lower() or 'h' == filter_type.lower():
+        jtype = 3  # Hilbert transformer
+    else: 
+        jtype = 1  # Multiband filter
+
+	#==========================================================================
+	# Determine the filter cases and cant_bases, the number of basis functions to be 
+	# used in the Remez algorithm 
+	# In the below, filtercase=1,2,3,4 is used for making it easier to 
+	# understand this code snippet.   
+	#==========================================================================
+    # Determine the filter cases and cant_bases
+    if jtype == 1:
+        if order % 2 == 0:
+            filtercase = 1  # Even order and even symmetry multiband filter
+        else:
+            filtercase = 2  # Odd order and even symmetry multiband filter 
+    else:
+        if order % 2 == 0:
+            # Even order and odd symmetry -> a Hilbert transforer or a 
+            # differentiator (jtype indicates)
+            filtercase = 3  
+        else:
+            # Odd order and odd symmetry -> a Hilbert transforer or a 
+            # differentiator (jtype indicates)
+            filtercase = 4  
+
+    if filter_type not in valid_filters:
+        raise ValueError('La extensión de imagen debe ser una de %s, no %s'
+                         % (valid_filters, filter_type))
+
+    if not isinstance(band_edges, (list, np.ndarray)):
+        raise ValueError("El argumento 'band_edges' debe ser una lista o un array de numpy.")
+
+    if not isinstance(desired, (list, np.ndarray)):
+        raise ValueError("El argumento 'fr_desiredired' debe ser una lista o un array de numpy.")
+    
+    if not isinstance(weight, (type(None), list, np.ndarray)):
+        raise ValueError("El argumento 'weight' debe ser una lista o un array de numpy.")
+
+    # Chequear si la plantilla de requerimientos del filtro está bien armada.
+    ndesired = len(desired)
+    nweights = len(weight)
+    nedges = len(band_edges)
+    nbands = nedges // 2
+
+    if ndesired != nedges:
+        raise ValueError(f"Debe haber tantos elementos en 'fr_desired' {ndesired} como en 'band_edges' {nedges}")
+
+    if jtype == 1:
+        # multibanda 
+        if nweights != nbands:
+            raise ValueError(f"Debe haber tantos elementos en 'weight' {nweights} como cantidad de bandas {nbands}")
+
+    if jtype == 2 or jtype == 3:
+        # derivador y hilbert
+        if nbands != 1:
+            raise ValueError(f"Debe haber en una sola banda definida para FIR tipo {filter_type}, hay {nbands} bandas")
+
+    # normalizar respecto a Nyquist
+    band_edges = np.array(band_edges) / (fs/2)
+
+    if isinstance(weight ,type(None)):
+        weight = np.ones(nbands)
+        
+    if isinstance(weight, list):
+        weight = np.array(weight)
+
+    desired = np.array(desired)
+
+            
+	# cant_bases - number of basis functions 
+    cant_coeffs = order + 1
+    
+    if filtercase == 1 or filtercase == 3:
+        M = (cant_coeffs-1) // 2
+        # cantidad de frecuencias extremas.
+        cant_bases = M + 1
+        
+    if filtercase == 2 or filtercase == 4:
+        M = cant_coeffs // 2
+        # cantidad de frecuencias extremas.
+        cant_bases = M 
+
+    
+    # propuesta original de Tapio
+    # cant_bases = (np.fix((order + 1)/ 2)).astype(int)
+    # if filtercase == 1:
+    #     cant_bases += 1
+    
+    
+	#=========================================================================
+	# DETERMINE fr_grid, fr_desired, and fr_weight 
+	#========================================================================
+	# Compared with the PM code, there are the following key differences:
+	# (1) The upper band_edges for each band under consideration is automatically 
+	#     included in fr_grid. This somehow increases the accuracy. 
+	# (2) Since the frequency range is now from 0 to 1, freq_resolution has been increased
+	#     by a factor of 2.
+	# (3) The change of fr_desired and fr_weight depending on the filter type is peformed 
+	#     before using the (modified) Remez algorithm.
+	# (4) The removal of problematic angular frequencies at 0 and pi is 
+	#     performed simultaneously for all filter types. Now the remomal is
+	#     is performed while generating fr_grid.
+	#=========================================================================
+    
+    # Determine fr_grid, fr_desired, and fr_weight
+    freq_resolution = 1.0 / (grid_density * cant_bases)
+    # full resolution (fr) fr_grid, desired and wieight arrays
+    fr_grid = []
+    fr_desired = []
+    fr_weight = []
+    # indexes of the band-edges corresponding to the fr freq. fr_grid array
+    band_edges_idx = []
+
+    for ll in range(nbands):
+        number_fr_grid = int(np.ceil((band_edges[2 * ll + 1] - band_edges[2 * ll]) / freq_resolution))
+        fr_grid_more = np.linspace(band_edges[2 * ll], band_edges[2 * ll + 1], number_fr_grid + 1)
+        
+        # Adjust fr_grid for harmful frequencies at omega = 0 
+        if ll == 0 and (filtercase == 3 or filtercase == 4) and fr_grid_more[0] < freq_resolution:
+            fr_grid_more = fr_grid_more[1:]
+            number_fr_grid -= 1
+
+        # Adjust fr_grid for harmful frequencies at omega = 1
+        if ll == nbands - 1 and (filtercase == 2 or filtercase == 3) and fr_grid_more[-1] > 1 - freq_resolution:
+            fr_grid_more = fr_grid_more[:-1]
+            number_fr_grid -= 1
+
+        #
+        band_edges_idx.extend([len(fr_grid)])
+        fr_grid.extend(fr_grid_more)
+        band_edges_idx.extend([len(fr_grid)-1])
+
+        if jtype == 2:
+            # differentiator
+            
+            des_more = desired[2*ll+1] * fr_grid_more * np.pi
+            
+            if np.abs(desired[2*ll]) < 1.0e-3:
+                wt_more = weight[ll] * np.ones(number_fr_grid + 1)
+            else:
+                wt_more = weight[ll] / (fr_grid_more * np.pi)
+        else:
+            # others
+
+            wt_more = weight[ll] * np.ones(number_fr_grid + 1)
+            if desired[2 * ll + 1] != desired[2 * ll]:
+                des_more = np.linspace(desired[2 * ll], desired[2 * ll + 1], number_fr_grid + 1)
+            else:
+                des_more = desired[2 * ll] * np.ones(number_fr_grid + 1)
+
+        fr_desired.extend(des_more)
+        fr_weight.extend(wt_more)
+
+    fr_grid = np.array(fr_grid)
+    fr_desired = np.array(fr_desired)
+    fr_weight = np.array(fr_weight)
+    band_edges_idx = np.array(band_edges_idx)
+
+	#==========================================================================
+	# Modify fr_desired and fr_weight depending on the filter case
+	#========================================================================== 
+    # Este es un elegante truco para hacer una sola función de optimización
+    # de Remez para todos los tipos de FIRs. 
+    # Ver :ref:`Thomas Holton supplimentary material <holton21>`.
+    # 
+    
+    if filtercase == 2:
+        fr_desired /= np.cos(np.pi * fr_grid / 2)
+        fr_weight *= np.cos(np.pi * fr_grid / 2)
+    if filtercase == 4:
+        fr_desired /= np.sin(np.pi * fr_grid / 2)
+        fr_weight *= np.sin(np.pi * fr_grid / 2)
+    if filtercase == 3:
+        fr_desired /= np.sin(np.pi * fr_grid)
+        fr_weight *= np.sin(np.pi * fr_grid)
+
+    #==========================================================================
+    # Set up the linear matrix equation to be solved, Qa = b
+	#==========================================================================
+
+    # We can express Q(k,n) = 0.5 Q1(k,n) + 0.5 Q2(k,n)
+    # where Q1(k,n)=q(k-n) and Q2(k,n)=q(k+n), i.e. a Toeplitz plus Hankel.
+
+    # We omit the factor of 0.5 above, instead adding it during coefficient
+    # calculation.
+
+    # We also omit the 1/π from both Q and b equations, as they cancel
+    # during solving.
+
+    # We have that:
+    #     q(n) = 1/π ∫W(ω)cos(nω)dω (over 0->π)
+    # Using our normalization ω=πf and with a constant weight W over each
+    # interval f1->f2 we get:
+    #     q(n) = W∫cos(πnf)df (0->1) = Wf sin(πnf)/πnf
+    # integrated over each f1->f2 pair (i.e., value at f2 - value at f1).
+    desired.shape = (-1, 2)
+    band_edges.shape = (-1, 2)
+
+    n = np.arange(cant_coeffs)[:, np.newaxis, np.newaxis]
+    q = np.dot(np.diff(np.sinc(band_edges * n) * band_edges, axis=2)[:, :, 0], weight)
+
+    # Now we assemble our sum of Toeplitz and Hankel
+    Q1 = toeplitz(q[:M+1])
+    Q2 = hankel(q[:M+1], q[M:])
+    Q = Q1 + Q2
+
+    # Now for b(n) we have that:
+    #     b(n) = 1/π ∫ W(ω)D(ω)cos(nω)dω (over 0->π)
+    # Using our normalization ω=πf and with a constant weight W over each
+    # interval and a linear term for D(ω) we get (over each f1->f2 interval):
+    #     b(n) = W ∫ (mf+c)cos(πnf)df
+    #          = f(mf+c)sin(πnf)/πnf + mf**2 cos(nπf)/(πnf)**2
+    # integrated over each f1->f2 pair (i.e., value at f2 - value at f1).
+    n = n[:M + 1]  # only need this many coefficients here
+    # Choose m and c such that we are at the start and end weights
+    m = (np.diff(desired, axis=1) / np.diff(band_edges, axis=1))
+    c = desired[:, [0]] - band_edges[:, [0]] * m
+    b = band_edges * (m*band_edges + c) * np.sinc(band_edges * n)
+    # Use L'Hospital's rule here for cos(nπf)/(πnf)**2 @ n=0
+    b[0] -= m * band_edges * band_edges / 2.
+    b[1:] += m * np.cos(n[1:] * np.pi * band_edges) / (np.pi * n[1:]) ** 2
+    b = np.dot(np.diff(b, axis=2)[:, :, 0], weight)
+
+    # Now we can solve the equation
+    try:  # try the fast way
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            a_coeffs = solve(Q, b, assume_a="pos", check_finite=False)
+        for ww in w:
+            if (ww.category == LinAlgWarning and
+                    str(ww.message).startswith('Ill-conditioned matrix')):
+                raise LinAlgError(str(ww.message))
+    except LinAlgError:  # in case Q is rank deficient
+        # This is faster than pinvh, even though we don't explicitly use
+        # the symmetry here. gelsy was faster than gelsd and gelss in
+        # some non-exhaustive tests.
+        a_coeffs = lstsq(Q, b, lapack_driver='gelsy')[0]
+
+    
+    # por ahora si aparecen más picos los limito a la hora de construir el filtro
+    # a_coeffs = a_coeffs[:cant_bases]
+    
+    cant_acoeffs = len(a_coeffs)
+
+    # convertir los coeficientes según el tipo de FIR
+    if filtercase == 1:
+        
+        a_coeffs [1:] = a_coeffs[1:]/2
+        h_coeffs = np.concatenate((a_coeffs[::-1], a_coeffs[1:]))
+    
+    if filtercase == 2:
+        
+        last_coeff = cant_acoeffs
+        cant_hcoeff = 2*cant_acoeffs
+        h_coeffs = np.zeros(cant_hcoeff)
+        h_coeffs[cant_hcoeff-1] = a_coeffs[last_coeff-1]/4
+        h_coeffs[last_coeff] = a_coeffs[0] /2 + a_coeffs[1]/4
+        h_coeffs[last_coeff+1:cant_hcoeff-1]= (a_coeffs[1:last_coeff-1] + a_coeffs[2:last_coeff])/4
+            
+        h_coeffs[:last_coeff] = h_coeffs[last_coeff:][::-1]
+
+        
+    if filtercase == 3:
+        
+        cant_hcoeff = 2*cant_acoeffs+1
+        h_coeffs = np.zeros(cant_hcoeff)
+        last_coeff = cant_acoeffs # punto de simetría, demora del filtro
+
+
+        h_coeffs[0:2] = a_coeffs[last_coeff-2:][::-1]/4
+        h_coeffs[2:last_coeff-1] = ((a_coeffs[1:last_coeff-2] - a_coeffs[3:last_coeff])/4)[::-1]
+        h_coeffs[last_coeff-1] = a_coeffs[0]/2 - a_coeffs[2]/4
+        
+        h_coeffs[last_coeff+1:] = (-1.)*h_coeffs[:last_coeff][::-1]
+
+    if filtercase == 4:
+        
+        last_coeff = cant_acoeffs
+        cant_hcoeff = 2*cant_acoeffs
+        h_coeffs = np.zeros(2*cant_acoeffs)
+        h_coeffs[cant_hcoeff-1] = a_coeffs[last_coeff-1]/4
+        h_coeffs[last_coeff] = a_coeffs[0]/2 - a_coeffs[1]/4
+        h_coeffs[last_coeff+1:cant_hcoeff-1]= (a_coeffs[1:last_coeff-1] - a_coeffs[2:last_coeff])/4
+            
+        h_coeffs[:last_coeff] = -1. * h_coeffs[last_coeff:][::-1]
+    
+    return h_coeffs
+
+
+#%%
+
+
+
+
 
 def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16, 
                   fs = 2.0, filter_type = 'multiband', max_iter = 25, debug=False):
@@ -347,7 +768,7 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
 	# CALL THE REMEZ ALGORITHM 
 	#==========================================================================
 
-    a_coeffs, err, w_extremas = remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_edges_idx, max_iter = max_iter, debug=debug)
+    a_coeffs, err, w_extremas = _remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_edges_idx, max_iter = max_iter, debug=debug)
     
     # por ahora si aparecen más picos los limito a la hora de construir el filtro
     # a_coeffs = a_coeffs[:cant_bases]
@@ -408,7 +829,7 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
 
 
 # Función para filtrar los extremos consecutivos de mismo signo y mantener el de mayor módulo absoluto
-def filter_extremes(Ew, peaks):
+def _filter_extremes(Ew, peaks):
     filtered_peaks = []
     current_sign = np.sign(Ew[peaks[0]])
     max_peak = peaks[0]
@@ -431,7 +852,7 @@ def filter_extremes(Ew, peaks):
     return np.array(filtered_peaks)
 
 
-def remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_edges_idx, max_iter = 250, error_tol = 10e-4, debug = False):
+def _remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_edges_idx, max_iter = 250, error_tol = 10e-4, debug = False):
 	# 	Function REMEZ_EX_MLLS implements the Remez exchange algorithm for the weigthed 
 	#	Chebyshev approximation of a continous function with a sum of cosines.
 	# Inputs
@@ -525,11 +946,11 @@ def remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_ed
         peaks = np.sort(np.concatenate((peaks_pos,peaks_neg)))
         
         # Aplicar el filtro a los picos encontrados
-        peaks = filter_extremes(Ew, peaks)
+        peaks = _filter_extremes(Ew, peaks)
 
         omega_ext_idx = np.unique(np.concatenate((band_edges_idx, peaks)))
 
-        omega_ext_idx = filter_extremes(Ew, omega_ext_idx)
+        omega_ext_idx = _filter_extremes(Ew, omega_ext_idx)
         
         cant_extremos = len(omega_ext_idx)
 

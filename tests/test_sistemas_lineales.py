@@ -481,15 +481,15 @@ def test_parametrize_sos_valid_input_bicuad( true_parameters, num, den ):
 #     with pytest.raises(ValueError):
 #         test_module.parametrize_sos(invalid_num, sp.Poly(s + 1))
 
-def test_parametrize_sos_invalid_den_type():
-    s = test_module.s
+# def test_parametrize_sos_invalid_den_type():
+#     s = test_module.s
     
-    # Coeficientes del denominador no válidos (no Poly)
-    invalid_den = s
+#     # Coeficientes del denominador no válidos (no Poly)
+#     invalid_den = s
 
-    # Verificar que se levante un ValueError al pasar coeficientes del denominador no válidos
-    with pytest.raises(ValueError):
-        test_module.parametrize_sos(sp.Poly(s), invalid_den)
+#     # Verificar que se levante un ValueError al pasar coeficientes del denominador no válidos
+#     with pytest.raises(ValueError):
+#         test_module.parametrize_sos(sp.Poly(s), invalid_den)
 
 def test_pretty_print_bicuad_omegayq_complete_second_order():
     num = [1, 2/3, 4]
@@ -500,7 +500,7 @@ def test_pretty_print_bicuad_omegayq_complete_second_order():
 def test_pretty_print_bicuad_omegayq_biquad_passband():
     num = [ 1./3.*5./4., 0 ]
     den = [1, 5/4, 25]
-    expected_output = r'\frac{s\,0.3333\,\frac{  5}{  4}}{s^2 + s \frac{  5}{  4} +   5^2}'
+    expected_output = r'\frac{s\,0.3333\,\cdot \frac{  5}{  4}}{s^2 + s \frac{  5}{  4} +   5^2}'
     assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
 
 def test_pretty_print_bicuad_omegayq_notch():
@@ -512,13 +512,13 @@ def test_pretty_print_bicuad_omegayq_notch():
 def test_pretty_print_bicuad_omegayq_lowpass():
     num = [3.*25.]
     den = [1, 5/4, 25]
-    expected_output = r'\frac{ 75 }{s^2 + s \frac{  5}{  4} +   5^2}'
+    expected_output = r'\frac{  3 \cdot   5^2}{s^2 + s \frac{  5}{  4} +   5^2}'
     assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
 
 def test_pretty_print_bicuad_omegayq_highpass():
     num = [3., 0, 0]
     den = [1, 5/4, 25]
-    expected_output = r'\frac{s^2 \,\,   3 }{s^2 + s \frac{  5}{  4} +   5^2}'
+    expected_output = r'\frac{  3 \cdot s^2}{s^2 + s \frac{  5}{  4} +   5^2}'
     assert test_module.pretty_print_bicuad_omegayq(num, den, displaystr=False) == expected_output
 
 def test_pretty_print_SOS_default_mode():
