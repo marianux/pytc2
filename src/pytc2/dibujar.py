@@ -659,22 +659,23 @@ def dibujar_foster_derivacion(k0 = sp.Rational(0), koo = sp.Rational(0), ki = sp
 
     '''    
 
+    if not isinstance(y_exc , (sp.Expr, type(None))):
+        raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
+    
+    if not isinstance(k0 , (sp.Expr, type(None))):
+        raise ValueError('Hay que definir k0 como una expresión simbólica.')
+    
+    if not isinstance(koo , (sp.Expr, type(None))):
+        raise ValueError('Hay que definir koo como una expresión simbólica.')
+    
+    if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
+        raise ValueError('Hay que definir ki como una expresión simbólica.')
+    
+    if not isinstance(kk , (sp.Expr, type(None))):
+        raise ValueError('Hay que definir kk como una expresión simbólica.')
+
     if not(k0.is_zero and koo.is_zero and ki is None and kk.is_zero):
         
-        if not isinstance(y_exc , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
-        
-        if not isinstance(k0 , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir k0 como una expresión simbólica.')
-        
-        if not isinstance(koo , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir koo como una expresión simbólica.')
-        
-        if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
-            raise ValueError('Hay que definir ki como una expresión simbólica.')
-        
-        if not isinstance(kk , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir kk como una expresión simbólica.')
         
         if kk is None:
             bDisipativo = False
@@ -812,22 +813,23 @@ def dibujar_foster_serie(k0 = sp.Rational(0), koo = sp.Rational(0), ki = sp.Rati
 
     '''    
 
+    if not isinstance(z_exc , sp.Expr):
+        raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
+    
+    if not isinstance(k0 , (sp.Expr, type(None))):
+        raise ValueError('Hay que definir la función de excitación k0 como una expresión simbólica.')
+    
+    if not isinstance(koo , (sp.Expr, type(None))):
+        raise ValueError('Hay que definir la función de excitación koo como una expresión simbólica.')
+    
+    if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
+        raise ValueError('Hay que definir la función de excitación ki como una expresión simbólica.')
+    
+    if not isinstance(kk , (sp.Expr, type(None))):
+        raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
+
     if not(k0.is_zero and koo.is_zero and ki is None and kk.is_zero):
         
-        if not isinstance(z_exc , sp.Expr):
-            raise ValueError('Hay que definir la función de excitación y_exc como una expresión simbólica.')
-        
-        if not isinstance(k0 , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir la función de excitación k0 como una expresión simbólica.')
-        
-        if not isinstance(koo , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir la función de excitación koo como una expresión simbólica.')
-        
-        if not isinstance(ki , (sp.Expr, list, tuple, type(None))):
-            raise ValueError('Hay que definir la función de excitación ki como una expresión simbólica.')
-        
-        if not isinstance(kk , (sp.Expr, type(None))):
-            raise ValueError('Hay que definir la función de excitación kk como una expresión simbólica.')
         
         if kk.is_zero:
             bDisipativo = False

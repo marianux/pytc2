@@ -463,22 +463,23 @@ def test_parametrize_sos_valid_input_bicuad( true_parameters, num, den ):
     # Verificar que la tupla devuelta tenga los elementos esperados
     assert (result_K*result_num).expr == num_poly.expr
     assert result_den.expr == den_poly.expr
-    assert result_w_od == w_od
-    assert result_Q_d == Q_d
-    assert result_w_on == w_on
-    assert result_Q_n == Q_n
-    assert result_K == K
-    
-def test_parametrize_sos_invalid_num_type():
+    assert result_w_od.evalf() == w_od.evalf()
+    assert result_Q_d.evalf() == Q_d.evalf()
+    assert result_w_on.evalf() == w_on.evalf()
+    assert result_Q_n.evalf() == Q_n.evalf()
+    assert result_K.evalf() == K.evalf()
 
-    s = test_module.s
-    
-    # Coeficientes numéricos no válidos (no Poly)
-    invalid_num = s
+# ya no es inválida
+# def test_parametrize_sos_invalid_num_type():
 
-    # Verificar que se levante un ValueError al pasar coeficientes numéricos no válidos
-    with pytest.raises(ValueError):
-        test_module.parametrize_sos(invalid_num, sp.Poly(s + 1))
+#     s = test_module.s
+    
+#     # Coeficientes numéricos no válidos (no Poly)
+#     invalid_num = s
+
+#     # Verificar que se levante un ValueError al pasar coeficientes numéricos no válidos
+#     with pytest.raises(ValueError):
+#         test_module.parametrize_sos(invalid_num, sp.Poly(s + 1))
 
 def test_parametrize_sos_invalid_den_type():
     s = test_module.s

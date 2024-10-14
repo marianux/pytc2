@@ -90,22 +90,22 @@ k0_fd, koo_fd, ki_wi_fd, _, FF_foster_fd = foster(FF)
     "funciones_parametros",
     [
         {
-            test_module.dibujar_cauer_RC_RL: {'ki' : koo_RC, 'y_exc' : ZRC_cauer_oo_RC, 'z_exc' : None},
+            test_module.dibujar_cauer_RC_RL: {'ki' : koo_RC, 'y_exc' : ZRC_cauer_oo_RC}
         },
         {
-            test_module.dibujar_cauer_RC_RL: {'ki' : koo_RC, 'z_exc' : ZRC_cauer_oo_RC, 'y_exc' : None},
+            test_module.dibujar_cauer_RC_RL: {'ki' : koo_RC, 'z_exc' : ZRC_cauer_oo_RC},
         },
         {
-            test_module.dibujar_cauer_LC:    {'ki' : koo_LC, 'y_exc' : F_cauer_oo_LC, 'z_exc' : None},
+            test_module.dibujar_cauer_LC:    {'ki' : koo_LC, 'y_exc' : F_cauer_oo_LC},
         },
         {
-            test_module.dibujar_cauer_LC:    {'ki' : koo_LC, 'z_exc' : F_cauer_oo_LC, 'y_exc' : None},
+            test_module.dibujar_cauer_LC:    {'ki' : koo_LC, 'z_exc' : F_cauer_oo_LC},
         },
         {
-            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : None, 'y_exc' : FF},
+            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'y_exc' : FF},
         },
         {
-            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : None, 'z_exc' : FF},
+            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd,'z_exc' : FF},
         },
         
    ]
@@ -125,7 +125,7 @@ def test_dibujar_canonicas_valid(funciones_parametros):
     "funciones_parametros",
     [
         {
-            test_module.dibujar_cauer_RC_RL: {'ki' : 'koo_RC', 'y_exc' : ZRC_cauer_oo_RC, 'z_exc' : None},
+            test_module.dibujar_cauer_RC_RL: {'ki' : 'koo_RC', 'y_exc' : ZRC_cauer_oo_RC},
         },
         {
             test_module.dibujar_cauer_RC_RL: {'ki' : koo_RC, 'y_exc' : 'ZRC_cauer_oo_RC'},
@@ -134,43 +134,43 @@ def test_dibujar_canonicas_valid(funciones_parametros):
             test_module.dibujar_cauer_RC_RL: {'ki' : koo_RC, 'z_exc' : 'ZRC_cauer_oo_RC'},
         },
         {
-            test_module.dibujar_cauer_LC:    {'ki' : 'koo_LC', 'y_exc' : F_cauer_oo_LC, 'z_exc' : None},
+            test_module.dibujar_cauer_LC:    {'ki' : 'koo_LC', 'y_exc' : F_cauer_oo_LC},
         },
         {
-            test_module.dibujar_cauer_LC:    {'ki' : koo_LC, 'y_exc' : 'F_cauer_oo_LC', 'z_exc' : None},
+            test_module.dibujar_cauer_LC:    {'ki' : koo_LC, 'y_exc' : 'F_cauer_oo_LC'},
         },
         {
             test_module.dibujar_cauer_LC:    {'ki' : koo_LC, 'z_exc' : 'F_cauer_oo_LC'},
         },
         {
-            test_module.dibujar_foster_derivacion:    {'k0' : 'k0_fd', 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : None, 'y_exc' : FF},
+            test_module.dibujar_foster_derivacion:    {'k0' : 'k0_fd', 'koo' : koo_fd, 'ki' : ki_wi_fd, 'y_exc' : FF},
         },
         {
-            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : 'koo_fd', 'ki' : ki_wi_fd, 'kk' : None, 'y_exc' : FF},
+            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : 'koo_fd', 'ki' : ki_wi_fd, 'y_exc' : FF},
         },
         {
-            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : 'ki_wi_fd', 'kk' : None, 'y_exc' : FF},
+            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : 'ki_wi_fd', 'y_exc' : FF},
         },
         {
             test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : 'None', 'y_exc' : FF},
         },
         {
-            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : None, 'y_exc' : 'FF'},
+            test_module.dibujar_foster_derivacion:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'y_exc' : 'FF'},
         },
         {
-            test_module.dibujar_foster_serie:    {'k0' : 'k0_fd', 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : None, 'z_exc' : FF},
+            test_module.dibujar_foster_serie:    {'k0' : 'k0_fd', 'koo' : koo_fd, 'ki' : ki_wi_fd, 'z_exc' : FF},
         },
         {
-            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : 'koo_fd', 'ki' : ki_wi_fd, 'kk' : None, 'z_exc' : FF},
+            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : 'koo_fd', 'ki' : ki_wi_fd, 'z_exc' : FF},
         },
         {
-            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : 'ki_wi_fd', 'kk' : None, 'z_exc' : FF},
+            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : 'ki_wi_fd', 'z_exc' : FF},
         },
         {
             test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : 'None', 'z_exc' : FF},
         },
         {
-            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'kk' : None, 'z_exc' : 'FF'},
+            test_module.dibujar_foster_serie:    {'k0' : k0_fd, 'koo' : koo_fd, 'ki' : ki_wi_fd, 'z_exc' : 'FF'},
         },
         
    ]
