@@ -10,8 +10,6 @@ from numbers import Integral, Real
 import matplotlib.pyplot as plt
 
 from scipy.signal import find_peaks
-from scipy.linalg import (toeplitz, hankel, solve, LinAlgError, LinAlgWarning,
-                          lstsq)
 
 import warnings
 
@@ -49,9 +47,8 @@ muy rápidas de fase, a veces conviene que sea un poco menor a :math:`\\pi`.
 #########################
 #%%
 
-
 def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16, 
-                  fs = 2.0, filter_type = 'multiband', max_iter = 25, debug=False):
+                  fs = 2.0, filter_type = 'multiband'):
     """
     Algoritmo de Parks-McClellan para el diseño de filtros FIR de fase lineal
     utilizando un criterio minimax. El algoritmo está basado en RERMEZ_FIR de 
@@ -147,12 +144,6 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
                   
     if not (isinstance(grid_density, (Integral, Real)) and grid_density > 0 ):
         raise ValueError("El argumento 'grid_density' debe ser un número positivo.")
-                  
-    if not (isinstance(max_iter, (Integral, Real)) and max_iter > 0 ):
-        raise ValueError("El argumento 'max_iter' debe ser un número positivo.")
-
-    if not isinstance(debug, bool):
-        raise ValueError('displaystr debe ser un booleano')
 
     if not (isinstance(fs, Real) and fs > 0 ):
         raise ValueError("El argumento 'fs' debe ser un número positivo.")
@@ -213,9 +204,16 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
 
     # Chequear si la plantilla de requerimientos del filtro está bien armada.
     ndesired = len(desired)
-    nweights = len(weight)
     nedges = len(band_edges)
     nbands = nedges // 2
+
+    if isinstance(weight ,type(None)):
+        weight = np.ones(nbands)
+        
+    if isinstance(weight, list):
+        weight = np.array(weight)
+
+    nweights = len(weight)
 
     if ndesired != nedges:
         raise ValueError(f"Debe haber tantos elementos en 'fr_desired' {ndesired} como en 'band_edges' {nedges}")
@@ -232,12 +230,6 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
 
     # normalizar respecto a Nyquist
     band_edges = np.array(band_edges) / (fs/2)
-
-    if isinstance(weight ,type(None)):
-        weight = np.ones(nbands)
-        
-    if isinstance(weight, list):
-        weight = np.array(weight)
 
     desired = np.array(desired)
 
@@ -350,70 +342,30 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
         fr_weight *= np.sin(np.pi * fr_grid)
 
     #==========================================================================
-    # Set up the linear matrix equation to be solved, Qa = b
+    # Resolvemos el sistema mediante LS  (CC'*WW*)a = CC'*WW*D
+    # ver I. Selesnick 713 Lecture Notes: "LINEAR-PHASE FIR FILTER DESIGN BY 
+    # LEAST SQUARES"
 	#==========================================================================
-
-    # We can express Q(k,n) = 0.5 Q1(k,n) + 0.5 Q2(k,n)
-    # where Q1(k,n)=q(k-n) and Q2(k,n)=q(k+n), i.e. a Toeplitz plus Hankel.
-
-    # We omit the factor of 0.5 above, instead adding it during coefficient
-    # calculation.
-
-    # We also omit the 1/π from both Q and b equations, as they cancel
-    # during solving.
-
-    # We have that:
-    #     q(n) = 1/π ∫W(ω)cos(nω)dω (over 0->π)
-    # Using our normalization ω=πf and with a constant weight W over each
-    # interval f1->f2 we get:
-    #     q(n) = W∫cos(πnf)df (0->1) = Wf sin(πnf)/πnf
-    # integrated over each f1->f2 pair (i.e., value at f2 - value at f1).
-    desired.shape = (-1, 2)
-    band_edges.shape = (-1, 2)
-
-    n = np.arange(cant_coeffs)[:, np.newaxis, np.newaxis]
-    q = np.dot(np.diff(np.sinc(band_edges * n) * band_edges, axis=2)[:, :, 0], weight)
-
-    # Now we assemble our sum of Toeplitz and Hankel
-    Q1 = toeplitz(q[:M+1])
-    Q2 = hankel(q[:M+1], q[M:])
-    Q = Q1 + Q2
-
-    # Now for b(n) we have that:
-    #     b(n) = 1/π ∫ W(ω)D(ω)cos(nω)dω (over 0->π)
-    # Using our normalization ω=πf and with a constant weight W over each
-    # interval and a linear term for D(ω) we get (over each f1->f2 interval):
-    #     b(n) = W ∫ (mf+c)cos(πnf)df
-    #          = f(mf+c)sin(πnf)/πnf + mf**2 cos(nπf)/(πnf)**2
-    # integrated over each f1->f2 pair (i.e., value at f2 - value at f1).
-    n = n[:M + 1]  # only need this many coefficients here
-    # Choose m and c such that we are at the start and end weights
-    m = (np.diff(desired, axis=1) / np.diff(band_edges, axis=1))
-    c = desired[:, [0]] - band_edges[:, [0]] * m
-    b = band_edges * (m*band_edges + c) * np.sinc(band_edges * n)
-    # Use L'Hospital's rule here for cos(nπf)/(πnf)**2 @ n=0
-    b[0] -= m * band_edges * band_edges / 2.
-    b[1:] += m * np.cos(n[1:] * np.pi * band_edges) / (np.pi * n[1:]) ** 2
-    b = np.dot(np.diff(b, axis=2)[:, :, 0], weight)
-
-    # Now we can solve the equation
-    try:  # try the fast way
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            a_coeffs = solve(Q, b, assume_a="pos", check_finite=False)
-        for ww in w:
-            if (ww.category == LinAlgWarning and
-                    str(ww.message).startswith('Ill-conditioned matrix')):
-                raise LinAlgError(str(ww.message))
-    except LinAlgError:  # in case Q is rank deficient
-        # This is faster than pinvh, even though we don't explicitly use
-        # the symmetry here. gelsy was faster than gelsd and gelss in
-        # some non-exhaustive tests.
-        a_coeffs = lstsq(Q, b, lapack_driver='gelsy')[0]
-
     
-    # por ahora si aparecen más picos los limito a la hora de construir el filtro
-    # a_coeffs = a_coeffs[:cant_bases]
+    # cantidad de puntos donde se calcula la diferencia entre
+    # la respuesta deseada y la obtenida
+    R = len(fr_grid)
+    
+    # Construir la matriz de diseño A
+    CC = np.zeros((R, cant_bases))
+    
+    for i,f in enumerate(fr_grid):
+        CC[i, :] = np.cos( np.pi * f * np.arange(cant_bases) )
+    
+    WW = np.diag(np.sqrt(fr_weight))
+    
+    # Resolver el sistema de ecuaciones para los coeficientes únicos
+    a_coeffs = np.linalg.lstsq( np.matmul(np.matmul(CC.transpose(), WW),CC) , np.matmul(np.matmul(CC.transpose(), WW), fr_desired), rcond=None)[0]
+
+
+    #======================================================
+    # Construir el filtro a partir de los coeficientes "a"
+	#======================================================
     
     cant_acoeffs = len(a_coeffs)
 
@@ -460,13 +412,6 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
         h_coeffs[:last_coeff] = -1. * h_coeffs[last_coeff:][::-1]
     
     return h_coeffs
-
-
-#%%
-
-
-
-
 
 def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16, 
                   fs = 2.0, filter_type = 'multiband', max_iter = 25, debug=False):
@@ -631,9 +576,16 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
 
     # Chequear si la plantilla de requerimientos del filtro está bien armada.
     ndesired = len(desired)
-    nweights = len(weight)
     nedges = len(band_edges)
     nbands = nedges // 2
+
+    if isinstance(weight ,type(None)):
+        weight = np.ones(nbands)
+        
+    if isinstance(weight, list):
+        weight = np.array(weight)
+
+    nweights = len(weight)
 
     if ndesired != nedges:
         raise ValueError(f"Debe haber tantos elementos en 'fr_desired' {ndesired} como en 'band_edges' {nedges}")
@@ -650,12 +602,6 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
 
     # normalizar respecto a Nyquist
     band_edges = np.array(band_edges) / (fs/2)
-
-    if isinstance(weight ,type(None)):
-        weight = np.ones(nbands)
-        
-    if isinstance(weight, list):
-        weight = np.array(weight)
 
             
 	# cant_bases - number of basis functions 
@@ -821,7 +767,6 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
     
     return h_coeffs, err, w_extremas
 
-
    ########################
   ## Funciones internas #
  ########################
@@ -955,9 +900,14 @@ def _remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_e
         cant_extremos = len(omega_ext_idx)
 
         # probamos si converge exitosamente
-        if np.all(Ew_abs[omega_ext_idx] - this_error_target < error_tol):
+        if np.std(Ew_abs[omega_ext_idx] - this_error_target) < np.max(Ew_abs[omega_ext_idx]) * error_tol:
             
             print("Convergencia exitosa!")
+            break
+
+        # Problemas en la convergencia: sin cambios en el error ni las frecuencias extremas 
+        elif this_error_target  == prev_error_target and np.array_equal(omega_ext_idx, omega_ext_prev_idx):
+            warnings.warn("Problemas de convergencia: El error no disminuyó y ni cambiaron las frecuencias extremas.", UserWarning)
             break
         
         # Problemas en la convergencia: más extremos de los esperados
@@ -989,16 +939,11 @@ def _remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_e
                     # descarto el mínimo y su adyacente para no romper la alternancia de Remez.
                     min_idx = np.argmin(Ew_abs_comp)
 
-                    omega_ext_idx = np.concatenate( (omega_ext_idx[:min_idx], omega_ext_idx[min_idx+2,:] ) )
+                    omega_ext_idx = np.concatenate( (omega_ext_idx[:min_idx], omega_ext_idx[min_idx+2:] ) )
                           
                 cant_extremos = len(omega_ext_idx)
                 cant_extra = cant_extremos - cant_extremos_esperados
             
-
-        # Problemas en la convergencia: sin cambios en el error ni las frecuencias extremas 
-        elif this_error_target  == prev_error_target and np.array_equal(omega_ext_idx, omega_ext_prev_idx):
-            warnings.warn("Problemas de convergencia: El error no disminuyó y ni cambiaron las frecuencias extremas.", UserWarning)
-            break
 
         if debug:
             ## Debug
@@ -1097,7 +1042,7 @@ def _remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_e
         plt.plot(frecuencias[:half_fft_sz], Aw_ext, label=f'$H_{{R{niter}}}$')
         plt.legend()
         plt.show()
-    
+        pass
         ## Debug
 
     return a_coeffs_half, this_error_target, fr_grid[omega_ext_idx]
