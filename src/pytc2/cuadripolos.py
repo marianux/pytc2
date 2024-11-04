@@ -1154,6 +1154,76 @@ def Z2Tabcd(ZZ):
 
     return TT
 
+def Tabcd2Z(TT):
+    '''
+    Convierte una matriz de parámetros ABCD (TT) a la matriz de impedancia de dos puertos (ZZ).
+
+    Parameters
+    ----------
+    TT : numpy.ndarray
+        Matriz de parámetros ABCD.
+
+    Returns
+    -------
+    ZZ : numpy.ndarray
+        Matriz de impedancia de dos puertos.
+
+    Raises
+    ------
+    ValueError
+        Si TT no es una matriz de 2x2.
+        Si B es cero.
+
+
+    See Also
+    --------
+    :func:`Z2Tabcd`
+    :func:`Tabcd2Y`
+    :func:`may2y`
+
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from pytc2.cuadripolos import Tabcd2Z
+    >>> TT = np.array([[2, 7], [1./3., 5./3.]])
+    >>> ZZ = Tabcd2Z(TT)
+    >>> print(ZZ)
+    [[ 6.,  3.]
+     [3.,  5.]]    
+    
+    >>> # Recordar la conversión entre modelos:
+     [[A/C DT/C]
+     [1/C D/C]]
+
+    Notes
+    -----
+    - Esta función asume que TT tiene el formato [ [A, B], [C, D] ].
+    - C no puede ser cero para evitar una división por cero.
+
+    '''
+    if not isinstance(TT, np.ndarray):
+        raise ValueError("TT debe ser una instancia de np.ndarray")
+    
+    # Verificar que TT sea una matriz de 2x2
+    if TT.shape != (2, 2):
+        raise ValueError("TT debe ser una matriz de 2x2")
+
+    # Verificar que B no sea cero para evitar división por cero
+    if TT[1, 0] == 0:
+        raise ValueError("C no puede ser cero")
+
+    # Inicializar la matriz de admitancia YY
+    ZZ = np.zeros_like(TT)
+
+    # Calcular los elementos de la matriz YY
+    ZZ[0, 0] = TT[0, 0] 
+    ZZ[0, 1] = np.linalg.det(TT) 
+    ZZ[1, 0] = 1 
+    ZZ[1, 1] = TT[1, 1]
+
+    return 1/TT[1, 0] * ZZ
+
 def Tabcd2Y(TT):
     '''
     Convierte una matriz de parámetros ABCD (TT) a la matriz de admitancia de dos puertos (YY).
