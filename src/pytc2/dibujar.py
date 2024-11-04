@@ -49,7 +49,7 @@ def dibujar_Tee(ZZ, return_components=False):
 
     Parameters
     ----------
-    ZZ : sympy.Matrix
+    ZZ : sympy or numpy Matrix
         Matriz de impedancia Z.
     return_components : bool, optional
         Indica si se deben devolver los componentes individuales de la red (Za, Zb, Zc). Por defecto es False.
@@ -85,8 +85,13 @@ def dibujar_Tee(ZZ, return_components=False):
 
     '''
 
-    if not isinstance(ZZ, sp.Matrix):
-        raise ValueError("ZZ debe ser una instancia de sympy.Matrix.")
+    if not isinstance(ZZ, (sp.Matrix, np.ndarray)):
+        raise ValueError("ZZ debe ser una instancia de Symbolic o Numpy Matrix")
+    
+    # Verificar que Spar tenga el formato correcto
+    if ZZ.shape != (2, 2):
+        raise ValueError("ZZ debe tener el formato [ [Z11, Z12], [Z21, Z22] ]")
+
 
     if not isinstance(return_components, bool):
         raise ValueError("return_components debe ser booleano.")
@@ -100,18 +105,16 @@ def dibujar_Tee(ZZ, return_components=False):
     Zb = ZZ[0, 1]
     Zc = ZZ[1, 1] - ZZ[0, 1]
     
-    if isinstance(ZZ, sp.Expr):
-        Za = sp.simplify(sp.expand(Za))
-        Zb = sp.simplify(sp.expand(Zb))
-        Zc = sp.simplify(sp.expand(Zc))
+    
+    bSymbolic = isinstance(ZZ[0, 0], sp.Expr)
 
-    if not Za.is_zero:
+    if (bSymbolic and (not Za.is_zero) or (not bSymbolic) and Za != 0):
         d = dibujar_elemento_serie(d, "Z", Za)
 
-    if not Zb.is_zero:
+    if (bSymbolic and (not Zb.is_zero) or (not bSymbolic) and Zb != 0):
         d = dibujar_elemento_derivacion(d, "Z", Zb)
 
-    if not Zc.is_zero:
+    if (bSymbolic and (not Zc.is_zero) or (not bSymbolic) and Zc != 0):
         d = dibujar_elemento_serie(d, "Z", Zc)
 
     d = dibujar_puerto_salida(d)
@@ -167,8 +170,12 @@ def dibujar_Pi(YY, return_components=False):
     '''
 
     # Comprobar el tipo de dato de YY
-    if not isinstance(YY, sp.Matrix):
-        raise ValueError("YY debe ser una matriz simbólica.")
+    if not isinstance(YY, (sp.Matrix, np.ndarray)):
+        raise ValueError("YY debe ser una instancia de Symbolic o Numpy Matrix")
+    
+    # Verificar que Spar tenga el formato correcto
+    if YY.shape != (2, 2):
+        raise ValueError("YY debe tener el formato [ [Y11, Y12], [Y21, Y22] ]")
 
     if not isinstance(return_components, bool):
         raise ValueError("return_components debe ser booleano.")
