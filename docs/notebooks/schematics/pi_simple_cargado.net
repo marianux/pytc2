@@ -1,0 +1,14 @@
+* G:\mariano\Escritorio\Enlace hacia pytc2\docs\notebooks\schematics\pi_simple_cargado.asc
+I1 0 vi 0 AC 1 0
+R1 vi 0 1
+C2 vi 0 {7/17/wo/Ro}
+C3 vo vi {27/289/wo/Ro}
+C4 0 vo {27/17/wo/Ro}
+L4 vo vi {289/243/wo*Ro} Rser=0
+#.net I(R2) V1
+.ac dec 1000 .1 10
+.param wo=2*pi
+.param Ro=1
+.net V(vo) I1
+.backanno
+.end
