@@ -341,52 +341,65 @@ def modsq2mod_s( this_func ):
 
     num, den = sp.fraction(this_func)
 
+
     k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
-    
-    # roots_num = num.as_poly(s).all_roots()
-    
-    # poly_acc = sp.Rational('1')
-    
-    roots_num = sp.roots(num)
-    
+   
+    # raíces numéricas
+    num_coeffs = num.as_poly(s).all_coeffs()
+    roots_num = np.roots(num_coeffs)
+
+    conjugadas, no_conjugadas, pares_simetricos = clasificar_raices(roots_num)
+
+    # conju = forzar_raices_imaginarias(conjugadas)
+
     poly_acc = sp.Rational('1')
+    
+    for this_root in no_conjugadas:
+        poly_acc *= (s-this_root)
+    
+    for this_root in conjugadas:
+        poly_acc *= (s-this_root) * (s-np.conj(this_root))
 
-    for this_root in roots_num.keys():
-        
-        if sp.re(this_root) <= 0:
-            
-            # multiplicidad
-            mult = roots_num[this_root]
-
-            if mult > 1:
-                poly_acc *= (s-this_root)**sp.Rational(mult/2)
-            else:
-                poly_acc *= (s-this_root)
+    for this_root in pares_simetricos:
+        poly_acc *= (s-this_root) * (s-np.conj(this_root))
 
     assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
+    
+    # # estimo la dispersión de las raíces para saber dónde tomar el cero
+    # tol = np.std( np.real(roots_num) )
+    
+    # # # raíces simbólicas
+    # # roots_num = num.as_poly(s).all_roots()
+    
+    # poly_acc = sp.Rational('1')
+
+    # for this_root in roots_num:
+
+    #     if np.real(this_root) <= -tol:
+            
+    #         # # multiplicidad
+    #         # mult = roots_num[this_root]
+    #         # if mult > 1:
+    #         #     poly_acc *= (s-this_root)**sp.Rational(mult/2)
+    #         # else:
+    #         #     poly_acc *= (s-this_root)
+
+    #         poly_acc *= (s-this_root)
+
+    # assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
 
     num = sp.simplify(sp.expand(poly_acc))
 
-
-
-    # poly_acc = 0
-    
-    # for each_term in num.as_poly(s).all_terms():
-        
-    #     poly_acc += np.abs(each_term[1]) * s**each_term[0][0]
-
-    # num = poly_acc
-    
-    roots_num = sp.roots(den)
+    roots_den = sp.roots(den)
     
     poly_acc = sp.Rational('1')
 
-    for this_root in roots_num.keys():
+    for this_root in roots_den.keys():
         
         if sp.re(this_root) <= 0:
             
             # multiplicidad
-            mult = roots_num[this_root]
+            mult = roots_den[this_root]
 
             if mult > 1:
                 poly_acc *= (s-this_root)**sp.Rational(mult/2)
@@ -404,6 +417,80 @@ def modsq2mod_s( this_func ):
     den = poly_acc
 
     return(sp.simplify(sp.expand(sp.sqrt(k) * num/den))) 
+
+
+def clasificar_raices(raices_orig):
+    """
+    Clasifica raíces en complejas conjugadas, no conjugadas y pares simétricos respecto al eje imaginario.
+
+    Parámetros:
+        raices (list or np.ndarray): Lista de raíces obtenidas con np.roots.
+
+    Retorna:
+        tuple: Tres listas:
+            - Complejas conjugadas.
+            - Raíces no conjugadas.
+            - Pares simétricos respecto al eje imaginario.
+    """
+    # Convertir las raíces en un formato numérico estable (por redondeo de precisión)
+    raices = np.round(raices_orig, decimals=10)  # Redondeamos para evitar problemas numéricos.
+
+    conjugadas = []
+    no_conjugadas = []
+    pares_simetricos = []
+
+    usadas = np.zeros_like(raices, dtype=bool)  # Para marcar qué raíces ya procesamos
+
+    for i, raiz in enumerate(raices):
+        if usadas[i]:  # Si ya usamos esta raíz, la saltamos
+            continue
+        
+        conj = np.conj(raiz)  # Conjugada de la raíz actual
+        if np.isclose(raiz.imag, 0):  # Raíz real (imag. casi 0)
+            no_conjugadas.append(-1*np.abs(raices_orig[i].real))
+            usadas[i] = True
+        elif any(np.isclose(conj, raices)):  # Es parte de un par conjugado
+            usadas[i] = True
+            # Marcar su conjugada como usada
+            idx_conj = np.where(np.isclose(conj, raices))[0][0]
+            usadas[idx_conj] = True
+
+            if np.isclose(raiz.real, 0):  # Raíz real (imag. casi 0)
+                # en este caso son imaginarias y no hay otro par en SPD    
+                conjugadas.append(raices_orig[i])
+                # conjugadas.append(raices_orig[idx_conj])
+            
+            else:
+                # buscamos el otro par en SPD    
+
+                # Verificar si tiene par simétrico respecto al eje imaginario
+                simetrica = -raiz.real + 1j * raiz.imag  # Par simétrico respecto al eje imaginario
+                simetrica_conj = -raiz.real - 1j * raiz.imag  # Par simétrico respecto al eje imaginario
+                if any(np.isclose(simetrica, raices)):
+                    # Marcar también la raíz simétrica como usada
+                    idx_sim_1 = np.where(simetrica == raices)[0][0]
+                    usadas[idx_sim_1] = True
+                    idx_sim_2 = np.where(simetrica_conj == raices)[0][0]
+                    usadas[idx_sim_2] = True
+                    # conjugadas.append(raices_orig[idx_sim_1])
+                    # conjugadas.append(raices_orig[idx_sim_2])
+                    pares_simetricos.append( -1*np.abs(raices_orig[i].real) + 1j * raices_orig[i].imag)
+                    # pares_simetricos.append( -1*np.abs(raices_orig[i].real) - 1j * raices_orig[i].imag)
+
+                    
+        else:  # Raíz no conjugada (compleja sin pareja)
+            no_conjugadas.append(raiz)
+            usadas[i] = True
+
+    return conjugadas, no_conjugadas, pares_simetricos
+
+def forzar_raices_imaginarias(raices_orig):
+
+    raices_imaginarias = np.zeros(2*len(raices_orig), dtype = np.complex128 )
+    raices_imaginarias[:-1:2] =  1j * np.abs(raices_orig)
+    raices_imaginarias[1::2] =  -1j * np.abs(raices_orig)
+    
+    return(raices_imaginarias)
 
 ################################################################
 #%% Bloque de funciones para la síntesis gráfica de imitancias #
