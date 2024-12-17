@@ -1445,6 +1445,10 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
     if not isinstance(axes_hdl, plt.Axes):
         axes_hdl = plt.gca()
         
+    # Verificar si myFilter es un array NumPy o un objeto TransferFunction
+    if not isinstance(myFilter, TransferFunction):
+        raise ValueError("myFilter debe ser un objeto TransferFunction.")
+        
     # Obtener los polos y ceros del filtro
     z, p, k = tf2zpk(myFilter.num, myFilter.den)
 

@@ -48,7 +48,7 @@ Variable compleja de Laplace s = σ + j.ω
 En caso de necesitar usarla, importar el símbolo desde este módulo.
 """
 
-w = sp.symbols('w', complex=False) 
+w = sp.symbols('w', real=True) 
 """
 Fourier real variable ω 
 En caso de necesitar usarla, importar el símbolo desde este módulo.
@@ -301,7 +301,8 @@ def symbfunc2tf(tt):
 
 def simplify_n_monic(tt):
     '''
-    Simplifica un polinomio de fracciones en forma mónica.
+    Factoriza una función racional tt, en polinmios numerador y denominador 
+    mónicos multiplicados por un escalar k.
 
 
     Parameters
@@ -312,8 +313,12 @@ def simplify_n_monic(tt):
 
     Returns
     -------
-    Expr
-        Polinomio simplificado en forma monica.
+    k
+        escala o factor de la función tt.
+    num
+        Polinomio numerador simplificado en forma monica.
+    den
+        Polinomio denominador simplificado en forma monica.
 
 
     Raises
@@ -355,7 +360,7 @@ def simplify_n_monic(tt):
     den = den.monic()
 
     # Devolver el polinomio simplificado en forma monica
-    return sp.Mul(k, num/den, evaluate=False)
+    return(k, num.expr, den.expr)
 
 def Chebyshev_polynomials(nn):
     '''

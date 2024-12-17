@@ -1246,7 +1246,7 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     d += Gap().down().label('').length(0.5*half_width)
     d.pop()
     d.push()
-    d += Line().up().at( (d.here.x, d.here.y - .2 * half_width) ).length(half_width).linewidth(1)
+    d += Line().up().at( (d.here.x, d.here.y - .05 * half_width) ).length(half_width).linewidth(1)
     
     if( hacia_salida ):
         d.push()

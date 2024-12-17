@@ -286,7 +286,7 @@ def trim_func_s( rat_func, tol = 10**-6 ):
     
     return(num/den)
 
-def modsq2mod_s( this_func ):
+def modsq2mod_s( this_func, bTryNumeric = False ):
     '''
     Esta función halla una función de variable compleja T(s), cuyo módulo se 
     expresa como la factorización:
@@ -341,54 +341,31 @@ def modsq2mod_s( this_func ):
 
     num, den = sp.fraction(this_func)
 
-
     k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
-   
-    # raíces numéricas
-    num_coeffs = num.as_poly(s).all_coeffs()
-    roots_num = np.roots(num_coeffs)
 
-    conjugadas, no_conjugadas, pares_simetricos = clasificar_raices(roots_num)
-
-    # conju = forzar_raices_imaginarias(conjugadas)
-
+    roots_num = sp.roots(num)
+    
     poly_acc = sp.Rational('1')
-    
-    for this_root in no_conjugadas:
-        poly_acc *= (s-this_root)
-    
-    for this_root in conjugadas:
-        poly_acc *= (s-this_root) * (s-np.conj(this_root))
 
-    for this_root in pares_simetricos:
-        poly_acc *= (s-this_root) * (s-np.conj(this_root))
+    for this_root in roots_num.keys():
+        
+        if sp.re(this_root) <= 0:
+            
+            # multiplicidad
+            mult = roots_num[this_root]
+
+            if mult > 1:
+                poly_acc *= (s-this_root)**sp.Rational(mult/2)
+            else:
+                poly_acc *= (s-this_root)
+
 
     assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
-    
-    # # estimo la dispersión de las raíces para saber dónde tomar el cero
-    # tol = np.std( np.real(roots_num) )
-    
-    # # # raíces simbólicas
-    # # roots_num = num.as_poly(s).all_roots()
-    
-    # poly_acc = sp.Rational('1')
 
-    # for this_root in roots_num:
-
-    #     if np.real(this_root) <= -tol:
-            
-    #         # # multiplicidad
-    #         # mult = roots_num[this_root]
-    #         # if mult > 1:
-    #         #     poly_acc *= (s-this_root)**sp.Rational(mult/2)
-    #         # else:
-    #         #     poly_acc *= (s-this_root)
-
-    #         poly_acc *= (s-this_root)
-
-    # assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
-
-    num = sp.simplify(sp.expand(poly_acc))
+    if bTryNumeric:
+        num = sp.simplify(sp.expand(poly_acc.evalf()))
+    else:
+        num = sp.simplify(sp.expand(poly_acc))
 
     roots_den = sp.roots(den)
     
@@ -405,8 +382,13 @@ def modsq2mod_s( this_func ):
                 poly_acc *= (s-this_root)**sp.Rational(mult/2)
             else:
                 poly_acc *= (s-this_root)
+
+    assert (len(den.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
     
-    den = sp.simplify(sp.expand(poly_acc))
+    if bTryNumeric:
+        den = sp.simplify(sp.expand(poly_acc.evalf()))
+    else:
+        den = sp.simplify(sp.expand(poly_acc))
 
     poly_acc = 0
     
