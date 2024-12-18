@@ -1339,7 +1339,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
         # else:
         #     this_digital = True
         
-        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs)
+        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs, unwrap_phase=True)
     
     return_values += [[fig_id, axes_hdl]]
     
@@ -1810,7 +1810,24 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         if digital:
             ww = np.linspace(0, np.pi, npoints)
         else:
-            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
+            
+            this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+            
+            if(this_zzpp_fl == this_zzpp_rd):
+                start_ww = this_zzpp_fl - 1
+            else:
+                start_ww = this_zzpp_fl
+            
+            this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+            
+            if(this_zzpp_cl == this_zzpp_rd):
+                end_ww = this_zzpp_cl + 1
+            else:
+                end_ww = this_zzpp_cl
+            
+            ww = np.logspace(start_ww, end_ww, npoints)
         
         
         cant_sos = myFilter.shape[0]
@@ -1877,7 +1894,23 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         if digital:
             ww = np.linspace(0, np.pi, npoints)
         else:
-            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
+            this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+            
+            if(this_zzpp_fl == this_zzpp_rd):
+                start_ww = this_zzpp_fl - 1
+            else:
+                start_ww = this_zzpp_fl
+            
+            this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+            
+            if(this_zzpp_cl == this_zzpp_rd):
+                end_ww = this_zzpp_cl + 1
+            else:
+                end_ww = this_zzpp_cl
+            
+            ww = np.logspace(start_ww, end_ww, npoints)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'ignore') 
@@ -2066,7 +2099,23 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         if digital:
             ww = np.linspace(0, np.pi, npoints)
         else:
-            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
+            this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+            
+            if(this_zzpp_fl == this_zzpp_rd):
+                start_ww = this_zzpp_fl - 1
+            else:
+                start_ww = this_zzpp_fl
+            
+            this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+            
+            if(this_zzpp_cl == this_zzpp_rd):
+                end_ww = this_zzpp_cl + 1
+            else:
+                end_ww = this_zzpp_cl
+            
+            ww = np.logspace(start_ww, end_ww, npoints)
 
         cant_sos = myFilter.shape[0]
         mag = np.empty((npoints, cant_sos + 1))
@@ -2126,7 +2175,26 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         if digital:
             ww, mag, phase = myFilter.bode(n=np.linspace(0, np.pi, npoints))
         else:
-            ww, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+            
+            this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+            
+            if(this_zzpp_fl == this_zzpp_rd):
+                start_ww = this_zzpp_fl - 1
+            else:
+                start_ww = this_zzpp_fl
+            
+            this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+            this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+            
+            if(this_zzpp_cl == this_zzpp_rd):
+                end_ww = this_zzpp_cl + 1
+            else:
+                end_ww = this_zzpp_cl
+            
+            ww = np.logspace(start_ww, end_ww, npoints)
+            
+            ww, mag, phase = myFilter.bode(ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 

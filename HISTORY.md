@@ -1,5 +1,12 @@
 # History
 
+## v0.1.1 (18/12/2024)
+
+- Docs: Se completaron los notebooks respecto a los grandes temas
+    de Teoría de Circuitos 2.
+- Cambios menores y arreglos de funciones
+
+
 ## v0.1.0 (03/04/2024)
 
 - Primer release completo
