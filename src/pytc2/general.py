@@ -339,7 +339,8 @@ def simplify_n_monic(tt):
     >>> import sympy as sp
     >>> from pytc2.general import s, simplify_n_monic
     >>> tt = (s**2 + 3*s + 2) / (2*s**2 + 5*s + 3)
-    >>> simplified_tt = simplify_n_monic(tt)
+    >>> k, num, den = simplify_n_monic(tt)
+    >>> simplified_tt = k * num / den
     >>> print(simplified_tt)
     (s + 2)/(2*s + 3)
     

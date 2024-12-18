@@ -1144,7 +1144,7 @@ def dibujar_espaciador( d ):
 
     return(d)
 
-def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_salida  = False, hacia_entrada  = False ):
+def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=1., hacia_salida  = False, hacia_entrada  = False ):
     '''
     Dibuja una ecuación correspondiente a la función de excitación definida en 
     un dipolo de una red eléctrica diagramada mediante :mod:`schemdraw`.
@@ -1160,7 +1160,7 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
         Un valor o expresión simbólica de la función `func_label` a indicar.
     k_gap_width:  Real, opcional
         Anchura del espacio destinado para la expresión proporcional a la escala del esquemático.
-        El valor predeterminado es `0.5*d.unit`.
+        El valor predeterminado es 1.0 (*d.unit).
     hacia_salida:  boolean, opcional
         Booleano para indicar si la función se mide hacia la salida. El valor predeterminado es False.
     hacia_entrada:  string, opcional
@@ -1242,7 +1242,7 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     else:
         sym_func = '$ ' + func_label + ' = ?? $'
     
-    d.add(Gap().down().label( sym_func, fontsize=22 ).length(0.5*half_width))
+    d.add(Gap().down().label( sym_func, fontsize=int(np.round(22*k_gap_width)) ).length(0.5*half_width))
     d += Gap().down().label('').length(0.5*half_width)
     d.pop()
     d.push()

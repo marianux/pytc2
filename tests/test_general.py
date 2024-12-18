@@ -101,7 +101,9 @@ def test_simplify_n_monic_valid():
     true_val = (s + 2)/(2*s + 3)
     # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
     try:
-        simplified_tt = test_module.simplify_n_monic(args)
+        k, num, den = test_module.simplify_n_monic(args)
+        simplified_tt = k * num / den
+
     except ValueError:
         pytest.fail("Se levantó un ValueError incorrectamente.")
         

@@ -314,7 +314,8 @@ def modsq2mod_s( this_func, bTryNumeric = False ):
     ------
     ValueError
         Si this_func no es una instancia de sympy.Expr.
-
+    RuntimeError
+        Si falla la factorización en T(s)*T(-s)
 
     See Also
     --------
@@ -334,7 +335,6 @@ def modsq2mod_s( this_func, bTryNumeric = False ):
     (s**2 + 3)/(s**2 + 2*s + 1)
 
     '''
-    # TODO: todavía la función no funciona correctamente. Probar el ejemplo.
             
     if not isinstance(this_func , sp.Expr):
         raise ValueError('Hay que definir this_func como una expresión simbólica.')
@@ -360,7 +360,9 @@ def modsq2mod_s( this_func, bTryNumeric = False ):
                 poly_acc *= (s-this_root)
 
 
-    assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
+    # probamos que hayamos considerado la mitad de las raíces del numerador
+    if (len(num.as_poly(s).all_coeffs())-1)/2 != (len(poly_acc.as_poly(s).all_coeffs())-1):
+        raise RuntimeError('Falló la factorización de modsq2mod_s. ¡Revisar!')
 
     if bTryNumeric:
         num = sp.simplify(sp.expand(poly_acc.evalf()))
@@ -383,7 +385,9 @@ def modsq2mod_s( this_func, bTryNumeric = False ):
             else:
                 poly_acc *= (s-this_root)
 
-    assert (len(den.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
+    # probamos que hayamos considerado la mitad de las raíces del denominador
+    if (len(den.as_poly(s).all_coeffs())-1)/2 != (len(poly_acc.as_poly(s).all_coeffs())-1):
+        raise RuntimeError('Falló la factorización de modsq2mod_s. ¡Revisar!')
     
     if bTryNumeric:
         den = sp.simplify(sp.expand(poly_acc.evalf()))

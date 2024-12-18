@@ -152,7 +152,7 @@ PyQt5-sip == 12.12.2
 PyQtWebEngine == 5.15.6
 PyQtWebEngine-Qt5 == 5.15.2
 pyrsistent == 0.19.3
-pytc2
+git+https://github.com/marianux/pytc2.git
 pytest == 7.4.2
 pytest-cov == 4.1.0
 python-dateutil == 2.8.2
