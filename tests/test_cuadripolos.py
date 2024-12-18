@@ -98,21 +98,6 @@ def test_matrix_conversion_simbolic(func_ptr, true_val):
            test_module.Ts2S_s,
            sp.Matrix([[0, S12], [S21, S22]])
         ), 
-       # Ts -> Tabcd 
-       (   
-           test_module.Ts2Tabcd_s,
-           sp.Matrix([[0, S12], [S21, S22]])
-        ), 
-       # Tabcd -> S 
-       (   
-           test_module.Tabcd2S_s,
-           sp.Matrix([[S11, S12, S22], [S11, S12, S22], [S11, S12, S22]])
-        ), 
-       # S -> Tabcd 
-       (   
-           test_module.S2Tabcd_s,
-           sp.Matrix([[S11, S12], [0, S22]])
-        ), 
        # Y -> Tabcd 
        (   
            test_module.Y2Tabcd_s,
@@ -146,15 +131,69 @@ def test_matrix_conversion_simbolic_invalid_input(func_ptr, Spar_invalid):
 
     # Verificar que se levante un ValueError al pasar una matriz numérica
     with pytest.raises(ValueError):
-        Ts = func_ptr(Spar_mal_tipo)
+        _ = func_ptr(Spar_mal_tipo)
     
     # Verificar que se levante un ValueError al pasar una matriz mal dimensionada
     with pytest.raises(ValueError):
-        Ts = func_ptr(Spar_mala_dim)
+        _ = func_ptr(Spar_mala_dim)
     
     # Verificar que se levante un ValueError al pasar una matriz no válida
     with pytest.raises(ValueError):
-        Ts = func_ptr(Spar_invalid)
+        _ = func_ptr(Spar_invalid)
+    
+
+@pytest.mark.parametrize(
+    "func_ptr, Spar_invalid",
+    [
+       # Ts -> Tabcd 
+       (   
+           test_module.Ts2Tabcd_s,
+           sp.Matrix([[0, S12], [S21, S22]])
+        ), 
+       # Tabcd -> S 
+       (   
+           test_module.Tabcd2S_s,
+           sp.Matrix([[S11, S12, S22], [S11, S12, S22], [S11, S12, S22]])
+        ), 
+       # S -> Tabcd 
+       (   
+           test_module.S2Tabcd_s,
+           sp.Matrix([[S11, S12], [0, S22]])
+        ), 
+    ]
+)
+def test_matrix_conversion_simbolic_invalid_input_2(func_ptr, Spar_invalid):
+    
+    Spar_mal_tipo = np.random.randn(2,2)
+    
+    Spar_mal_tipo2 = np.random.randn(1)
+    
+    Spar_mala_dim = sp.Matrix([[S11, S12, S22],
+                               [S11, S12, S22],
+                               [S11, S12, S22]])
+    
+    Spar_valida = sp.Matrix([[S11, S12],
+                             [S21, S22]])
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        _ = func_ptr(Spar_mal_tipo)
+    
+    # Verificar que se levante un ValueError al pasar un Z01 numérica
+    with pytest.raises(ValueError):
+        _ = func_ptr(Spar_valida, Z01=Spar_mal_tipo2)
+    
+    # Verificar que se levante un ValueError al pasar un Z02 numérica
+    with pytest.raises(ValueError):
+        _ = func_ptr(Spar_valida, Z02=Spar_mal_tipo2)
+    
+    # Verificar que se levante un ValueError al pasar una matriz mal dimensionada
+    with pytest.raises(ValueError):
+        _ = func_ptr(Spar_mala_dim)
+    
+    # Verificar que se levante un ValueError al pasar una matriz no válida
+    with pytest.raises(ValueError):
+        _ = func_ptr(Spar_invalid)
     
 
 def test_I2Tabcd_s_valid():
@@ -260,9 +299,13 @@ def test_Model_conversion_valid():
             except ValueError:
                 pytest.fail("Se levantó un ValueError incorrectamente.")
 
+malos_indices = np.random.randn(2)
+
 # diccionarios inválidos
-invalid_model_dct = [ {  'matrix': ZZ, 'dep_var': vv, 'indep_var':ii },
-                      { 'model_name': 'Y', 'dep_var': ii, 'indep_var':vv },
+invalid_model_dct = [ {  'matrix': ZZ, 'dep_var': vv, 'indep_var':malos_indices },
+                      { 'model_name': 'W', 'dep_var': ii, 'indep_var':malos_indices },
+                      { 'model_name': 'W', 'matrix': ZZ, 'dep_var': vv, 'indep_var':malos_indices },                      
+                      { 'model_name': 'W', 'matrix': ZZ, 'dep_var': vv, 'indep_var':malos_indices },                      
                       { 'model_name': 'H', 'matrix': HH, 'indep_var':h_ind },
                       { 'model_name': 'G', 'matrix': GG, 'dep_var': g_dep},
                       { 'dep_var': t_dep, 'indep_var':t_ind, 'neg_i2_current': True },
@@ -271,9 +314,17 @@ invalid_model_dct = [ {  'matrix': ZZ, 'dep_var': vv, 'indep_var':ii },
     
 def test_Model_conversion_invalid_input():
     
-    for dst_model in invalid_model_dct:
+    for dst_model in model_dct:
         
         for src_model in invalid_model_dct:
+            
+            with pytest.raises(ValueError):
+                
+                HH_z = test_module.Model_conversion( src_model, dst_model)
+            
+    for dst_model in invalid_model_dct:
+        
+        for src_model in model_dct:
             
             with pytest.raises(ValueError):
                 
@@ -341,6 +392,9 @@ def test_may2y_invalid_input():
     with pytest.raises(ValueError):
         YY = test_module.may2y(Ymai, [2, 'a'])
 
+    with pytest.raises(ValueError):
+        YY = test_module.may2y(Ymai, 'a')
+
 
 @pytest.mark.parametrize(
     "func_ptr, true_val",
@@ -350,16 +404,21 @@ def test_may2y_invalid_input():
            test_module.Y2Tabcd,
            np.array([[-1.33333333, -0.33333333], [ 0.66666667, -0.33333333]])
         ), 
+       # Tabcd -> Y
+       (   
+           test_module.Tabcd2Y,
+           np.array([[ 2.,   1. ], [-0.5, 0.5]])
+        ),
        # Z -> Tabcd
        (   
            test_module.Z2Tabcd,
            np.array([[ 0.33333333, -0.66666667], [ 0.33333333,  1.33333333]])
         ), 
-       # Tabcd -> Y
+       # Tabcd -> Z
        (   
-           test_module.Tabcd2Y,
-           np.array([[ 2.,   1. ], [-0.5, 0.5]])
-        )
+           test_module.Tabcd2Z,
+           np.array([[ 0.33333333, -0.66666667], [ 0.33333333,  1.33333333]])
+        ), 
       
     ]
 )
@@ -399,8 +458,13 @@ def test_matrix_conversion_numeric(func_ptr, true_val):
        (   
            test_module.Tabcd2Y,
            np.array([[ 2.,   0. ], [-0.5, 0.5]])
-        )
-      
+        ),
+       # Tabcd -> Z
+       (   
+           test_module.Tabcd2Z,
+           np.array([[ 0.33333333, -0.66666667], [ 0.,  1.33333333]])
+        ) 
+
     ]
 )
 def test_matrix_conversion_numeric_invalid_input(func_ptr, Spar_invalid):

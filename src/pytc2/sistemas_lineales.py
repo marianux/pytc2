@@ -1075,7 +1075,7 @@ def pretty_print_SOS(mySOS, mode='default', displaystr=True):
     else:
         return sos_str
 
-def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotations=True, xaxis='omega', fs=2*np.pi):
+def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=True, annotations=True, xaxis='omega', fs=2*np.pi):
     """
     Analiza el comportamiento de un sistema lineal en términos de:
 
@@ -1107,6 +1107,11 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
         una cascada de SOS.
     sys_name : string o lista, opcional
         Las etiquetas o descripción del sistema. Por defecto es None.
+    worN : entero, lista o array, opcional
+        La cantidad de puntos donde se evaluará la respuesta en frecuencia (N).
+        En caso que sea una lista o array seránlos valores de omega donde se 
+        evaluará la respuesta en frecuencia. Por defecto serán 1000 valores 
+        log-espaciados una década antes y después de las singularidades extremas.
     img_ext : string ['none', 'png', 'svg'], opcional
         Cuando es diferente de 'none', la función guarda los resultados del 
         gráfico en un archivo con la extensión indicada. Por defecto es 'none'.
@@ -1208,6 +1213,9 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
     if isinstance(sys_name, list) and len(sys_name) != cant_sys:
         raise ValueError('sys_name debe tener igual cantidad de etiquetas que ')
         
+    # Check valid type for worN
+    if not isinstance(worN, (Integral, Real, list, np.ndarray)):
+        raise ValueError('worN debe ser un número o un array de números')
         
     # Check valid values for xaxis
     valid_xaxis = ['omega', 'freq', 'norm']
@@ -1249,7 +1257,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
             # SOS
             this_digital = False
 
-        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs)
+        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, worN=worN, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs)
 
 
     if img_ext != 'none':
@@ -1339,7 +1347,7 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
         # else:
         #     this_digital = True
         
-        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs)
+        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description=sys_name[ii], worN=worN, digital=this_digital, xaxis=xaxis, fs=fs, unwrap_phase=True)
     
     return_values += [[fig_id, axes_hdl]]
     
@@ -1349,7 +1357,6 @@ def analyze_sys(all_sys, sys_name=None, img_ext='none', same_figs=True, annotati
 
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_GroupDelay.' + img_ext, format=img_ext)
-
 
     return return_values
 
@@ -1699,7 +1706,7 @@ def group_delay(freq, phase):
     # Agregar el último valor para que tenga la misma longitud que el arreglo original
     return np.append(groupDelay, groupDelay[-1])
 
-def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
+def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
     """
     Calcula y grafica el retardo de grupo de un filtro.
 
@@ -1712,8 +1719,11 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
         Identificador de la figura. Si es 'none', crea una nueva figura. Por defecto es 'none'.
     filter_description : str, opcional
         Descripción del filtro. Por defecto es None.
-    npoints : int, opcional
-        Número de puntos para muestrear el eje de frecuencia. Por defecto es 1000.
+    worN : entero, lista o array, opcional
+        La cantidad de puntos donde se evaluará la respuesta en frecuencia (N).
+        En caso que sea una lista o array seránlos valores de omega donde se 
+        evaluará la respuesta en frecuencia. Por defecto serán 1000 valores 
+        log-espaciados una década antes y después de las singularidades extremas.
     digital : bool, opcional
         Indicador de si el filtro es digital. Por defecto es False.
     xaxis : str, opcional
@@ -1763,7 +1773,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
     >>> num = np.array([w0**2])
     >>> den = np.array([1., w0 / Q, w0**2])
     >>> H1 = sig.TransferFunction(num, den)
-    >>> fig_id, axes_hdl = GroupDelay(H1, fig_id=1, filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+    >>> fig_id, axes_hdl = GroupDelay(H1, fig_id=1, filter_description='Filtro pasa bajos', worN=1000, digital=False, xaxis='omega', fs=2*np.pi)
     
     
     """
@@ -1776,9 +1786,16 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
     if not isinstance(fig_id, (type(None), str, Integral)):
         raise ValueError("fig_id debe ser de tipo str, int o None.")
 
-    # Verificar si npoints es un entero
-    if not isinstance(npoints, Integral):
-        raise ValueError("npoints debe ser un entero.")
+    # Check valid type for worN
+    if isinstance(worN, (Integral, Real, list, np.ndarray)):
+
+        if isinstance(worN, (Integral, Real)):
+            bworNnumeroLista = True
+        else:
+            bworNnumeroLista = False
+        
+    else:
+        raise ValueError('worN debe ser un número o un array de números')
 
     # Verificar si digital es un booleano
     if not isinstance(digital, bool):
@@ -1808,10 +1825,44 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
         # Calcular el eje de frecuencia según las singularidades del filtro completo
         if digital:
-            ww = np.linspace(0, np.pi, npoints)
+            
+            if bworNnumeroLista:
+            # worN numero
+                npoints = np.round(worN).astype('int')
+                ww = np.linspace(0, np.pi, npoints)
+                
+            else:
+            # worN lista pasada por el usuario
+
+                ww = np.array(worN)
+            
         else:
-            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
+            
+            if bworNnumeroLista:
+            # worN numero
+                this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+                
+                if(this_zzpp_fl == this_zzpp_rd):
+                    start_ww = this_zzpp_fl - 1
+                else:
+                    start_ww = this_zzpp_fl
+                
+                this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+                
+                if(this_zzpp_cl == this_zzpp_rd):
+                    end_ww = this_zzpp_cl + 1
+                else:
+                    end_ww = this_zzpp_cl
+                
+                npoints = np.round(worN).astype('int')
+                ww = np.logspace(start_ww, end_ww, npoints)
         
+            else:
+            # worN lista pasada por el usuario
+
+                ww = np.array(worN)
         
         cant_sos = myFilter.shape[0]
         phase = np.empty((npoints, cant_sos+1))
@@ -1875,9 +1926,46 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
         # Calcular el eje de frecuencia según las singularidades del filtro completo
         if digital:
-            ww = np.linspace(0, np.pi, npoints)
+            
+            if bworNnumeroLista:
+            # worN numero
+                npoints = np.round(worN).astype('int')
+                ww = np.linspace(0, np.pi, npoints)
+                
+            else:
+            # worN lista pasada por el usuario
+
+                ww = np.array(worN)
+            
         else:
-            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
+            
+            if bworNnumeroLista:
+            # worN numero
+
+                this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+                
+                if(this_zzpp_fl == this_zzpp_rd):
+                    start_ww = this_zzpp_fl - 1
+                else:
+                    start_ww = this_zzpp_fl
+                
+                this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+                
+                if(this_zzpp_cl == this_zzpp_rd):
+                    end_ww = this_zzpp_cl + 1
+                else:
+                    end_ww = this_zzpp_cl
+
+                npoints = np.round(worN).astype('int')
+                ww = np.logspace(start_ww, end_ww, npoints)
+            
+            else:
+            # worN lista pasada por el usuario
+
+                    ww = np.array(worN)
+
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'ignore') 
@@ -1965,7 +2053,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints=1000, d
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, npoints=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, worN=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
     """
     Grafica el diagrama de Bode (magnitud y fase) de un filtro.
 
@@ -1980,8 +2068,11 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         Manejador de ejes de la figura. Si es 'none', crea nuevos ejes. Por defecto es 'none'.
     filter_description : str, opcional
         Descripción del filtro. Por defecto es None.
-    npoints : int, opcional
-        Número de puntos para muestrear el eje de frecuencia. Por defecto es 1000.
+    worN : entero, lista o array, opcional
+        La cantidad de puntos donde se evaluará la respuesta en frecuencia (N).
+        En caso que sea una lista o array seránlos valores de omega donde se 
+        evaluará la respuesta en frecuencia. Por defecto serán 1000 valores 
+        log-espaciados una década antes y después de las singularidades extremas.
     digital : bool, opcional
         Indicador de si el filtro es digital. Por defecto es False.
     xaxis : str, opcional
@@ -2028,7 +2119,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     >>> num = np.array([w0**2])
     >>> den = np.array([1., w0 / Q, w0**2])
     >>> H1 = sig.TransferFunction(num, den)
-    >>> fig_id, axes_hdl = bodePlot(H1, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+    >>> fig_id, axes_hdl = bodePlot(H1, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', worN=1000, digital=False, xaxis='omega', fs=2*np.pi)
 
     
     """
@@ -2044,6 +2135,17 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     # Verificar si digital es un booleano
     if not isinstance(digital, bool):
         raise ValueError("digital debe ser un booleano.")
+
+    # Check valid type for worN
+    if isinstance(worN, (Integral, Real, list, np.ndarray)):
+
+        if isinstance(worN, (Integral, Real)):
+            bworNnumeroLista = True
+        else:
+            bworNnumeroLista = False
+        
+    else:
+        raise ValueError('worN debe ser un número o un array de números')
 
     # Verificar si unwrap_phase es un booleano
     if not isinstance(unwrap_phase, bool):
@@ -2064,9 +2166,44 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
         # Calcular el eje de frecuencia según las singularidades del filtro completo
         if digital:
-            ww = np.linspace(0, np.pi, npoints)
+            
+            if bworNnumeroLista:
+            # worN numero
+                npoints = np.round(worN).astype('int')
+                ww = np.linspace(0, np.pi, npoints)
+                
+            else:
+            # worN lista pasada por el usuario
+                ww = np.array(worN)
+            
         else:
-            ww = np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints)
+            
+            if bworNnumeroLista:
+            # worN numero
+                
+                this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+                
+                if(this_zzpp_fl == this_zzpp_rd):
+                    start_ww = this_zzpp_fl - 1
+                else:
+                    start_ww = this_zzpp_fl
+                
+                this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+                
+                if(this_zzpp_cl == this_zzpp_rd):
+                    end_ww = this_zzpp_cl + 1
+                else:
+                    end_ww = this_zzpp_cl
+                
+                npoints = np.round(worN).astype('int')
+                ww = np.logspace(start_ww, end_ww, npoints)
+                
+            else:
+            # worN lista pasada por el usuario
+
+                ww = np.array(worN)
 
         cant_sos = myFilter.shape[0]
         mag = np.empty((npoints, cant_sos + 1))
@@ -2124,9 +2261,45 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         np.seterr(divide = 'ignore') 
 
         if digital:
-            ww, mag, phase = myFilter.bode(n=np.linspace(0, np.pi, npoints))
+            
+            if bworNnumeroLista:
+            # worN numero
+                npoints = np.round(worN).astype('int')
+                ww = np.linspace(0, np.pi, npoints)
+            else:
+            # worN lista pasada por el usuario
+                ww = np.array(worN)
+            
+            ww, mag, phase = myFilter.bode(n=ww)
         else:
-            ww, mag, phase = myFilter.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 1, np.ceil(np.log10(small_val+np.max(this_zzpp))) + 1, npoints))
+
+            if bworNnumeroLista:
+            # worN numero
+
+                this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
+                
+                if(this_zzpp_fl == this_zzpp_rd):
+                    start_ww = this_zzpp_fl - 1
+                else:
+                    start_ww = this_zzpp_fl
+                
+                this_zzpp_cl = np.ceil(np.log10(small_val+np.max(this_zzpp)))
+                this_zzpp_rd = np.round(np.log10(small_val+np.max(this_zzpp)))
+                
+                if(this_zzpp_cl == this_zzpp_rd):
+                    end_ww = this_zzpp_cl + 1
+                else:
+                    end_ww = this_zzpp_cl
+                
+                npoints = np.round(worN).astype('int')
+                ww = np.logspace(start_ww, end_ww, npoints)
+
+            else:
+            # worN lista pasada por el usuario
+                ww = np.array(worN)
+            
+            ww, mag, phase = myFilter.bode(n=ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 
@@ -2311,7 +2484,7 @@ def plot_plantilla(filter_type='', fpass=0.25, ripple=0.5, fstop=0.6, attenuatio
     >>> num = np.array([w0**2])
     >>> den = np.array([1., w0 / Q, w0**2])
     >>> H1 = sig.TransferFunction(num, den)
-    >>> fig_id, axes_hdl = bodePlot(H1, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', npoints=1000, digital=False, xaxis='omega', fs=2*np.pi)
+    >>> fig_id, axes_hdl = bodePlot(H1, fig_id=1, axes_hdl='none', filter_description='Filtro pasa bajos', worN=1000, digital=False, xaxis='omega', fs=2*np.pi)
     >>> plt.sca(axes_hdl[0])
     >>> plot_plantilla(filter_type='lowpass', fpass=1.0, ripple=3, fstop=3.0, attenuation=20, fs=2)
 
