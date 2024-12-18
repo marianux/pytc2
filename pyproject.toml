@@ -1,7 +1,7 @@
 
 [tool.poetry]
 name = "pytc2"
-version = "0.1.0"
+version = "0.1.1"
 description = "Módulo didáctico para el estudio de Teoría de Circuitos"
 authors = ["Mariano Llamedo Soria"]
 license = "MIT"

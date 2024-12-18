@@ -836,10 +836,16 @@ def Model_conversion(src_model, dst_model):
         return {'matrix': sp.Matrix([[1,1],[1,1]]), 'name': f"{dst_model['model_name']}_{src_model['model_name']}"}
 
 
-    # Verificar que las variables independientes sean símbolos o números reales positivos
+    # Verificar que las variables independientes sean símbolos ""o números reales positivos""
     for var in src_model['indep_var']:
-        if not (isinstance(var, sp.Expr) or (isinstance(var, int) and var > 0) or (isinstance(var, float) and var > 0)):
-            raise ValueError("La variable independiente debe ser un símbolo o un número real positivo")
+        # if not (isinstance(var, sp.Expr) or (isinstance(var, int) and var > 0) or (isinstance(var, float) and var > 0)):
+        if not isinstance(var, sp.Expr) :
+            raise ValueError("La variable independiente debe ser un símbolo")
+
+    for var in dst_model['indep_var']:
+        # if not (isinstance(var, sp.Expr) or (isinstance(var, int) and var > 0) or (isinstance(var, float) and var > 0)):
+        if not isinstance(var, sp.Expr) :
+            raise ValueError("La variable independiente debe ser un símbolo")
 
     # Si 'proxy_matrix' está presente en src_model, usarla como src_matrix; de lo contrario, usar src_model['matrix']
     src_matrix = src_model['proxy_matrix'] if 'proxy_matrix' in src_model else src_model['matrix']
@@ -2421,7 +2427,7 @@ def smna(file_schematic, opamp_model = 'OA_ideal', bAplicarValoresComponentes = 
     """
     
     if not isinstance(file_schematic, str) or not os.path.exists(file_schematic):
-        raise ValueError("file_schematic debe ser el nombre de un archivo que exista.")
+        raise ValueError("file_schematic debe ser el nombre de un archivo que exista: {:s}".format(os.path.abspath(os.path.curdir)))
     
     if not (isinstance(opamp_model, str) and opamp_model in opamp_models_str):
         raise ValueError(f'El argumento elemento debe ser un string contenido en {opamp_models_str}.')

@@ -573,20 +573,21 @@ def test_analyze_sys_single_transfer_function():
     assert isinstance(retardo_analog[1], plt.Axes)
     
     
+   
 @pytest.mark.parametrize(
-    "all_sys, all_lbls",
+    "all_sys, all_lbls, sys_args",
     [
-       ([tf_arb, tf_bili], ['l1', 'l1']),
-       ([tf_arb, tf_arb_dig], ['l1', 'l1_dig']),
-       ([tf_lp1, tf_hp1], ['l1', 'l2']),
-       ([tf_lp1_dig, tf_hp1_dig], ['l1', 'l2']),
-       ([tf_lp1, tf_hp1, tf_lp1_dig, tf_hp1_dig], ['l1', 'l2', 'l1_d', 'l2_d']),
-       ([tf_notch], ['l1']),
-       ([tf_notch_dig], ['l1_d']),
-       ([tf_arb, tf_lpnotch, tf_hpnotch], ['l1', 'l2', 'l3'])
+       ([tf_arb, tf_bili], ['l1', 'l1'], {'worN': 500.2  }),
+       ([tf_arb, tf_arb_dig], ['l1', 'l1_dig'], {'worN': np.linspace(0,3*np.pi,1000), 'fs': 3*np.pi, 'xaxis':'norm', 'annotations':False }),
+       ([tf_lp1, tf_hp1], ['l1', 'l2'], {'worN': [0., 0.5, 0.9, np.pi], 'annotations':False }),
+       ([tf_lp1_dig, tf_hp1_dig], ['l1', 'l2'], {'worN': 999, 'fs': 1*np.pi, 'xaxis':'freq', 'annotations':True}),
+       ([tf_lp1, tf_hp1, tf_lp1_dig, tf_hp1_dig], ['l1', 'l2', 'l1_d', 'l2_d'], {'worN': 2000, 'fs': 1*np.pi, 'xaxis':'norm', 'annotations':False }),
+       ([tf_notch], ['l1'], {}),
+       ([tf_notch_dig], ['l1_d'], {}),
+       ([tf_arb, tf_lpnotch, tf_hpnotch], ['l1', 'l2', 'l3'], {})
        
    ])  
-def test_analyze_sys_multiple_transfer_functions(all_sys, all_lbls):
+def test_analyze_sys_multiple_transfer_functions(all_sys, all_lbls, sys_args):
     # Crear varias funciones de transferencia para analizar
 
     # Llamar a la función analyze_sys con las funciones de transferencia múltiples
@@ -636,6 +637,9 @@ def test_analyze_sys_invalid_xaxis():
     # Llamar a la función analyze_sys con un valor de xaxis no válido
     with pytest.raises(ValueError):
         test_module.analyze_sys([], xaxis='invalid_xaxis_value')
+    
+    with pytest.raises(ValueError):
+        test_module.analyze_sys([], worN='invalid_worN_value')
 
 # Prueba para asegurar que la función arroja ValueError cuando se le pasan arreglos de diferentes longitudes
 def test_group_delay_different_lengths():
