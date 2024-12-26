@@ -600,6 +600,98 @@ def test_matrix_def_simbolic_invalid_input(func_ptr):
     with pytest.raises(ValueError):
         Ts = func_ptr(y11, y11, 1.)
     
+    with pytest.raises(ValueError):
+        Ts = func_ptr(y11, 1., y11)
+    
+
+
+@pytest.mark.parametrize(
+    "func_ptr, f_exc1, f_exc2, true_val",
+    [
+       (   
+           test_module.TabcdZ,
+           3.,
+           np.nan,
+           np.array([[1., 3.],[0., 1.]])
+        ), 
+       (   
+           test_module.TabcdY,
+           2.,
+           np.nan,
+           np.array([[1., 0.],[2., 1.]])
+        ), 
+       (   
+           test_module.TabcdLYZ,
+           2.,
+           3.,
+           np.array([[1., 3.],[2., 7.]])
+        ), 
+       (   
+           test_module.TabcdLZY,
+           2.,
+           3.,
+           np.array([[7., 2.],[3., 1.]])
+        ), 
+       
+      
+    ]
+)
+def test_matrix_def1_numeric(func_ptr, f_exc1, f_exc2, true_val):
+    
+    # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
+    try:
+        
+        if np.isnan(f_exc2):
+            Ts = func_ptr(f_exc1)
+        else:
+            Ts = func_ptr(f_exc1, f_exc2)
+            
+    except ValueError:
+        pytest.fail("Se levantó un ValueError incorrectamente.")
+        
+    # Verificar que el tipo de resultado sea sp.Matrix
+    assert isinstance(Ts, np.ndarray)
+
+    # Verificar el correcto resultado
+    assert np.allclose(Ts, true_val)
+
+
+@pytest.mark.parametrize(
+    "func_ptr",
+    [
+       # Z
+           test_module.TabcdZ,
+       # Y
+           test_module.TabcdY,
+      
+    ]
+)
+def test_matrix_def1_numeric_invalid_input(func_ptr):
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Ts = func_ptr('1')
+    
+@pytest.mark.parametrize(
+    "func_ptr",
+    [
+       # Z
+           test_module.TabcdLYZ,
+       # Y
+           test_module.TabcdLZY,
+      
+    ]
+)
+def test_matrix_def2_numeric_invalid_input(func_ptr):
+
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Ts = func_ptr('1', 1.)
+    
+    # Verificar que se levante un ValueError al pasar una matriz numérica
+    with pytest.raises(ValueError):
+        Ts = func_ptr(1., '1')
+    
 
 @pytest.mark.parametrize(
     "func_ptr, f_exc1, f_exc2, true_val",
@@ -617,7 +709,6 @@ def test_matrix_def_simbolic_invalid_input(func_ptr):
            sp.symbols('Yexc'),
            sp.Matrix([[Yexc*Zexc + 1, Zexc], [Yexc, 1]])
         ), 
-      
     ]
 )
 def test_matrix_def1_simbolic(func_ptr, f_exc1, f_exc2, true_val):
@@ -740,7 +831,8 @@ def test_MAI_transf( func_ptr, true_val):
     
     # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
     try:
-        Zmai = func_ptr(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=False)
+        _ = func_ptr(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=False)
+        Zmai = func_ptr(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=True)
     except ValueError:
         pytest.fail("Se levantó un ValueError incorrectamente.")
         
@@ -843,6 +935,47 @@ def test_MAI_impedance_invalid_input():
         Zmai = func_ptr(Ymai, 0, 1, verbose=1.0)
     
     
+def custom_fptr1(extra_results):
+    
+    A0 = extra_results['A']
+    
+    if extra_results['eps'] != 0:
+        A0 = A0.subs(extra_results['eps'], 0)
+    
+    if extra_results['aop'] != 0:
+        A0 = A0.limit(extra_results['aop'], sp.oo)
+    
+    equ_smna = sp.Eq(A0*extra_results['X'], extra_results['Z'])
+    
+    u1 = sp.solve(equ_smna, extra_results['X'])
+    
+    H = u1[extra_results['v_out']] / u1[extra_results['v_in']]
+
+    return H    
+
+@pytest.mark.parametrize(
+    "schem_file, func_ptr,true_val",
+    [
+     (
+         './docs/notebooks/schematics/GIC bicuad.asc',
+         custom_fptr1,
+         '(2*V1*a*c0**2*q*r**2*s**2 + 2*V1*b*c0*r*s - V1*c*c0**2*q*r**2*s**2 - V1*c*c0*r*s + V1*c*q)/(V1*(c0**2*q*r**2*s**2 + c0*r*s + q))',
+     ),
+    ]
+)
+def test_SMNA_valid_input(schem_file, func_ptr, true_val):
+    
+    equ_smna, extra_results = test_module.smna(schem_file, 
+                                   bAplicarValoresComponentes = True, 
+                                   bAplicarParametros = False)
+
+    H = func_ptr(extra_results)
+    
+    # Verificar el correcto resultado
+    # assert sp.simplify(H - true_val) == sp.Rational('0')
+    assert H.Expr == true_val
+
+
 
 # def test__valid():
     

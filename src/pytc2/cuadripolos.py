@@ -2427,7 +2427,7 @@ def smna(file_schematic, opamp_model = 'OA_ideal', bAplicarValoresComponentes = 
     """
     
     if not isinstance(file_schematic, str) or not os.path.exists(file_schematic):
-        raise ValueError("file_schematic debe ser el nombre de un archivo que exista.")
+        raise ValueError("file_schematic debe ser el nombre de un archivo que exista: {:s}".format(os.path.abspath(os.path.curdir)))
     
     if not (isinstance(opamp_model, str) and opamp_model in opamp_models_str):
         raise ValueError(f'El argumento elemento debe ser un string contenido en {opamp_models_str}.')
