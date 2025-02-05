@@ -329,10 +329,11 @@ def modsq2mod_s( this_func, bTryNumeric = False ):
     >>> import sympy as sp 
     >>> from pytc2.general import s
     >>> from pytc2.remociones import modsq2mod_s
-    >>> this_func = (  s**4 + 6*s**2 + 9)/( s**4 - 2*s**2 + 1)
-    >>> factor_func = modsq2mod_s( this_func )
+    >>> this_func = ( s**2 + sp.Rational(4)) * ( s**2 + sp.Rational(1/15)*s + sp.Rational(1)) / ( s**2 + sp.Rational(1/2)*s + sp.Rational(1)) / ( s**2 + sp.Rational(5)*s + sp.Rational(1)) / (s+sp.Rational(1))
+    >>> this_func_sq = sp.simplify(sp.expand(this_func * this_func.subs(s, -s)))
+    >>> factor_func = modsq2mod_s( this_func_sq )
     >>> print(factor_func)
-    (s**2 + 3)/(s**2 + 2*s + 1)
+    (s**4 + 0.06667*s**3 + 5.0*s**2 + 0.26667*s + 4.0)/(1.0*s**5 + 6.5*s**4 + 10.0*s**3 + 10.0*s**2 + 6.5*s + 1.0)
 
     '''
             
@@ -341,25 +342,70 @@ def modsq2mod_s( this_func, bTryNumeric = False ):
 
     num, den = sp.fraction(this_func)
 
-    k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
+    # si hubiera signo quedaría para el otro factor.
+    k = sp.Abs(sp.poly(num,s).LC() / sp.poly(den,s).LC())
 
-    roots_num = sp.roots(num)
+    print(type(num))
+    print(num)
+
+    roots_num = sp.roots(num, s)
     
     poly_acc = sp.Rational('1')
+    
+    ceros_imaginarios_simples = []
+
+    print(type(roots_num))
+    print(roots_num)
 
     for this_root in roots_num.keys():
         
-        if sp.re(this_root) <= 0:
+        if sp.re(this_root) < 0:
+            # ceros SPI
             
             # multiplicidad
             mult = roots_num[this_root]
 
             if mult > 1:
-                poly_acc *= (s-this_root)**sp.Rational(mult/2)
+                raise ValueError(f'Hallamos un cero complejo con multiplicidad. {this_root:3.3f}')
+                # poly_acc *= (s-this_root)**sp.Rational(mult/2)
             else:
                 poly_acc *= (s-this_root)
 
+        elif sp.re(this_root) == 0:
+            # ceros imaginarios
+            
+            # multiplicidad
+            mult = roots_num[this_root]
 
+            if mult > 1:
+                if mult % 2 == 0:
+                    poly_acc *= (s-this_root)**sp.Rational(mult/2)
+                else:
+                    raise ValueError(f'Hallamos un cero imaginario con multiplicidad impar. {this_root:3.3f}')
+            else:
+                
+                ceros_imaginarios_simples.append(this_root)
+                # poly_acc *= (s-this_root)
+
+    cant_cerimg = len(ceros_imaginarios_simples)
+    
+    if cant_cerimg > 0:
+        
+        if cant_cerimg % 2 == 0:
+            
+            cerimg = np.unique(np.abs(ceros_imaginarios_simples))
+            
+            # cerimg_half = cerimg[:cant_cerimg//4]
+            cerimg_half = np.flip(cerimg)[:cant_cerimg//4]
+            
+            for this_cerimg in cerimg_half:
+                
+                poly_acc *= (s-this_cerimg*sp.I)*(s+this_cerimg*sp.I)
+            
+        else:
+            raise ValueError(f'Hallamos una cantidad impar de ceros imaginarios simples. {this_root:3.3f}')
+                
+        
     # probamos que hayamos considerado la mitad de las raíces del numerador
     if (len(num.as_poly(s).all_coeffs())-1)/2 != (len(poly_acc.as_poly(s).all_coeffs())-1):
         raise RuntimeError('Falló la factorización de modsq2mod_s. ¡Revisar!')
@@ -405,91 +451,93 @@ def modsq2mod_s( this_func, bTryNumeric = False ):
     return(sp.simplify(sp.expand(sp.sqrt(k) * num/den))) 
 
 
-def clasificar_raices(raices_orig):
-    """
-    Clasifica raíces en complejas conjugadas, no conjugadas y pares simétricos respecto al eje imaginario.
+# TODO: Habrá que seguir analizando la utilidad de estas funciones
+# 
+# def clasificar_raices(raices_orig):
+#     """
+#     Clasifica raíces en complejas conjugadas, no conjugadas y pares simétricos respecto al eje imaginario.
 
-    Parámetros:
-        raices (list or np.ndarray): Lista de raíces obtenidas con np.roots.
+#     Parámetros:
+#         raices (list or np.ndarray): Lista de raíces obtenidas con np.roots.
 
-    Retorna:
-        tuple: Tres listas:
-            - Complejas conjugadas.
-            - Raíces no conjugadas.
-            - Pares simétricos respecto al eje imaginario.
-    """
-    # Convertir las raíces en un formato numérico estable (por redondeo de precisión)
-    raices = np.round(raices_orig, decimals=10)  # Redondeamos para evitar problemas numéricos.
+#     Retorna:
+#         tuple: Tres listas:
+#             - Complejas conjugadas.
+#             - Raíces no conjugadas.
+#             - Pares simétricos respecto al eje imaginario.
+#     """
+#     # Convertir las raíces en un formato numérico estable (por redondeo de precisión)
+#     raices = np.round(raices_orig, decimals=10)  # Redondeamos para evitar problemas numéricos.
 
-    conjugadas = []
-    no_conjugadas = []
-    pares_simetricos = []
+#     conjugadas = []
+#     no_conjugadas = []
+#     pares_simetricos = []
 
-    usadas = np.zeros_like(raices, dtype=bool)  # Para marcar qué raíces ya procesamos
+#     usadas = np.zeros_like(raices, dtype=bool)  # Para marcar qué raíces ya procesamos
 
-    for i, raiz in enumerate(raices):
-        if usadas[i]:  # Si ya usamos esta raíz, la saltamos
-            continue
+#     for i, raiz in enumerate(raices):
+#         if usadas[i]:  # Si ya usamos esta raíz, la saltamos
+#             continue
         
-        conj = np.conj(raiz)  # Conjugada de la raíz actual
-        if np.isclose(raiz.imag, 0):  # Raíz real (imag. casi 0)
-            no_conjugadas.append(-1*np.abs(raices_orig[i].real))
-            usadas[i] = True
-        elif any(np.isclose(conj, raices)):  # Es parte de un par conjugado
-            usadas[i] = True
-            # Marcar su conjugada como usada
-            idx_conj = np.where(np.isclose(conj, raices))[0][0]
-            usadas[idx_conj] = True
+#         conj = np.conj(raiz)  # Conjugada de la raíz actual
+#         if np.isclose(raiz.imag, 0):  # Raíz real (imag. casi 0)
+#             no_conjugadas.append(-1*np.abs(raices_orig[i].real))
+#             usadas[i] = True
+#         elif any(np.isclose(conj, raices)):  # Es parte de un par conjugado
+#             usadas[i] = True
+#             # Marcar su conjugada como usada
+#             idx_conj = np.where(np.isclose(conj, raices))[0][0]
+#             usadas[idx_conj] = True
 
-            if np.isclose(raiz.real, 0):  # Raíz real (imag. casi 0)
-                # en este caso son imaginarias y no hay otro par en SPD    
-                conjugadas.append(raices_orig[i])
-                # conjugadas.append(raices_orig[idx_conj])
+#             if np.isclose(raiz.real, 0):  # Raíz real (imag. casi 0)
+#                 # en este caso son imaginarias y no hay otro par en SPD    
+#                 conjugadas.append(raices_orig[i])
+#                 # conjugadas.append(raices_orig[idx_conj])
             
-            else:
-                # buscamos el otro par en SPD    
+#             else:
+#                 # buscamos el otro par en SPD    
 
-                # Verificar si tiene par simétrico respecto al eje imaginario
-                simetrica = -raiz.real + 1j * raiz.imag  # Par simétrico respecto al eje imaginario
-                simetrica_conj = -raiz.real - 1j * raiz.imag  # Par simétrico respecto al eje imaginario
-                if any(np.isclose(simetrica, raices)):
-                    # Marcar también la raíz simétrica como usada
-                    idx_sim_1 = np.where(simetrica == raices)[0][0]
-                    usadas[idx_sim_1] = True
-                    idx_sim_2 = np.where(simetrica_conj == raices)[0][0]
-                    usadas[idx_sim_2] = True
-                    # conjugadas.append(raices_orig[idx_sim_1])
-                    # conjugadas.append(raices_orig[idx_sim_2])
-                    pares_simetricos.append( -1*np.abs(raices_orig[i].real) + 1j * raices_orig[i].imag)
-                    # pares_simetricos.append( -1*np.abs(raices_orig[i].real) - 1j * raices_orig[i].imag)
+#                 # Verificar si tiene par simétrico respecto al eje imaginario
+#                 simetrica = -raiz.real + 1j * raiz.imag  # Par simétrico respecto al eje imaginario
+#                 simetrica_conj = -raiz.real - 1j * raiz.imag  # Par simétrico respecto al eje imaginario
+#                 if any(np.isclose(simetrica, raices)):
+#                     # Marcar también la raíz simétrica como usada
+#                     idx_sim_1 = np.where(simetrica == raices)[0][0]
+#                     usadas[idx_sim_1] = True
+#                     idx_sim_2 = np.where(simetrica_conj == raices)[0][0]
+#                     usadas[idx_sim_2] = True
+#                     # conjugadas.append(raices_orig[idx_sim_1])
+#                     # conjugadas.append(raices_orig[idx_sim_2])
+#                     pares_simetricos.append( -1*np.abs(raices_orig[i].real) + 1j * raices_orig[i].imag)
+#                     # pares_simetricos.append( -1*np.abs(raices_orig[i].real) - 1j * raices_orig[i].imag)
 
                     
-        else:  # Raíz no conjugada (compleja sin pareja)
-            no_conjugadas.append(raiz)
-            usadas[i] = True
+#         else:  # Raíz no conjugada (compleja sin pareja)
+#             no_conjugadas.append(raiz)
+#             usadas[i] = True
 
-    return conjugadas, no_conjugadas, pares_simetricos
+#     return conjugadas, no_conjugadas, pares_simetricos
 
-def forzar_raices_imaginarias(raices_orig):
+# def forzar_raices_imaginarias(raices_orig):
 
-    raices_imaginarias = np.zeros(2*len(raices_orig), dtype = np.complex128 )
-    raices_imaginarias[:-1:2] =  1j * np.abs(raices_orig)
-    raices_imaginarias[1::2] =  -1j * np.abs(raices_orig)
+#     raices_imaginarias = np.zeros(2*len(raices_orig), dtype = np.complex128 )
+#     raices_imaginarias[:-1:2] =  1j * np.abs(raices_orig)
+#     raices_imaginarias[1::2] =  -1j * np.abs(raices_orig)
     
-    return(raices_imaginarias)
+#     return(raices_imaginarias)
 
 ################################################################
 #%% Bloque de funciones para la síntesis gráfica de imitancias #
 ################################################################
 
-def isFRP( Imm ):
+def isFRP( immit ):
     '''
-    Chequear si la expresión simbólica Imm es una Función Real y Positiva (FRP).
+    Chequear si la expresión simbólica immit es una Función Real y Positiva (FRP).
 
 
     Parameters
     ----------
-    Imm : symbolic rational function
+    immit : symbolic rational function
         La inmitancia a chequear si es FRP.
 
 
@@ -517,30 +565,30 @@ def isFRP( Imm ):
     >>> import sympy as sp
     >>> from pytc2.general import s
     >>> from pytc2.remociones import isFRP
-    >>> Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)
-    >>> print(isFRP( Imm ))
+    >>> immit = (s**2 + 4*s + 3)/(s**2 + 2*s)
+    >>> print(isFRP( immit ))
     True
-    >>> Imm = (s**2 - 4*s + 3)/(s**2 - 2*s)
-    >>> print(isFRP( Imm ))
+    >>> immit = (s**2 - 4*s + 3)/(s**2 - 2*s)
+    >>> print(isFRP( immit ))
     False
 
 
     '''   
 
-    if not isinstance(Imm , sp.Expr):
-        raise ValueError('Hay que definir Imm como una expresión simbólica.')
+    if not isinstance(immit , sp.Expr):
+        raise ValueError('Hay que definir immit como una expresión simbólica.')
 
     # F(s) should give real values for all real values of s.
     
-    if  (sp.simplify(sp.expand(sp.im(Imm.subs(s,sig))))).is_zero and  \
-        (sp.simplify(sp.expand(sp.re(Imm.subs(s,sig_pos))))).is_nonnegative:
+    if  (sp.simplify(sp.expand(sp.im(immit.subs(s,sig))))).is_zero and  \
+        (sp.simplify(sp.expand(sp.re(immit.subs(s,sig_pos))))).is_nonnegative:
 
         return(True)
     
     else:
         return(False)
    
-        # num, den = Imm.as_numer_denom()
+        # num, den = immit.as_numer_denom()
         
         # if is_hurwitz(num) and is_hurwitz(den):
         
@@ -552,10 +600,10 @@ def isFRP( Imm ):
     # On substituting s = jω, F(s) should posses simple poles and the residues 
     # should be real and positive.
 
-def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zero = None ):
+def remover_polo_sigma( immit, sigma, isImpedance = True,  isRC = True,  sigma_zero = None ):
     '''
     Se removerá el residuo en sobre el eje :math:`\\sigma` (sigma) de la impedancia 
-    o admitancia (imm) de forma completa o parcial.
+    o admitancia (immit) de forma completa o parcial.
     Como resultado de la remoción total, quedará otra función racional definida
     como:
         
@@ -582,15 +630,15 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
 
     Parameters
     ----------
-    imm: Symbolic
+    immit: Symbolic
         Inmitancia o función que se utilizará para la remoción. Es una función racional 
         simbólica que tendrá un polo de orden 1 en :math:`\\sigma_i`.
     sigma : float
         Frecuencia :math:`\\sigma_i` a la que la inmitancia deberá tener un polo.
     isImpedance : bool
-        Booleano que indica si la función imm es una impedancia o admitancia.
+        Booleano que indica si la función immit es una impedancia o admitancia.
     isRC : bool
-        Booleano que indica si la función imm es RC o RL.
+        Booleano que indica si la función immit es RC o RL.
     sigma_zero : float
         Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
         de la remoción.
@@ -610,7 +658,7 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
     Raises
     ------
     ValueError
-        Si Imm no es una instancia de sympy.Expr.
+        Si immit no es una instancia de sympy.Expr.
         Si sigma o sigma_zero no son flotantes.
         Si isImpedance o isRC no son booleanos.
 
@@ -640,8 +688,8 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
         
     '''
 
-    if not isinstance(imm , sp.Expr):
-        raise ValueError('Hay que definir imm como una expresión simbólica.')
+    if not isinstance(immit , sp.Expr):
+        raise ValueError('Hay que definir immit como una expresión simbólica.')
 
     if not isinstance(sigma , (Real, sp.Expr)):
         raise ValueError('Sigma debe ser un flotante.')
@@ -657,9 +705,9 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
 
 
     if isImpedance:
-        zz = imm
+        zz = immit
     else:
-        yy = imm
+        yy = immit
 
     sigma = sp.Abs(sigma)
 
@@ -739,10 +787,10 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  isRC = True,  sigma_zer
 
     return( [imit_r, kk, R, CoL] )
 
-def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None ):
+def remover_polo_jw( immit, omega = None , isImpedance = True, omega_zero = None ):
     '''
     Se removerá el residuo en sobre el eje :math:`j.\\omega` (jota-omega) de la 
-    impedancia o admitancia (imm) de forma completa o parcial.
+    impedancia o admitancia (immit) de forma completa o parcial.
     Como resultado de la remoción total, quedará otra función racional definida
     como:
         
@@ -769,13 +817,13 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
 
     Parameters
     ----------
-    imit: Symbolic
+    immit: Symbolic
         Inmitancia o función que se utilizará para la remoción. Es una función racional 
         simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
     omega : float
         Frecuencia :math:`\\sigma_i` a la que la inmitancia deberá tener un polo.
     isImpedance : bool
-        Booleano que indica si la función imm es una impedancia o admitancia.
+        Booleano que indica si la función immit es una impedancia o admitancia.
     omega_zero : float
         Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
         de la remoción.
@@ -795,7 +843,7 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
     Raises
     ------
     ValueError
-        Si Imm no es una instancia de sympy.Expr.
+        Si immit no es una instancia de sympy.Expr.
         Si sigma o sigma_zero no son flotantes.
         Si isImpedance o isRC no son booleanos.
 
@@ -824,8 +872,8 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
 
     '''
 
-    if not isinstance(imit , sp.Expr):
-        raise ValueError('Hay que definir imit como una expresión simbólica.')
+    if not isinstance(immit , sp.Expr):
+        raise ValueError('Hay que definir immit como una expresión simbólica.')
 
     if not isinstance(omega , (Real, type(None))):
         raise ValueError('Sigma debe ser un flotante.')
@@ -838,9 +886,9 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
 
 
     if omega is None:
-        # busco el primer polo finito en imit sobre el jw
+        # busco el primer polo finito en immit sobre el jw
         
-        _, den = (imit).as_numer_denom()
+        _, den = (immit).as_numer_denom()
         faux = sp.factor_list(den)
         
         if sp.degree(faux[1][0][0]) == 2:
@@ -853,12 +901,12 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
 
     if omega_zero is None:
         # remoción total
-        # kk = sp.limit(imit*(s**2+omega**2)/s, s**2, -omega**2)
-        kk = sp.simplify(sp.expand(imit*(s**2+omega**2)/s)).subs(s**2, -(omega**2) )
+        # kk = sp.limit(immit*(s**2+omega**2)/s, s**2, -omega**2)
+        kk = sp.simplify(sp.expand(immit*(s**2+omega**2)/s)).subs(s**2, -(omega**2) )
         
     else:
         # remoción parcial
-        kk = sp.simplify(sp.expand(imit*(s**2+omega**2)/s)).subs(s**2, -(omega_zero**2) )
+        kk = sp.simplify(sp.expand(immit*(s**2+omega**2)/s)).subs(s**2, -(omega_zero**2) )
 
     
     if isImpedance:
@@ -874,14 +922,14 @@ def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None 
     kk = kk * s / (s**2+omega**2)
     
     # extraigo kk
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - kk)))
+    imit_r = sp.factor(sp.simplify(sp.expand(immit - kk)))
 
     return( [imit_r, kk, L, C] )
 
-def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
+def remover_polo_dc( immit, omega_zero = None, isSigma = False ):
     '''
     Se removerá el residuo en continua (:math:`j.0`) de la 
-    impedancia o admitancia (inmitancia o imit) de forma completa o parcial.
+    impedancia o admitancia (inmitancia o immit) de forma completa o parcial.
     Como resultado de la remoción total, quedará otra función racional definida
     como:
         
@@ -908,11 +956,11 @@ def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
 
     Parameters
     ----------
-    imit: Symbolic
+    immit: Symbolic
         Inmitancia o función que se utilizará para la remoción. Es una función racional 
         simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
     isSigma : bool
-        Booleano que indica si la función imm es una impedancia o admitancia.
+        Booleano que indica si la función immit es una impedancia o admitancia.
     omega_zero : float
         Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
         de la remoción.
@@ -928,7 +976,7 @@ def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
     Raises
     ------
     ValueError
-        Si imit no es una instancia de sympy.Expr.
+        Si immit no es una instancia de sympy.Expr.
         Si omega_zero no es flotante.
         Si isSigma o isRC no son booleanos.
 
@@ -959,8 +1007,8 @@ def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
 
         
     '''
-    if not isinstance(imit , sp.Expr):
-        raise ValueError('Hay que definir imit como una expresión simbólica.')
+    if not isinstance(immit , sp.Expr):
+        raise ValueError('Hay que definir immit como una expresión simbólica.')
 
     if not isinstance(isSigma, bool):
         raise ValueError('isSigma debe ser un booleano.')
@@ -971,29 +1019,29 @@ def remover_polo_dc( imit, omega_zero = None, isSigma = False ):
 
     if omega_zero is None:
         # remoción total
-        k_cero = sp.limit(imit*s, s, 0)
+        k_cero = sp.limit(immit*s, s, 0)
         
     else:
         # remoción parcial en el eje j\omega
     	if isSigma is False:
-	        k_cero = sp.simplify(sp.expand(imit*s)).subs(s**2, -(omega_zero**2) )
+	        k_cero = sp.simplify(sp.expand(immit*s)).subs(s**2, -(omega_zero**2) )
 
     	# remoción parcial en el eje \sigma
         # Gracias a: David Moharos.
     	else:
-	        k_cero = sp.simplify(sp.expand(imit*s)).subs(s, -omega_zero )
+	        k_cero = sp.simplify(sp.expand(immit*s)).subs(s, -omega_zero )
 
     k_cero = k_cero/s
     
     # extraigo C3
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_cero)))
+    imit_r = sp.factor(sp.simplify(sp.expand(immit - k_cero)))
 
     return( [imit_r, k_cero] )
 
-def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
+def remover_polo_infinito( immit, omega_zero = None, isSigma = False ):
     '''
     Se removerá el residuo en infinito  de la impedancia o admitancia (inmitancia 
-    o imit) de forma completa o parcial. Como resultado de la remoción total, 
+    o immit) de forma completa o parcial. Como resultado de la remoción total, 
     quedará otra función racional definida como:
         
     .. math:: I_R = I - s.k_\\infty 
@@ -1029,11 +1077,13 @@ def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
 
     Parameters
     ----------
-    imit: Symbolic
+    immit: Symbolic
         Inmitancia o función que se utilizará para la remoción. Es una función racional 
         simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
     isSigma : bool
-        Booleano que indica si la función imm es una impedancia o admitancia.
+        Booleano que indica si la función immit tiene las singularidades sobre 
+        el eje -sigma. Es importante para realizar correctamente las remociones
+        parciales, es decir cuando omega_zero NO es None.
     omega_zero : float
         Frecuencia :math:`\\sigma_z` a la que la inmitancia tendrá un cero luego 
         de la remoción.
@@ -1049,7 +1099,7 @@ def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
     Raises
     ------
     ValueError
-        Si imit no es una instancia de sympy.Expr.
+        Si immit no es una instancia de sympy.Expr.
         Si omega_zero no es flotante.
         Si isSigma o isRC no son booleanos.
 
@@ -1079,8 +1129,8 @@ def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
         
         
     '''
-    if not isinstance(imit , sp.Expr):
-        raise ValueError('Hay que definir imit como una expresión simbólica.')
+    if not isinstance(immit , sp.Expr):
+        raise ValueError('Hay que definir immit como una expresión simbólica.')
 
     if not isinstance(isSigma, bool):
         raise ValueError('isSigma debe ser un booleano.')
@@ -1091,29 +1141,29 @@ def remover_polo_infinito( imit, omega_zero = None, isSigma = False ):
 
     if omega_zero is None:
         # remoción total
-        k_inf = sp.limit(imit/s, s, sp.oo)
+        k_inf = sp.limit(immit/s, s, sp.oo)
         
     else:
         # remoción parcial en el eje j\omega
         if isSigma is False:
-        	k_inf = sp.simplify(sp.expand(imit/s)).subs(s**2, -(omega_zero**2) )
+        	k_inf = sp.simplify(sp.expand(immit/s)).subs(s**2, -(omega_zero**2) )
 	
     	# remoción parcial en el eje \sigma
         # Gracias David Moharos!
         else:
-        	k_inf = sp.simplify(sp.expand(imit/s)).subs(s, -omega_zero )		
+        	k_inf = sp.simplify(sp.expand(immit/s)).subs(s, -omega_zero )		
 
     k_inf = k_inf * s
 
     # extraigo C3
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_inf)))
+    imit_r = sp.factor(sp.simplify(sp.expand(immit - k_inf)))
 
     return( [imit_r, k_inf] )
 
-def remover_valor_en_infinito( imit, sigma_zero = None ):
+def remover_valor_en_infinito( immit, sigma_zero = None ):
     '''
     Se removerá un valor real de la impedancia o admitancia (inmitancia 
-    o imit) de forma completa o parcial. Como resultado de la remoción total, 
+    o immit) de forma completa o parcial. Como resultado de la remoción total, 
     quedará otra función racional definida como:
         
     .. math:: I_R = I - k_\\infty 
@@ -1136,7 +1186,7 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
 
     Parameters
     ----------
-    imit: Symbolic
+    immit: Symbolic
         Inmitancia o función que se utilizará para la remoción. Es una función racional 
         simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
     sigma_zero : float
@@ -1154,7 +1204,7 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
     Raises
     ------
     ValueError
-        Si imit no es una instancia de sympy.Expr.
+        Si immit no es una instancia de sympy.Expr.
         Si sigma_zero no es flotante.
 
 
@@ -1180,8 +1230,8 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
     
             
     '''
-    if not isinstance(imit , sp.Expr):
-        raise ValueError('Hay que definir imit como una expresión simbólica.')
+    if not isinstance(immit , sp.Expr):
+        raise ValueError('Hay que definir immit como una expresión simbólica.')
 
     if not isinstance(sigma_zero , (Real, type(None))):
         raise ValueError('sigma_zero debe ser un flotante o None.')
@@ -1189,16 +1239,16 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
 
     if sigma_zero is None:
         # remoción total
-        k_inf = sp.limit(imit, s, sp.oo)
+        k_inf = sp.limit(immit, s, sp.oo)
         
     else:
         # remoción parcial
-        k_inf = sp.simplify(sp.expand(imit)).subs(s, - sp.Abs(sigma_zero) )
+        k_inf = sp.simplify(sp.expand(immit)).subs(s, - sp.Abs(sigma_zero) )
 
 
     assert not k_inf.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
 
-    rem_aux = imit - k_inf
+    rem_aux = immit - k_inf
     
     bFRP = isFRP(rem_aux)
     
@@ -1217,14 +1267,14 @@ def remover_valor_en_infinito( imit, sigma_zero = None ):
         
         print_latex(a_equal_b_latex_s('k_{\infty}', k_inf))
 
-        imit_r = imit
+        imit_r = immit
         k_inf = s*0
 
     return( [imit_r, k_inf] )
 
-def remover_valor_en_dc( imit, sigma_zero = None):
+def remover_valor_en_dc( immit, sigma_zero = None):
     '''
-    Se removerá un valor constante en continua (s=0) de la imitancia (imit) de forma 
+    Se removerá un valor constante en continua (s=0) de la imitancia (immit) de forma 
     completa. Como resultado de la remoción, quedará otra función racional definida
     como:
         
@@ -1248,7 +1298,7 @@ def remover_valor_en_dc( imit, sigma_zero = None):
 
     Parameters
     ----------
-    imit: Symbolic
+    immit: Symbolic
         Inmitancia o función que se utilizará para la remoción. Es una función racional 
         simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
     sigma_zero : float
@@ -1266,7 +1316,7 @@ def remover_valor_en_dc( imit, sigma_zero = None):
     Raises
     ------
     ValueError
-        Si imit no es una instancia de sympy.Expr.
+        Si immit no es una instancia de sympy.Expr.
         Si sigma_zero no es flotante.
 
 
@@ -1292,33 +1342,33 @@ def remover_valor_en_dc( imit, sigma_zero = None):
     
     '''
 
-    if not isinstance(imit , sp.Expr):
-        raise ValueError('Hay que definir imit como una expresión simbólica.')
+    if not isinstance(immit , sp.Expr):
+        raise ValueError('Hay que definir immit como una expresión simbólica.')
 
     if not isinstance(sigma_zero , (Real, type(None))):
         raise ValueError('sigma_zero debe ser un flotante o None.')
 
     if sigma_zero is None:
         # remoción total
-        k0 = sp.limit(imit, s, 0)
+        k0 = sp.limit(immit, s, 0)
         
     else:
         # remoción parcial
-        k0 = sp.simplify(sp.expand(imit)).subs(s, - sp.Abs(sigma_zero) )
+        k0 = sp.simplify(sp.expand(immit)).subs(s, - sp.Abs(sigma_zero) )
 
     assert not k0.is_negative, 'Residuo negativo. Verificar Z/Y RC/RL'
     
     # extraigo k0
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - k0)))
+    imit_r = sp.factor(sp.simplify(sp.expand(immit - k0)))
 
     return( [imit_r, k0] )
 
 # TODO: revisar la utilidad de la función "remover_valor". Podría ser removida.
 
-# def remover_valor( imit, sigma_zero):
+# def remover_valor( immit, sigma_zero):
 #     '''
 #     Se removerá un valor real de la impedancia o admitancia (inmitancia 
-#     o imit) de forma completa o parcial. Como resultado de la remoción total, 
+#     o immit) de forma completa o parcial. Como resultado de la remoción total, 
 #     quedará otra función racional definida como:
         
 #     .. math:: I_R = I - k_\\infty 
@@ -1341,7 +1391,7 @@ def remover_valor_en_dc( imit, sigma_zero = None):
 
 #     Parameters
 #     ----------
-#     imit: Symbolic
+#     immit: Symbolic
 #         Inmitancia o función que se utilizará para la remoción. Es una función racional 
 #         simbólica que tendrá un polo de orden 1 en :math:`j\\omega`.
 #     sigma_zero : float
@@ -1359,7 +1409,7 @@ def remover_valor_en_dc( imit, sigma_zero = None):
 #     Raises
 #     ------
 #     ValueError
-#         Si imit no es una instancia de sympy.Expr.
+#         Si immit no es una instancia de sympy.Expr.
 #         Si sigma_zero no es flotante.
 
 
@@ -1390,16 +1440,16 @@ def remover_valor_en_dc( imit, sigma_zero = None):
             
 #     '''
 
-#     if not isinstance(imit , sp.Expr):
-#         raise ValueError('Hay que definir imit como una expresión simbólica.')
+#     if not isinstance(immit , sp.Expr):
+#         raise ValueError('Hay que definir immit como una expresión simbólica.')
 
 #     if not isinstance(sigma_zero , Real):
 #         raise ValueError('sigma_zero debe ser un flotante o None.')
 
 #     # remoción parcial
-#     k_prima = sp.simplify(sp.expand(imit)).subs(s, -sp.Abs(sigma_zero))
+#     k_prima = sp.simplify(sp.expand(immit)).subs(s, -sp.Abs(sigma_zero))
     
-#     rem_aux = imit - k_prima
+#     rem_aux = immit - k_prima
     
 #     bFRP = isFRP(rem_aux)
     
@@ -1419,7 +1469,7 @@ def remover_valor_en_dc( imit, sigma_zero = None):
         
 #         print_latex(a_equal_b_latex_s('k', k_prima))
 
-#         imit_r = imit
+#         imit_r = immit
 #         k_prima = s*0
 
 #     return( [imit_r, k_prima] )

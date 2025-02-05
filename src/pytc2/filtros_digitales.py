@@ -190,7 +190,7 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
             filtercase = 4  
 
     if filter_type not in valid_filters:
-        raise ValueError('La extensión de imagen debe ser una de %s, no %s'
+        raise ValueError('El tipo de filtro debe ser uno de %s, no %s'
                          % (valid_filters, filter_type))
 
     if not isinstance(band_edges, (list, np.ndarray)):
@@ -562,7 +562,7 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
             filtercase = 4  
 
     if filter_type not in valid_filters:
-        raise ValueError('La extensión de imagen debe ser una de %s, no %s'
+        raise ValueError('El tipo de filtro debe ser uno de %s, no %s'
                          % (valid_filters, filter_type))
 
     if not isinstance(band_edges, (list, np.ndarray)):

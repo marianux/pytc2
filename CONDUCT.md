@@ -1,5 +1,10 @@
 # Código de conducta
 
+La idea que cualquier persona respetuosa y con voluntad de compartir lo que sabe
+es bienvenido a colaborar. La idea es hacerlo en un buen clima de trabajo, en el
+que toda persona que colabore se sienta bien al hacerlo. Entiedo que todo lo que 
+sigue (un documento estandard) es redundante habiendo dicho esto.
+
 ## Nuestro compromiso
 
 Con el fin de fomentar un ambiente abierto y acogedor, nosotros, como contribuyentes y mantenedores, nos comprometemos a hacer de la participación en nuestro proyecto y nuestra comunidad una experiencia libre de acoso para todos, independientemente de su edad, tamaño corporal, discapacidad, origen étnico, identidad y expresión de género. nivel de experiencia, nacionalidad, apariencia personal, raza, religión o identidad y orientación sexual.

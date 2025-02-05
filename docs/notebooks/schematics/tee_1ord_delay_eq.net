@@ -1,13 +1,13 @@
-* G:\mariano\Escritorio\Enlace hacia Docencia\TC2\scripts\pytc2\docs\notebooks\schematics\lattice_1ord_delay_eq.asc
+* G:\mariano\Escritorio\Enlace hacia Docencia\TC2\scripts\pytc2\docs\notebooks\schematics\tee_1ord_delay_eq.asc
 V1 N001 0 0 AC 1 0 Rser=0
-R1 v1 N001 {R}
-R2 4 3 {R}
-L1 v1 3 {L} Rser=0
-C1 4 v1 {C}
-L2 4 0 {L} Rser=0
-C2 0 3 {C}
+R1 vi N001 {R}
+R2 0 vo {R}
+L1 N002 vi {L/2} Rser=0
+L2 vo N002 {L/2} Rser=0
+C1 N002 0 {2*C}
 .net I(R2) V1
 .ac dec 100 .001 100
+k L1 L2 1
 .param L=R/sigma0 C=1/sigma0/R
 .param sigma0 = 1 R=1
 * V_o/V1 = (R - Za)/(R + Za) =

@@ -9,8 +9,8 @@ Created on Sun Feb 18 19:58:49 2024
 import pytest
 import numpy as np
 import sympy as sp
-import scipy.signal as sig
 from pytc2 import cuadripolos as test_module
+from pytc2.sistemas_lineales import parametrize_sos
 
 # símbolos genéricos 
 S11, S12, S21, S22 = sp.symbols('S11, S12, S21, S22')
@@ -899,7 +899,8 @@ def test_MAI_impedance_valid():
     
     # Verificar que no se levante un ValueError al pasar funciones de transferencia válidas
     try:
-        Zmai = test_module.calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=False)
+        _ = test_module.calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=False)
+        Zmai = test_module.calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=True)
     except ValueError:
         pytest.fail("Se levantó un ValueError incorrectamente.")
         
@@ -935,7 +936,7 @@ def test_MAI_impedance_invalid_input():
         Zmai = func_ptr(Ymai, 0, 1, verbose=1.0)
     
     
-def custom_fptr1(extra_results):
+def custom_fptr1(equ_smna, extra_results):
     
     A0 = extra_results['A']
     
@@ -953,27 +954,127 @@ def custom_fptr1(extra_results):
 
     return H    
 
+
+def custom_fptr11(equ_smna, extra_results):
+    
+    # tuning a mano de las ecuaciones
+    A0 = extra_results['A']
+    
+    if extra_results['eps'] != 0:
+        A0 = A0.subs(extra_results['eps'], 0)
+    
+    if extra_results['aop'] != 0:
+        A0 = A0.limit(extra_results['aop'], sp.oo)
+    
+    equ_smna = sp.Eq(A0*extra_results['X'], extra_results['Z'])
+    
+    u1 = sp.solve(equ_smna, extra_results['X'])
+    
+    H = u1[extra_results['v_out']] / u1[extra_results['v_in']]
+    
+    H0 = sp.collect(sp.simplify(sp.expand(H)),s)
+    
+    H0 = parametrize_sos(H)[0]
+
+    return H0    
+
+
+def custom_fptr2(equ_smna, extra_results):
+
+    u1 = sp.solve(equ_smna, extra_results['X'])
+    
+    H = (u1[extra_results['X'][2]] - u1[extra_results['X'][3]]) / u1[extra_results['X'][1]]
+    
+    H = sp.simplify(sp.expand(H))
+    
+    return H    
+
+def custom_fptr3(equ_smna, extra_results):
+
+    u1 = sp.solve(equ_smna, extra_results['X'])
+    
+    H = u1[extra_results['v_out']] / u1[extra_results['v_in']]
+    
+    H = sp.simplify(sp.expand(H))
+    
+    return H    
+
+def custom_fptr4(equ_smna, extra_results):
+
+    u1 = sp.solve(equ_smna, extra_results['X'])
+    
+    H = (u1[extra_results['X'][2]] - u1[extra_results['X'][3]]) / u1[extra_results['X'][1]]
+    
+    H = sp.simplify(sp.expand(H))
+    
+    return H    
+
+
+def custom_fptr5(equ_smna, extra_results):
+
+    u1 = sp.solve(equ_smna, extra_results['X'])
+    
+    H = u1[extra_results['v_out']] / u1[extra_results['v_in']]
+    
+    H0 = sp.collect(sp.simplify(sp.expand(H)),s)
+    
+    H0 = parametrize_sos(H)[0]
+    
+    return H0   
+
+
+
+
 @pytest.mark.parametrize(
-    "schem_file, func_ptr,true_val",
+    "schem_file, func_ptr, params, true_val",
     [
      (
          './docs/notebooks/schematics/GIC bicuad.asc',
          custom_fptr1,
+         {'bAplicarValoresComponentes' : True, 'bAplicarParametros' : False},
          '(2*V1*a*c0**2*q*r**2*s**2 + 2*V1*b*c0*r*s - V1*c*c0**2*q*r**2*s**2 - V1*c*c0*r*s + V1*c*q)/(V1*(c0**2*q*r**2*s**2 + c0*r*s + q))',
+     ),
+     (
+         './docs/notebooks/schematics/ACKMOSS bicuad.asc',
+         custom_fptr11,
+         {'bAplicarValoresComponentes' : True, 'bAplicarParametros' : False},
+         '(-a)*((s**2 + c/(a*c0**2*r**2) + s*(-b + d)/(a*c0*r))/(s**2 + s/(c0*q*r) + 1/(c0**2*r**2)))',
+     ),
+     (
+         './docs/notebooks/schematics/lattice_1ord_delay_eq.asc',
+         custom_fptr2,
+         {'bAplicarValoresComponentes' : True, 'bAplicarParametros' : True},
+         '(s - 1)/(s + 1)',
+     ),
+     (
+         './docs/notebooks/schematics/tee_1ord_delay_eq.asc',
+         custom_fptr3,
+         {'bAplicarValoresComponentes' : True, 'bAplicarParametros' : True},
+         '(1 - s)/(s + 1)',
+     ),
+     (
+         './docs/notebooks/schematics/lattice_2ord_delay_eq.asc',
+         custom_fptr4,
+         {'bAplicarValoresComponentes' : True, 'bAplicarParametros' : True},
+         '(a*s - b - s**2)/(a*s + b + s**2)',
+     ),
+     (
+         './docs/notebooks/schematics/tee_puen_2ord_delay_eq.asc',
+         custom_fptr5,
+         {'bAplicarValoresComponentes' : True, 'bAplicarParametros' : True},
+         '1*((-a*s + b + s**2)/(a*s + b + s**2))',
      ),
     ]
 )
-def test_SMNA_valid_input(schem_file, func_ptr, true_val):
+def test_SMNA_valid_input(schem_file, func_ptr, params, true_val):
     
-    equ_smna, extra_results = test_module.smna(schem_file, 
-                                   bAplicarValoresComponentes = True, 
-                                   bAplicarParametros = False)
+    equ_smna, extra_results = test_module.smna(schem_file, **params)
 
-    H = func_ptr(extra_results)
+    H = func_ptr(equ_smna, extra_results)
     
     # Verificar el correcto resultado
     # assert sp.simplify(H - true_val) == sp.Rational('0')
-    assert H.Expr == true_val
+    assert str(H) == true_val
 
 
 

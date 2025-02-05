@@ -1,9 +1,15 @@
 # History
 
-## v0.1.1 (18/12/2024)
+## v0.2.0 (05/02/2025)
 
 - Docs: Se completaron los notebooks respecto a los grandes temas
     de Teoría de Circuitos 2.
+- Analisis Nodal Modificado Simbólico (SMNA): Se implementó la posibilidad de 
+  realizar SMNA a partir de un netlist generado desde LTspice.
+- Diseño de filtros digitales FIR: Se implementaron dos algoritmos de diseño,  
+  el primero basado en un metodo de cuadrados minimos pesados (WLMS), y el otro
+  es conocido como Parks-Mc Clellan (firpm en Matlab) o algoritmo de Remez-exchange 
+  (remez en SciPy). Ambas implementaciones 100% en Python.  
 - Cambios menores y arreglos de funciones
 
 
