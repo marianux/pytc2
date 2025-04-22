@@ -1,14 +1,14 @@
 
 [tool.poetry]
 name = "pytc2"
-version = "0.2.0"
+version = "0.2.1"
 description = "Módulo didáctico para el estudio de Teoría de Circuitos"
 authors = ["Mariano Llamedo Soria"]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "<3.12, >=3.8"
+python = ">=3.9,<3.13"
 sympy = ">=1.11.1"
 schemdraw = ">=0.15"
 jupyter = ">=1.0.0"
@@ -17,8 +17,6 @@ numpy = ">=1.24.2"
 scipy = ">=1.10.1"
 # tuve problemas con jupyter-notebook
 #traitlets = "5.9.0"
-
-[tool.poetry.dev-dependencies]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.2.2"
@@ -32,16 +30,16 @@ sphinxcontrib-napoleon = ">=0.7"
 pandas = ">=2.0.0"
 # engañifa para saltar el quilombo de PyQT:
 # https://github.com/python-poetry/poetry/issues/8540
-pyqt5 = [
-    { platform = "linux", version = "5.15.10" },
-]
-pyqt5-qt5 = [
-    { platform = "linux", version = "5.15.2" },
-]
-pyqtwebengine-qt5 = [
-    { platform = "linux", version = "5.15.2" },
-]
-spyder = ">=5.4.3"
+# pyqt5 = [
+#     { platform = "linux", version = "5.15.10" },
+# ]
+# pyqt5-qt5 = [
+#     { platform = "linux", version = "5.15.2" },
+# ]
+# pyqtwebengine-qt5 = [
+#     { platform = "linux", version = "5.15.2" },
+# ]
+# spyder = ">=5.4.3"
 # tuve problemas con jupyter-notebook
 #traitlets = "5.9.0"
 jupyterlab-language-pack-es-es = ">=4.0.post3"
