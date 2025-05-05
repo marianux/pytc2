@@ -2314,6 +2314,39 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
  ##################################
 #%%
 
+
+def find_ltspice_exe(wineprefix):
+    """
+    Busca el ejecutable de LTspice dentro del wineprefix.
+    """
+    search_paths = [
+        os.path.join(wineprefix, "drive_c", "Program Files", "LTC", "LTspiceXVII", "XVIIx64.exe"),
+        os.path.join(wineprefix, "drive_c", "Program Files (x86)", "LTC", "LTspiceXVII", "XVIIx64.exe"),
+        os.path.join(wineprefix, "drive_c", "users"),
+        os.path.join(wineprefix, "drive_c", "Program Files", "ADI", "LTspice", "LTspice.exe"),
+        os.path.join(wineprefix, "drive_c", "Program Files (x86)", "ADI", "LTspice", "LTspice.exe"),
+    ]
+
+    # También buscar en los usuarios de Wine
+    users_dir = os.path.join(wineprefix, "drive_c", "users")
+    if os.path.exists(users_dir):
+        for user in os.listdir(users_dir):
+            if user in {"Default", "Public", "All Users"}:
+                continue
+            user_paths = [
+                os.path.join(users_dir, user, "AppData", "Local", "Programs", "ADI", "LTspice", "LTspice.exe"),
+                os.path.join(users_dir, user, "Local Settings", "Application Data", "Programs", "ADI", "LTspice", "LTspice.exe")
+            ]
+            search_paths.extend(user_paths)
+
+    # Buscar el primer ejecutable que exista
+    for exe_path in search_paths:
+        if os.path.isfile(exe_path):
+            return exe_path
+
+    return None
+
+
 # Modelos usados para los OpAmps. Ver 2.1 Schaumann, R. Design of Analog Filters.
 opamp_models_str = ['OA_ideal','OA_1polo', 'OA_integrador']
 
@@ -2455,10 +2488,19 @@ def smna(file_schematic, opamp_model = 'OA_ideal', bAplicarValoresComponentes = 
             subprocess.run([ltspice_bin, '-netlist', file_schematic])
         else:
             home_directory = os.path.expanduser("~")
-            ltspice_bin = os.path.expanduser('~/.wine/drive_c/Program Files/LTC/LTspiceXVII/XVIIx64.exe')
-            
+
             # Configurar la variable de entorno WINEPREFIX
-            os.environ['WINEPREFIX'] = os.path.join(home_directory, '.wine')    
+            wineprefix = os.path.join(home_directory, '.wine')
+            
+            ltspice_exe = find_ltspice_exe(wineprefix)
+        
+            if ltspice_exe is None:
+                raise FileNotFoundError("No se encontró ningún ejecutable de LTspice en el WINEPREFIX.")
+
+            ltspice_bin = os.path.expanduser(ltspice_exe)
+        
+            os.environ['WINEPREFIX'] = wineprefix
+            
             print(f'Actualizando netlist a partir de: {file_schematic} ...')
             subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', file_schematic], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             print(f'Netlist generado: {fileName_netlist} ...')
@@ -3333,17 +3375,23 @@ def smna(file_schematic, opamp_model = 'OA_ideal', bAplicarValoresComponentes = 
             vn1, vn2, ind1_index = find_vname(df_netlist.loc[i,'Lname1'])  # get i_unk position for Lx
             vn1, vn2, ind2_index = find_vname(df_netlist.loc[i,'Lname2'])  # get i_unk position for Ly
             # enter sM on diagonals = value*sqrt(LXX*LZZ)
+            
+            #dic_comp_name_vals = dict(zip(df_netlist['element'][1:], df_netlist['value'][1:]))
 
             this_M = 'M{:s}'.format(df_netlist.loc[i,'element'].lower()[1:])
-            D[ind1_index,ind2_index] += -s*sp.sympify(this_M)  # s*Mxx
-            D[ind2_index,ind1_index] += -s*sp.sympify(this_M)  # -s*Mxx
             
             # el valor del trafo para a ser M = k*sqrt(L1.L2)
             if bAplicarValoresComponentes:
                 inductor_rows = df_netlist[df_netlist['element'].isin([df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2']])]            
-                dic_params.update({this_M : df_netlist.loc[i,'value'] * sp.sqrt(inductor_rows['value'].values[0]*inductor_rows['value'].values[1])})
+                this_M_value = df_netlist.loc[i,'value'] * sp.sqrt(inductor_rows['value'].values[0]*inductor_rows['value'].values[1])
             else:
-                dic_params.update({this_M : df_netlist.loc[i,'value'] * sp.sympify('sqrt({:s}*{:s})'.format(df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2'] ))} )
+                this_M_value = df_netlist.loc[i,'value'] * sp.sympify('sqrt({:s}*{:s})'.format(df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2'] ))
+
+            dic_params.update({this_M : this_M_value })
+            D[ind1_index,ind2_index] += -s*sp.sympify(this_M_value)  # s*Mxx
+            D[ind2_index,ind1_index] += -s*sp.sympify(this_M_value)  # -s*Mxx
+
+            # df_netlist.loc[line_df_netlist,'element'] = this_M
 
             # D[ind1_index,ind2_index] += -s*sp.sympify('{:s}*sqrt({:s}*{:s})'.format(df_netlist.loc[i,'element'], df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2'] ))  # -s*k*sqrt(L1.L2)
             # D[ind2_index,ind1_index] += -s*sp.sympify('{:s}*sqrt({:s}*{:s})'.format(df_netlist.loc[i,'element'], df_netlist.loc[i,'Lname1'], df_netlist.loc[i,'Lname2'] ))  # -s*k*sqrt(L1.L2)
