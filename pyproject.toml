@@ -39,7 +39,7 @@ pandas = ">=2.0.0"
 # pyqtwebengine-qt5 = [
 #     { platform = "linux", version = "5.15.2" },
 # ]
-# spyder = ">=5.4.3"
+spyder = ">=6.0.0"
 # tuve problemas con jupyter-notebook
 #traitlets = "5.9.0"
 jupyterlab-language-pack-es-es = ">=4.0.post3"

@@ -141,7 +141,9 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
 
     if not (isinstance(order, (Integral, Real)) and order > 0 ):
         raise ValueError("El argumento 'order' debe ser un número positivo.")
-                  
+    
+    order = int(order)
+              
     if not (isinstance(grid_density, (Integral, Real)) and grid_density > 0 ):
         raise ValueError("El argumento 'grid_density' debe ser un número positivo.")
 
@@ -270,7 +272,8 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
 	#=========================================================================
     
     # Determine fr_grid, fr_desired, and fr_weight
-    freq_resolution = 1.0 / (grid_density * cant_bases)
+    total_freq_bins = grid_density * cant_bases
+    freq_resolution = 1.0 / total_freq_bins
     # full resolution (fr) fr_grid, desired and wieight arrays
     fr_grid = []
     fr_desired = []
@@ -278,8 +281,12 @@ def fir_design_ls(order, band_edges, desired, weight = None, grid_density = 16,
     # indexes of the band-edges corresponding to the fr freq. fr_grid array
     band_edges_idx = []
 
+    min_number_fr_grid = int(np.min( (cant_bases * .1, 20) ))
+
     for ll in range(nbands):
-        number_fr_grid = int(np.ceil((band_edges[2 * ll + 1] - band_edges[2 * ll]) / freq_resolution))
+        
+        number_fr_grid = np.max( (min_number_fr_grid, int(np.ceil((band_edges[2 * ll + 1] - band_edges[2 * ll]) / freq_resolution))) )
+        
         fr_grid_more = np.linspace(band_edges[2 * ll], band_edges[2 * ll + 1], number_fr_grid + 1)
         
         # Adjust fr_grid for harmful frequencies at omega = 0 
@@ -507,6 +514,8 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
 
     if not (isinstance(order, (Integral, Real)) and order > 0 ):
         raise ValueError("El argumento 'order' debe ser un número positivo.")
+        
+    order = int(order)
                   
     if not (isinstance(grid_density, (Integral, Real)) and grid_density > 0 ):
         raise ValueError("El argumento 'grid_density' debe ser un número positivo.")
@@ -515,7 +524,7 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
         raise ValueError("El argumento 'max_iter' debe ser un número positivo.")
 
     if not isinstance(debug, bool):
-        raise ValueError('displaystr debe ser un booleano')
+        raise ValueError('debug debe ser un booleano')
 
     if not (isinstance(fs, Real) and fs > 0 ):
         raise ValueError("El argumento 'fs' debe ser un número positivo.")
@@ -640,7 +649,8 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
 	#=========================================================================
     
     # Determine fr_grid, fr_desired, and fr_weight
-    freq_resolution = 1.0 / (grid_density * cant_bases)
+    total_freq_bins = grid_density * cant_bases
+    freq_resolution = 1.0 / total_freq_bins
     # full resolution (fr) fr_grid, desired and wieight arrays
     fr_grid = []
     fr_desired = []
@@ -648,8 +658,12 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
     # indexes of the band-edges corresponding to the fr freq. fr_grid array
     band_edges_idx = []
 
+    min_number_fr_grid = int(np.min( (cant_bases * .1, 20) ))
+
     for ll in range(nbands):
-        number_fr_grid = int(np.ceil((band_edges[2 * ll + 1] - band_edges[2 * ll]) / freq_resolution))
+        
+        number_fr_grid = np.max( (min_number_fr_grid, int(np.ceil((band_edges[2 * ll + 1] - band_edges[2 * ll]) / freq_resolution))) )
+        
         fr_grid_more = np.linspace(band_edges[2 * ll], band_edges[2 * ll + 1], number_fr_grid + 1)
         
         # Adjust fr_grid for harmful frequencies at omega = 0 
@@ -996,6 +1010,8 @@ def _remez_exchange_algorithm(cant_bases, fr_grid, fr_desired, fr_weight, band_e
         prev_error_target = this_error_target
         niter += 1
 
+    if niter == max_iter:
+        print(f"No convergió! probar aumentar max_iter {max_iter}")
 
     # coeficientes del filtro        
     a_coeffs_half = xx[:-1]

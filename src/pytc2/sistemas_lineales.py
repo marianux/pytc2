@@ -2514,12 +2514,6 @@ def plot_plantilla(filter_type='', fpass=0.25, ripple=0.5, fstop=0.6, attenuatio
         except ValueError:
             raise ValueError("fs debe ser un valor numérico o convertible a float.")    
 
-    # Obtener los límites actuales de los ejes
-    xmin, xmax, ymin, ymax = plt.axis()
-
-    # Banda de paso digital
-    plt.fill([xmin, xmin, fs / 2, fs / 2], [ymin, ymax, ymax, ymin], 'lightgreen', alpha=0.2, lw=1, label='Banda de paso digital')
-
     # analizar los valores de la plantilla para ver qué tipo de plantilla es
     tipos_permitidos = ['lowpass', 'highpass', 'bandpass', 'bandstop']
     if filter_type not in tipos_permitidos:
@@ -2534,6 +2528,21 @@ def plot_plantilla(filter_type='', fpass=0.25, ripple=0.5, fstop=0.6, attenuatio
                 filter_type = 'highpass'
             else:                
                 filter_type = 'lowpass'
+
+    # Obtener los límites actuales de los ejes
+    xmin, xmax, ymin, ymax = plt.axis()
+
+    if(xmax == 1.0 ):
+        xmax = fs/2
+        
+    ymin = np.min([ymin, -attenuation, ripple])
+    ymax = np.max([ymax, -attenuation, ripple])
+
+    
+    # Banda de paso digital
+    plt.fill([xmin, xmin, fs / 2, fs / 2], [ymin, ymax, ymax, ymin], 'lightgreen', alpha=0.2, lw=1, label='Banda de paso digital')
+
+
 
     if filter_type == 'lowpass':
         # Definir regiones de banda de detención y banda de paso para el filtro pasa bajos
@@ -2569,6 +2578,7 @@ def plot_plantilla(filter_type='', fpass=0.25, ripple=0.5, fstop=0.6, attenuatio
             raise ValueError("En modo bandstop, fpass y fstop deben ser tuplas con 2 valores.")
     else:
         raise ValueError("filtro_type debe ser 'lowpass', 'highpass', 'bandpass', o 'bandstop'.")
+
 
     # Plotea regiones de banda de detención y banda de paso
     plt.fill([fstop_start, fstop_end, fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], 'lightgrey', alpha=0.4, hatch='x', lw=1, ls='--', ec='k')
