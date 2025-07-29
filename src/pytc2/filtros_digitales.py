@@ -9,7 +9,7 @@ from numbers import Integral, Real
 
 import matplotlib.pyplot as plt
 
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, welch, csd, freqz
 
 import warnings
 
@@ -780,6 +780,737 @@ def fir_design_pm(order, band_edges, desired, weight = None, grid_density = 16,
     err = np.abs(err)
     
     return h_coeffs, err, w_extremas
+
+class DC_removal_recursive_filter:
+    
+    def __init__(self, samp_avg = 16, upsample = 1):
+        """
+        Introducción:
+        -------------
+        
+        Implementación recursiva de un filtro FIR de fase lineal y 
+        transferencia:
+        
+        Tₘₐ(z) = (1 - z^{-D*U})/(D*(1 - z^{-U}))
+        
+        
+        Parámetros:
+        -----------
+            
+        samp_avg : int
+            La cantidad de muestras a promediar (D), que para el filtro
+            peine, un D más grande redunda en un una mayor selectividad 
+            de los "notches" o ceros de transmisión del filtro. 
+            (Default = 16 muestras)
+        
+        upsample : int
+            Factor de sobremuestreo (entero U) de la transferencia. Default=1
+
+        Referencias: 
+            
+        [1] Lyons, R., "Linear-phase DC Removal Filter", dsprelated.com, 
+        March 2008, https://www.dsprelated.com/showarticle/58.php
+        
+        """
+
+        if not (isinstance(samp_avg, (Integral, Real)) and samp_avg > 1 ):
+            raise ValueError("El argumento 'samp_avg' debe ser un número positivo.")
+
+        if not (isinstance(upsample, (type(None), Integral, Real)) ):
+            raise ValueError("El argumento 'upsample' debe ser un número positivo.")
+        
+        
+        self.samp_avg = samp_avg
+        self.upsample = upsample
+        self.effective_D = samp_avg * upsample
+        
+        # se asumen condiciones iniciales nulas
+        self.yy_ci = np.zeros(upsample)
+        self.xx_ci = np.zeros(self.effective_D)
+        
+        self.kk_offset = 0
+
+    def reset(self):
+        """
+        Reseteo del filtro y sus variables internas. Es necesario resetear el 
+        filtro cuando se procesa una señal diferente o un bloque disjunto.
+        
+        """
+        # se asumen condiciones iniciales nulas
+        self.yy_ci = np.zeros(self.upsample)
+        self.xx_ci = np.zeros(self.effective_D)
+
+    def set_initial_conditions(self, xx_ci, yy_ci):
+        """
+        Configuración de los parámetros iniciales del filtro recursivo.
+        
+        
+        Parámetros:
+        -----------
+        
+        xx_ci  : array_like
+            La matriz de datos de entrada para las (samp_avg * upsample)-ésimas
+            muestras anteriores a la primer muestra a procesar.
+        
+        yy_ci  : array_like
+            La matriz de datos de entrada para las (upsample)-ésimas muestras 
+            anteriores a la primer muestra a procesar.
+            
+        
+        """
+
+        if not isinstance(xx_ci, np.ndarray ):
+            raise ValueError("El argumento 'xx_ci' debe ser una un array de numpy.")
+        
+        if not isinstance(yy_ci, np.ndarray ):
+            raise ValueError("El argumento 'yy_ci' debe ser una un array de numpy.")
+
+        # se asumen condiciones iniciales nulas
+        self.yy_ci = yy_ci
+        self.xx_ci = xx_ci
+
+    def process(self, xx):
+        """
+        Función que ejecuta la recursión y calcula la salida a partir de la 
+        entrada "xx".
+        
+        Parámetros:
+        -----------
+        
+        xx  : array_like
+            La matriz de datos de entrada. Será un vector o array de N muestras.
+        
+        Retorna:
+        --------
+        
+        yy  : array_like
+            La salida del filtro para cada muestra de xx.
+       
+        """
+        
+        NN = xx.shape[0]
+    
+        
+        # if xx_ci is None:
+        #     xx_ci = self.xx_ci
+
+        # if yy_ci is None:
+        #     yy_ci = self.yy_ci
+
+    
+        # resultaron ser importante las condiciones iniciales
+        yy = np.zeros_like(xx)
+        # yy = np.ones_like(xx) * xx[0] * self.effective_D
+    
+        # para todos los bloques restantes salvo el primero
+           
+        min_ups = np.min((self.upsample, NN))
+        
+        for kk in range( min_ups ):
+    
+            # Calcula la salida según la ecuación recursiva
+            yy[kk] = xx[kk] \
+                      - self.xx_ci[kk] \
+                      + self.yy_ci[kk]
+
+        min_efd = np.min((self.effective_D, NN))
+        
+        for kk in range(self.upsample, min_efd ):
+
+            # Calcula la salida según la ecuación recursiva
+            yy[kk] = xx[kk] \
+                      - self.xx_ci[kk] \
+                      + yy[(kk - self.upsample)]
+    
+        #
+        # kk += 1
+        
+        # for kk in range(NN):
+        for kk in range(self.effective_D, NN):
+    
+            # Calcula la salida según la ecuación recursiva
+            yy[kk] = xx[kk]  \
+                      - xx[kk - self.effective_D] \
+                      + yy[kk - self.upsample]
+        
+            # if(kk == 204):
+           #     print(f' yy[{kk}] : {yy[204]}  = xx[{kk}]:{xx[kk]} - xx[{kk - self.effective_D} ]:{xx[kk - self.effective_D]} + yy[{kk - self.upsample} ]:{yy[kk - self.upsample]}')
+                
+        
+        # calculo las condiciones iniciales del siguiente bloque
+        
+        if self.effective_D < NN:
+            xx_ci = xx[(NN - self.effective_D):]
+        else:
+            xx_ci = np.concatenate((self.xx_ci[:self.effective_D-min_efd], xx[(NN - min_efd):])) 
+
+        if self.upsample < NN:
+            yy_ci = yy[(NN - self.upsample):]
+        else:
+            yy_ci = np.concatenate((self.yy_ci[:self.upsample-min_ups], yy[(NN - min_ups):]))
+        
+
+        self.xx_ci = xx_ci.copy()
+        self.yy_ci = yy_ci.copy()
+    
+        # escalo y devuelvo
+        return( yy.copy()/self.samp_avg )
+
+    def impulse_response(self, length=None):
+        """
+        Calcula la respuesta al impulso empírica del filtro
+        
+        Parámetros:
+        -----------
+        
+        length : int 
+            Longitud de la respuesta a calcular, si no se define se 
+            calcula automáticamente en función de los parámetros. 
+            Default = None
+        
+        Retorna:
+        --------
+            
+        y      : ndarray 
+            Respuesta al impulso
+            
+        """
+
+        if self.upsample is None:
+
+            raise ValueError("El factor de sobremuestreo 'upsample' debe ser definido." )
+            
+        if not isinstance(length, (type(None), Integral)):
+            raise ValueError("La longitud, puede omitirse o debe ser un número entero" )
+
+        if length is None:
+
+            length = self.upsample * self.samp_avg
+            
+        impulse = np.zeros(length)
+        impulse[0] = 1
+        
+        self.reset()
+        
+        return self.process(impulse)
+    
+    def frequency_response(self, n_freq=None, bTeorica = False):
+        """
+        Calcula la respuesta en frecuencia teórica/empírica excitando el 
+        filtro con ruido blanco
+        
+        Parámetros:
+        -----------
+        
+        n_freq   : int, None 
+            Número de puntos en frecuencia a evaluar.
+        
+        bTeorica : Bool
+            Calcular la respuesta teórica o empírica. 
+        
+        Retorna:
+        --------
+            
+        w         : ndarray
+            Frecuencias normalizadas (0 a π)
+        
+        frec_resp : ndarray
+            Respuesta en frecuencia compleja
+            
+        """
+        
+        if not isinstance(n_freq, (type(None), Integral)):
+            raise ValueError("La longitud del espectro, puede omitirse o debe ser un número entero" )
+        
+        if n_freq is None:
+
+            n_freq = 2048
+        
+        if bTeorica:
+        
+            # Forma directa (no recursiva) para verificación
+            b = np.zeros(self.effective_D + 1)
+            b[0] = 1
+            b[self.effective_D] = -1
+            b = b / self.samp_avg
+            
+            a = np.zeros(self.upsample + 1)
+            a[0] = 1
+            a[self.upsample] = -1
+            
+            w, frec_resp = freqz(b, a, worN=n_freq)
+            
+        else:
+                
+            # Generar señal de prueba (ruido blanco)
+            # np.random.seed(42)  # Para reproducibilidad
+            x = np.random.normal(1, 1, n_freq)
+            
+            # print(f'Freq Response')
+            
+            # Procesar señal a través del filtro
+            y = self.process(x)
+            
+            # Eliminar transitorios iniciales
+            discard = min(self.samp_avg * self.upsample, n_freq // 10)
+            x = x[discard:]
+            y = y[discard:]
+            
+            welch_avg = 10
+            # Calcular densidad espectral cruzada y autoespectro
+            w, Pxy = csd(x, y, nperseg=n_freq//welch_avg, nfft=n_freq)
+            w, Pxx = welch(x, nperseg=n_freq//welch_avg, nfft=n_freq)
+            
+            # Respuesta en frecuencia estimada
+            frec_resp = Pxy / Pxx
+        
+        return w, frec_resp
+
+class DC_PWL_removal_recursive_filter:
+    
+    def __init__(self, fs = 2, fpwl = None, samp_avg = 16, cant_ma = 2, upsample = None, batch = None ):
+        """
+        Introducción:
+        -----------
+            
+        Implementación recursiva de un filtro FIR de fase lineal, para remover:
+        
+        * DC y baja frecuencia. 
+        * Interferencias de frecuencia de línea (power-line) y sus armónicos.
+            
+        La transferencia del filtro es:
+            
+        T(z) = z^{-(D-1)*U} - Tₘₐ^{cant_ma}(z)
+
+        siendo
+        
+        Tₘₐ(z) = (1 - z^{-D*U})/(D*(1 - z^{-U}))
+        
+        Esta transferencia posee las ventajas de un FIR de fase lineal, y la 
+        posibilidad de implementarse de forma recursiva. Debido a la gran 
+        cantidad de 0's en su respuesta al impulso, su implementación puede 
+        realizarse con muy poco costo computacional, a expensas de su demora.
+        Este filtro es en consecuencia, una referencia obligada para el 
+        preprocesamiento de señales del ámbito de las bioseñales, como el 
+        electrocardiograma (ECG).
+        
+        Parámetros:
+        -----------
+            
+        fs       : float
+            la frecuencia de muestreo. Default = 2 (norm. a Nyquist)
+        
+        fpwl     : float, None
+            la frecuencia de línea de alimentación (típ. 50/60 Hz).
+            En caso que no se especifique, el algoritmo intentará la
+            detección automática (Default = None).
+        
+        samp_avg : int
+            La cantidad de muestras a promediar (D), que para el filtro
+            peine, un D más grande redunda en un una mayor selectividad 
+            de los "notches" o ceros de transmisión del filtro. 
+            (Default = 16 muestras)
+                   
+        cant_ma  : int
+            La cantiad de promdiadores en cascada que se implementarán. 
+            Al igual que D, a mayor cantidad de etapas, más selectividad.
+            Debe ser un número par, ya que cada promediador recursivo 
+            tiene demora no entera. Default = 2 secciones
+        
+        upsample : int
+            Factor de sobremuestreo (entero U) de la transferencia. Debe 
+            ajustarse de forma tal que los notches coincidan con "fpwl".
+            Debe verificarse que se cumpla que fpwl = fs / U.  
+            En caso que no se especifica, se intenta ajustar de acuerdo 
+            a fpwl y a fs. Default=None
+        
+        batch    : int
+            Para registros muy largos, puede especificarse un número de 
+            muestras para el procesamiento por bloques. La clase ya prevé la 
+            posibilidad de calcular las condiciones iniciales de los bloques 
+            adyacentes. Default: None (toda la señal)
+        
+        Referencias: 
+        -----------
+            
+        [1] Lyons, R., "60-Hz Noise and Baseline Drift Reduction in ECG Signal Processing", 
+            dsprelated.com, January 23, 2021, https://www.dsprelated.com/showarticle/1383.php
+        
+        """
+
+        if not (isinstance(fs, (Integral, Real)) ):
+            raise ValueError("La frecuencia de muestreo 'fs' debe ser un número positivo" )
+        else:
+            if fs > 0: 
+                self.fs = fs
+            else:
+                raise ValueError("La frecuencia de muestreo 'fs' debe ser un número positivo" )
+        
+        if not (isinstance(fpwl, (type(None), Integral, Real)) ):
+            raise ValueError(f"La frecuencia de línea 'fpwl' (typ. 50/60 Hz) debe ser un número positivo menor a fs/2 ({fs/2})" )
+
+        if not (isinstance(samp_avg, (Integral, Real)) and samp_avg > 1 ):
+            raise ValueError("El argumento 'samp_avg' debe ser un número positivo.")
+
+        if not (isinstance(upsample, (type(None), Integral, Real)) ):
+            raise ValueError("El argumento 'upsample' debe ser un número positivo.")
+        
+        if not (isinstance(cant_ma, (Integral, Real)) and cant_ma > 1 ):
+            raise ValueError("El argumento 'cant_ma' debe ser un número positivo y par.")
+        
+        if not (isinstance(batch, (type(None), Integral, Real)) ):
+            raise ValueError("El argumento 'batch' debe ser un número positivo.")
+
+        
+        self.samp_avg = samp_avg
+        # forzar un par
+        self.cant_ma = (cant_ma//2) * 2
+        self.batch = batch
+
+        self.upsample = upsample
+
+        self.fpwl = fpwl
+        
+        self.t_ma = None
+
+    def reset(self):
+        """
+        Reseteo del filtro y sus variables internas. Es necesario resetear el 
+        filtro cuando se procesa una señal diferente o un bloque disjunto.
+
+        """
+            
+        self.t_ma = None
+        
+    def process(self, xx):
+        """
+        Función que ejecuta la recursión y calcula la salida a partir de la 
+        entrada "xx".
+        
+        
+        Parámetros:
+        -----------
+        
+        xx    : array_like
+            La matriz de datos de entrada. Puede ser un conjunto de 
+            señales, por lo general será una matriz de NxM, siendo N la 
+            cantidad de muestras y M la cantidad de señales.
+        
+        Retorna:
+        --------
+        
+        frec: int
+            Frecuencia de línea estimada 50 ó 60 Hz.
+       
+        """
+            
+        
+        if not isinstance(xx, np.ndarray ):
+            raise ValueError("El argumento 'xx_ci' debe ser una un array de numpy.")
+        
+        # Convertir a array numpy por si acaso es una lista
+        xx = np.asarray(xx)
+        bFlatreshape = False
+        
+        # Manejar arrays de 1 dimensión (vectores)
+        if xx.ndim == 1:
+            # Asumimos que es un vector de N muestras de 1 señal (N, 1)
+            xx = xx.reshape(-1, 1)
+            bFlatreshape = True
+        
+        # Manejar arrays de 2 dimensiones
+        elif xx.ndim == 2:
+            # Si tiene forma (M, N) transponer
+            if xx.shape[0] < xx.shape[1]:  # vector fila (1, N) - 1 señal de N muestras
+                xx = xx.transpose()
+        
+        else:
+            raise ValueError("El array 'xx' debe ser de 1 o 2 dimensiones.")
+        
+        NN, cant_sigs = xx.shape
+        
+        yy = np.zeros_like(xx)
+
+
+        if self.batch is None:
+            
+            self.batch = NN
+        else:
+            
+            self.batch = np.clip(self.batch, a_min= 0, a_max=NN )
+
+
+        if self.fpwl is None:
+            
+            if self.fs == 2:
+
+                if self.upsample is None:
+                    self.fpwl = 1/10
+                else:
+                    # se setea upsample, adecuo fpwl
+                    self.fpwl = self.fs / self.upsample
+                    
+                print(f"Se asume fpwl = {self.fpwl:3.3f} Hz")
+                
+            else:
+                    
+                self.fpwl = self.__detectar_interferencia_linea(xx[:,0], self.fs)
+                print(f"Se detectó en fpwl = {self.fpwl} Hz")
+            
+        else:
+
+            if self.fpwl > self.fs/2:
+                raise ValueError(f"La frecuencia de línea 'fpwl' (typ. 50/60 Hz) debe ser un número positivo menor a fs/2 ({self.fs/2})" )
+
+            elif not np.any(self.fpwl == np.array((50, 60))):
+                print(f"Se configuró fpwl = {self.fpwl:3.3f} Hz")
+
+        if self.upsample is None:
+            
+            self.upsample = self.fs // self.fpwl
+
+            if self.upsample * self.fpwl != self.fs:
+                print(f"La frecuencia de línea ({self.fpwl} Hz) no es un múltiplo entero de fs ({self.fs} Hz)" )
+                print(f"El filtro estará eliminando múltiplos enteros de ({self.fs/self.upsample:.2f} Hz)" )
+                warnings.warn(f"Considere remuestrear la señal a {self.fpwl * self.upsample:.2f} Hz, o cualquier múltiplo entero superior a {self.fpwl} Hz para usar este filtro", UserWarning)
+
+        else:
+
+            if self.upsample  < 2:
+                
+                raise ValueError("El argumento 'upsample' debe ser un número mayor a 1.")
+
+        self.samp_avgdelay = int( self.cant_ma/2*(self.samp_avg - 1) * self.upsample )
+        self.demora =        int((self.samp_avg-1)/2*self.cant_ma * self.upsample)
+
+        if self.t_ma is None:
+    
+            self.t_ma = [[DC_removal_recursive_filter(samp_avg=self.samp_avg, upsample=self.upsample) 
+              for _ in range(self.cant_ma)] 
+              for _ in range(cant_sigs)]
+
+
+        # print('Enter')
+        
+        for ss in range(0, cant_sigs):
+        
+            # se procesa cada bloque por separado y se concatena la salida
+            for jj in range(0, NN, self.batch):
+    
+                yy_aux = self.t_ma[ss][0].process(xx[jj:jj+self.batch, ss])
+        
+                yy[jj:jj+self.batch, ss] = yy_aux
+        
+        
+            # print(f' ma: 0 yy[204] : {yy[204]}')
+        
+            # cascadeamos MA_stages-1 más
+            for ii in range(1, self.cant_ma):
+        
+                # se procesa cada bloque por separado y se concatena la salida
+                for jj in range(0, NN, self.batch):
+        
+                    yy_aux = self.t_ma[ss][ii].process(yy[jj:jj+self.batch, ss] )
+            
+                    yy[jj:jj+self.batch, ss] = yy_aux
+    
+                # print(f' ma: {ii} yy[204] : {yy[204]}')
+
+        # Aplicar retardo (D-1)*U
+        delayed_x = np.roll(xx, self.samp_avgdelay, axis = 0)
+        delayed_x[:self.samp_avgdelay, :] = 0
+        
+        yy =  delayed_x - yy
+        
+        if bFlatreshape:
+            yy = yy.flatten()
+            
+        return yy
+
+    def __detectar_interferencia_linea(xx, fs, ancho_banda=4.0, prominencia_min=3.0):
+        """
+        Detecta interferencia de frecuencia de línea (50/60 Hz) en una señal.
+        
+        Parámetros:
+        -----------
+        
+        xx : array_like
+            Señal de entrada.
+        
+        fs : float
+            Frecuencia de muestreo (en Hz).
+        
+        ancho_banda : float, opcional
+            Ancho de banda alrededor de 50/60 Hz para buscar interferencia (por defecto 4 Hz).
+        
+        prominencia_min : float, opcional
+            Prominencia mínima para considerar un pico significativo (por defecto 3 dB).
+        
+        Retorna:
+        --------
+        frec: int
+            Frecuencia de línea estimada 50 ó 60 Hz.
+        """
+        
+        # Calculamos el espectro de potencia usando Welch
+        freqs, Pxx = welch(xx, fs = fs, nperseg=min(4096, len(xx)), scaling='spectrum')
+        Pxx_db = 10 * np.log10(Pxx)  # Convertir a dB
+        
+        # Buscamos picos en las bandas de 50 Hz y 60 Hz
+        # resultados = {'frecuencia_interferencia': None, 'amplitud_pico': None, 'SNR_estimado': None}
+        
+        snr = np.zeros(2)
+        fpwlines = np.array([50, 60])
+        
+        for ii, f_linea in enumerate(fpwlines):
+            # Definimos la banda de búsqueda alrededor de la frecuencia de línea
+            banda = (freqs >= f_linea - ancho_banda) & (freqs <= f_linea + ancho_banda)
+            
+            if not any(banda):
+                continue
+                
+            # Encontramos el pico más prominente en la banda
+            peaks, properties = find_peaks(Pxx_db[banda], prominence=prominencia_min)
+            
+            if len(peaks) > 0:
+                idx_max = peaks[np.argmax(properties['prominences'])]
+                idx_global = np.where(banda)[0][idx_max]
+                
+                # Estimamos el SNR (diferencia entre el pico y el percentil 50 del espectro)
+                nivel_ruido = np.percentile(Pxx_db[banda], 50)
+                snr[ii] = Pxx_db[idx_global] - nivel_ruido
+       
+        idx_max = np.argmax(snr)
+        
+        return fpwlines[idx_max]
+    
+    def impulse_response(self, length=None):
+        """
+        Calcula la respuesta al impulso empírica del filtro
+        
+        Parámetros:
+        -----------
+        
+        length : int 
+            Longitud de la respuesta a calcular, si no se define se 
+            calcula automáticamente en función de los parámetros. 
+            Default = None
+        
+        Retorna:
+        --------
+            
+        y      : ndarray 
+            Respuesta al impulso
+            
+        """
+
+        if self.fpwl is None:
+            
+            raise ValueError("La frecuencia de línea 'fpwl' (typ. 50/60 Hz) debe ser definida." )
+
+        if self.upsample is None:
+
+            raise ValueError("El factor de sobremuestreo 'upsample' debe ser definido." )
+            
+        if not isinstance(length, (type(None), Integral)):
+            raise ValueError("La longitud, puede omitirse o debe ser un número entero" )
+
+        if length is None:
+
+            length = self.upsample * self.samp_avg
+            
+            
+        if self.batch is None:
+            
+            self.batch = length
+
+        impulse = np.zeros(length)
+        impulse[0] = 1
+        
+        self.reset()
+        
+        # print(f'Impulse R')
+        
+        return self.process(impulse)
+    
+    def frequency_response(self, n_freq=None, bTeorica = False):
+        """
+        Calcula la respuesta en frecuencia teórica/empírica excitando el 
+        filtro con ruido blanco
+        
+        Parámetros:
+        -----------
+        
+        n_freq   : int, None 
+            Número de puntos en frecuencia a evaluar.
+        
+        bTeorica : Bool
+            Calcular la respuesta teórica o empírica. 
+        
+        Retorna:
+        --------
+            
+        w         : ndarray
+            Frecuencias normalizadas (0 a π)
+        
+        frec_resp : ndarray
+            Respuesta en frecuencia compleja
+            
+        """
+        
+        
+        if not isinstance(n_freq, (type(None), Integral)):
+            raise ValueError("La longitud del espectro, puede omitirse o debe ser un número entero" )
+        
+        if n_freq is None:
+
+            n_freq = 2048
+        
+        if bTeorica:
+            
+            w, h_ma_sq = self.t_ma[0][0].frequency_response(n_freq, bTeorica = True)
+            h_delay = np.exp(-1j * w * self.samp_avgdelay)
+            
+            frec_resp = h_delay - h_ma_sq**self.cant_ma
+            
+        else:
+            
+            # # respuesta empírica
+            # if self.fpwl is None:
+                
+            #     raise ValueError("La frecuencia de línea 'fpwl' (typ. 50/60 Hz) debe ser definida." )
+    
+            # if self.upsample is None:
+    
+            #     raise ValueError("El factor de sobremuestreo 'upsample' debe ser definido." )
+            
+            # Eliminar transitorios iniciales
+            discard = min(self.samp_avg * self.upsample, n_freq // 10)
+                
+            # Generar señal de prueba (ruido blanco)
+            # np.random.seed(42)  # Para reproducibilidad
+            x = np.random.normal(1, 1, n_freq+discard)
+            
+            # print(f'Freq Response')
+            
+            # Procesar señal a través del filtro
+            y = self.process(x)
+            
+            # Eliminar transitorios iniciales
+            x = x[discard:]
+            y = y[discard:]
+            
+            welch_avg = 10
+            # Calcular densidad espectral cruzada y autoespectro
+            w, Pxy = csd(x, y, nperseg=n_freq//welch_avg, nfft=(n_freq*2)-1, fs = self.fs)
+            w, Pxx = welch(x, nperseg=n_freq//welch_avg, nfft=(n_freq*2)-1, fs = self.fs)
+            
+            # Respuesta en frecuencia estimada
+            frec_resp = Pxy / Pxx
+            
+        
+        return w, frec_resp
+
 
    ########################
   ## Funciones internas #
