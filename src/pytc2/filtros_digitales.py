@@ -1040,6 +1040,9 @@ class DC_removal_recursive_filter:
             
             w, frec_resp = freqz(b, a, worN=n_freq)
             
+            # cancelación cero polo en 1ej0
+            frec_resp[0] = 1 - 0j
+            
         else:
                 
             # Generar señal de prueba (ruido blanco)
@@ -1276,9 +1279,9 @@ class DC_PWL_removal_recursive_filter:
 
         else:
 
-            if self.upsample  < 2:
+            if self.upsample  < 1:
                 
-                raise ValueError("El argumento 'upsample' debe ser un número mayor a 1.")
+                raise ValueError("El argumento 'upsample' debe ser un número mayor o igual 1.")
 
         self.samp_avgdelay = int( self.cant_ma/2*(self.samp_avg - 1) * self.upsample )
         self.demora =        int((self.samp_avg-1)/2*self.cant_ma * self.upsample)
@@ -1468,7 +1471,16 @@ class DC_PWL_removal_recursive_filter:
         
         if bTeorica:
             
+            if self.t_ma is None:
+        
+                self.t_ma = [[DC_removal_recursive_filter(samp_avg=self.samp_avg, upsample=self.upsample) 
+                  for _ in range(self.cant_ma)] 
+                  for _ in range(1)]
+                
             w, h_ma_sq = self.t_ma[0][0].frequency_response(n_freq, bTeorica = True)
+            
+            self.samp_avgdelay = int( self.cant_ma/2*(self.samp_avg - 1) * self.upsample )
+            
             h_delay = np.exp(-1j * w * self.samp_avgdelay)
             
             frec_resp = h_delay - h_ma_sq**self.cant_ma
@@ -1516,6 +1528,136 @@ class DC_PWL_removal_recursive_filter:
   ## Funciones internas #
  ########################
 #%%
+
+
+def estimar_orden_filtro(Amin_dB, Amax_dB, delta_wT):
+    """
+    Estima el orden del filtro N, y calcula delta_c y delta_s.
+
+    Parámetros:
+    -----------
+    Amin_dB : float
+        Atenuación mínima en la banda de detención, en dB (Amin).
+    Amax_dB : float
+        Ripple máximo permitido en la banda de paso, en dB (Amax).
+    delta_wT : float
+        Ancho de la zona de transición en radianes (ΔωT).
+
+    Retorna:
+    --------
+    N : float
+        Orden estimado del filtro.
+    delta_c : float
+        Ripple en banda de paso.
+    delta_s : float
+        Ripple en banda de detención.
+    """
+    # Cálculo de delta_c
+    dB20 = 10 ** (Amax_dB / 20)
+    delta_c = (dB20 - 1) / (dB20 + 1)
+
+    # Cálculo de delta_s
+    delta_s = (1 + delta_c) / (10 ** (Amin_dB / 20))
+
+    # Cálculo del orden del filtro
+    N = - (4 * np.log10(13 * delta_c * delta_s)) / (3 * delta_wT)
+
+    return N, delta_c, delta_s
+
+
+def herrmann_lp_fir_order(wT, d, ripple_in_db=False):
+    """
+    Estimación de Herrmann del orden N para filtros FIR pasa bajos de fase lineal (minimax).
+    
+    Parámetros:
+        wT = [wcT, wsT]
+            wcT: passband cutoff edge (NORMALIZED 0 < wcT < pi)
+            wsT: stopband cutoff edge > wcT 
+        d = [dc, ds] or [A_max, A_min] depending on ripple_in_db
+            dc: passband ripple (linear)
+            ds: stopband ripple (linear)
+            OR
+            A_max: maximum passband ripple (dB)
+            A_min: minimum stopband attenuation (dB)
+        ripple_in_db: boolean indicating if d is provided in dB (default False)
+    
+    Outputs:
+        N: Filter order estimate
+        Be: Band edges for use with remez function [0, wcT, wsT, pi]
+        D: Desired values at band edges [1, 1, 0, 0]
+        W: Weighting factors [1, dc/ds]
+        
+		Formated for direct use by MPR_FIR.m and firmp.m or remez.m	
+	
+	 	Toolbox for DIGITAL FILTERS USING MATLAB
+	
+	 	Author: 		Lars Wanhammar 2004-07-17
+	 	Modified by: 	LW 2005-05-09
+	 	Copyright:		by authors - not released for commercial use
+	 	Version:		1 
+	 	Known bugs:	 
+	 	Report bugs to:	Wanhammar@gmail.com
+	
+	 	References:	[1] Herrmann O., Rabiner L.R., and Chan D S K.:  Practical 
+	 					design rules for optimum finite impulse response lowpass digital 
+	 					filters, Bell System Techical Journal, vol. 52 (July-August), 1973.
+					[2] Rabiner & Gold, Theory and Appications of DSP, pp. 156-7.             
+        
+    """
+    
+    if wT[0] >= wT[1] or wT[0] >= np.pi or wT[1] > np.pi:
+        raise ValueError('Improper band edges. Edges should be: wcT < wsT <= pi.')
+    
+    # Convert from dB to linear if needed
+    if ripple_in_db:
+        A_max, A_min = d
+        # Calculate delta_c from A_max
+        delta_c = (10**(A_max/20) - 1) / (10**(A_max/20) + 1)
+        # Calculate delta_s from A_min and delta_c
+        delta_s = (1 + delta_c) / 10**(A_min/20)
+        d = [delta_c, delta_s]
+    
+    
+    wcT, wsT = wT
+    if wcT >= wsT or wcT >= np.pi or wsT > np.pi:
+        raise ValueError("Improper band edges. Edges should be: wcT < wsT <= π.")
+
+    dwT = wsT - wcT
+    dc, ds = d
+
+    a1 = 5.309e-3
+    a2 = 7.114e-2
+    a3 = -0.4761
+    a4 = -2.66e-3
+    a5 = -0.5941
+    a6 = -0.4278
+    b1 = 11.01217
+    b2 = 0.51244
+
+    ldc = np.log10(dc)
+    lds = np.log10(ds)
+
+    # If the passband ripple is smaller, then interchange the roles of the
+    # ripples; comment by Tapio - for sure, this can be found [1] after careful
+    # reading
+    # Si el ripple del pasabanda es menor que el del stopband, invertirlos
+    if dc < ds:
+        d2 = np.log10(dc)
+        d1 = np.log10(ds)
+    else:
+        d1 = ldc
+        d2 = lds
+
+    F = b1 + b2 * (d1 - d2)
+    D = (a1 * d1**2 + a2 * d1 + a3) * d2 + (a4 * d1**2 + a5 * d1 + a6)
+    Tpi = 2 * np.pi
+    N = int(np.ceil(Tpi * D / dwT - F * dwT / Tpi))
+
+    Be = np.array([0, wcT, wsT, np.pi])
+    D_vec = np.array([1, 1, 0, 0])
+    W = np.array([1, dc / ds])
+
+    return N, Be, D_vec, W
 
 
 # Función para filtrar los extremos consecutivos de mismo signo y mantener el de mayor módulo absoluto

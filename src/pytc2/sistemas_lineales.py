@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib import patches
 from matplotlib.colors import rgb2hex
 from collections import defaultdict
-from scipy.signal import tf2zpk, TransferFunction, zpk2tf
+from scipy.signal import tf2zpk, TransferFunction, zpk2tf, sos2tf
 import sympy as sp
 
 from IPython.display import display, Math
@@ -40,6 +40,9 @@ En caso de necesitar usarla, importar el símbolo desde este módulo.
  ## Variables para el funcionamiento general ##
 ##############################################
 #%%
+
+valid_xaxis = ['omega', 'freq']
+
 
 phase_change_thr = 3/5*np.pi
 """
@@ -530,7 +533,7 @@ def zpk2sos_analog(zz, pp, kk):
         tf_j = tfcascade(tf_j, TransferFunction(num, den))
         this_zzpp = np.abs(np.concatenate([this_zz, this_pp]))
         this_zzpp = this_zzpp[this_zzpp > 0]
-        _, mag, _ = tf_j.bode(np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 2,
+        _, mag, _ = tf_j.bode(w=np.logspace(np.floor(np.log10(small_val+np.min(this_zzpp))) - 2,
                                           np.ceil(np.log10(small_val+np.max(this_zzpp))) + 2, 100))
         mmi[si] = 10 ** (np.max(mag) / 20)
 
@@ -1075,7 +1078,7 @@ def pretty_print_SOS(mySOS, mode='default', displaystr=True):
     else:
         return sos_str
 
-def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=True, annotations=True, xaxis='omega', fs=2*np.pi):
+def analyze_sys(all_sys, sys_name=None, worN=1000, title_suffix='', img_ext='none', same_figs=True, annotations=True, xaxis='omega', fs=2*np.pi):
     """
     Analiza el comportamiento de un sistema lineal en términos de:
 
@@ -1112,6 +1115,9 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
         En caso que sea una lista o array seránlos valores de omega donde se 
         evaluará la respuesta en frecuencia. Por defecto serán 1000 valores 
         log-espaciados una década antes y después de las singularidades extremas.
+    title_suffix : string, opcional
+        Sufijo para identificar el/los sistemas analizados. Por defecto no hay
+        sufijo para cada título: ''.
     img_ext : string ['none', 'png', 'svg'], opcional
         Cuando es diferente de 'none', la función guarda los resultados del 
         gráfico en un archivo con la extensión indicada. Por defecto es 'none'.
@@ -1124,14 +1130,14 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
         cada singularidad estará acompañada del valor de omega (es decir, la 
         distancia radial al origen) y Q (es decir, una medida de proximidad al 
         eje jw). Por defecto es True.
-    xaxis : string, opcional ['omega', 'freq', 'norm']
+    xaxis : string, opcional ['omega', 'freq']
         El significado del eje X: "omega" se mide en radianes/s y se prefiere 
         para sistemas analógicos. "freq" se mide en Hz (1/s) y es válido tanto 
-        para sistemas digitales como analógicos. "norm" es una versión 
-        normalizada con la norma definida por fs. Por defecto es 'omega'.
+        para sistemas digitales como analógicos ó comparativas entre ambos.
+        Por defecto es 'omega'.
     fs : valor real, opcional
-        La frecuencia de muestreo del sistema digital o la norma para xaxis 
-        igual a "norm". Solo es válido si digital es True. Por defecto es None 
+        La frecuencia de muestreo del sistema digital. 
+        Por defecto es :math:`2\\pi`
         (definido en 1/dlti.dt).
     
     
@@ -1189,6 +1195,9 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
         raise ValueError('La extensión de imagen debe ser una de %s, no %s'
                          % (valid_ext, img_ext))
 
+    if not isinstance(title_suffix, str):
+        raise ValueError('title_suffix debe ser un string')
+
     if isinstance(all_sys, np.ndarray):
         if all_sys.shape[1] != 6:
             raise ValueError('La matriz all_sys debe tener 6 columnas')
@@ -1218,7 +1227,6 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
         raise ValueError('worN debe ser un número o un array de números')
         
     # Check valid values for xaxis
-    valid_xaxis = ['omega', 'freq', 'norm']
     if xaxis not in valid_xaxis:
         raise ValueError('El valor de xaxis debe ser uno de %s, no %s'
                          % (valid_xaxis, xaxis))
@@ -1244,6 +1252,31 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
         fig_id = 'none'
     axes_hdl = []
 
+
+    # averiguar si algún sistema es digital
+    any_digital = False
+    
+    for ii in range(cant_sys):
+        
+        if isinstance(all_sys[ii], TransferFunction):
+        
+            if not all_sys[ii].dt is None:
+                any_digital = True
+                break
+
+        else:
+            
+            #TODO: faltaría discernir SOS analógico o digital
+                
+            # SOS
+            this_digital = False
+
+
+    if any_digital:
+        # se asume un análisis no analógico
+        xaxis = 'freq'
+        
+
     for ii in range(cant_sys):
         
         if isinstance(all_sys[ii], TransferFunction):
@@ -1257,7 +1290,7 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
             # SOS
             this_digital = False
 
-        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, worN=worN, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs)
+        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, worN=worN, filter_description=sys_name[ii], digital=this_digital, xaxis=xaxis, fs=fs, title_suffix = title_suffix)
 
 
     if img_ext != 'none':
@@ -1295,15 +1328,15 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
             # SOS
             thisFilter = sos2tf_analog(all_sys[ii])
 
-            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id=analog_fig_id, axes_hdl=analog_axes_hdl, annotations=annotations, digital=this_digital, fs=fs)
+            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id=analog_fig_id, axes_hdl=analog_axes_hdl, annotations=annotations, digital=this_digital, fs=fs, title_suffix = title_suffix)
             
         else:
             # TF
             if all_sys[ii].dt is None:
-                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id=analog_fig_id, axes_hdl=analog_axes_hdl, annotations=annotations)
+                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id=analog_fig_id, axes_hdl=analog_axes_hdl, annotations=annotations, title_suffix = title_suffix)
                 
             else:
-                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id=digital_fig_id, axes_hdl=digital_axes_hdl, annotations=annotations)
+                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id=digital_fig_id, axes_hdl=digital_axes_hdl, annotations=annotations, title_suffix = title_suffix)
 
 
     return_values += [[analog_fig_id, analog_axes_hdl]]
@@ -1347,7 +1380,7 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
         # else:
         #     this_digital = True
         
-        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description=sys_name[ii], worN=worN, digital=this_digital, xaxis=xaxis, fs=fs, unwrap_phase=True)
+        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description=sys_name[ii], worN=worN, digital=this_digital, xaxis=xaxis, fs=fs, unwrap_phase=True, title_suffix = title_suffix)
     
     return_values += [[fig_id, axes_hdl]]
     
@@ -1360,7 +1393,7 @@ def analyze_sys(all_sys, sys_name=None, worN=1000, img_ext='none', same_figs=Tru
 
     return return_values
 
-def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', axes_hdl='none', digital=False, fs=2*np.pi):
+def pzmap(myFilter, annotations=False, filter_description=None, title_suffix = '', fig_id='none', axes_hdl='none', digital=False, fs=2*np.pi):
     """
     Grafica el mapa de polos y ceros de un filtro dado.
 
@@ -1440,13 +1473,13 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
 
     # Configuración de la figura y el eje
     if fig_id == 'none':
-        fig_hdl = plt.figure()
+        fig_hdl = plt.figure(figsize=(8, 8))
         fig_id = fig_hdl.number
     else:
         if plt.fignum_exists(fig_id):
-            fig_hdl = plt.figure(fig_id)
+            fig_hdl = plt.figure(fig_id, figsize=(8, 8))
         else:
-            fig_hdl = plt.figure(fig_id)
+            fig_hdl = plt.figure(fig_id, figsize=(8, 8))
             fig_id = fig_hdl.number
 
     if not isinstance(axes_hdl, plt.Axes):
@@ -1471,15 +1504,15 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
 
     # Graficar los polos y configurar las propiedades del marcador
     if filter_description is None:
-        poles = plt.plot(p.real, p.imag, 'x', markersize=9)
+        poles = plt.plot(p.real, p.imag, 'x', markersize=9, alpha=0.6)
     else:
-        poles = plt.plot(p.real, p.imag, 'x', markersize=9, label=filter_description)
+        poles = plt.plot(p.real, p.imag, 'x', markersize=9, alpha=0.6, label=filter_description)
 
     # Graficar los ceros y configurar las propiedades del marcador
     zeros = plt.plot(z.real, z.imag, 'o', markersize=9,
                      color='none',
                      markeredgecolor=poles[0].get_color(),  # mismo color que los polos
-                     markerfacecolor='white'
+                     markerfacecolor=(1, 1, 1, 0)
                      )
 
     # agregar información a los polos y ceros
@@ -1648,7 +1681,7 @@ def pzmap(myFilter, annotations=False, filter_description=None, fig_id='none', a
 
     plt.grid(True, color='0.9', linestyle='-', which='both', axis='both')
 
-    fig_hdl.suptitle('Mapa de Polos y Ceros')
+    fig_hdl.suptitle('Mapa de Polos y Ceros' + title_suffix)
 
     if not(filter_description is None):
         axes_hdl.legend()
@@ -1706,7 +1739,7 @@ def group_delay(freq, phase):
     # Agregar el último valor para que tenga la misma longitud que el arreglo original
     return np.append(groupDelay, groupDelay[-1])
 
-def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
+def GroupDelay(myFilter, fig_id='none', filter_description=None, title_suffix = '', worN=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
     """
     Calcula y grafica el retardo de grupo de un filtro.
 
@@ -1727,7 +1760,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
     digital : bool, opcional
         Indicador de si el filtro es digital. Por defecto es False.
     xaxis : str, opcional
-        Tipo de eje x ('omega', 'freq', 'norm'). Por defecto es 'omega'.
+        Tipo de eje x ('omega', 'freq'). Por defecto es 'omega'.
     unwrap_phase : bool, opcional
         Evita que la respuesta de fase tenga saltos, habitualmente producidos 
         al haber ceros sobre el eje j.omega o la circunsferencia unitaria. 
@@ -1790,9 +1823,9 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
     if isinstance(worN, (Integral, Real, list, np.ndarray)):
 
         if isinstance(worN, (Integral, Real)):
-            bworNnumeroLista = True
+            bworNnumero = True
         else:
-            bworNnumeroLista = False
+            bworNnumero = False
         
     else:
         raise ValueError('worN debe ser un número o un array de números')
@@ -1804,42 +1837,49 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
     # Verificar si unwrap_phase es un booleano
     if not isinstance(unwrap_phase, bool):
         raise ValueError("unwrap_phase debe ser un booleano.")
-
+    
     # Verificar si xaxis es uno de los valores permitidos
-    if xaxis not in ['omega', 'freq', 'norm']:
-        raise ValueError("xaxis debe ser uno de los siguientes valores: 'omega', 'freq', 'norm'.")
+    if xaxis not in valid_xaxis:
+        raise ValueError("xaxis debe ser uno de los siguientes valores: 'omega', 'freq'.")
 
     # Verificar si fs es un número
     if not isinstance(fs, (Integral, Real)):
         raise ValueError("fs debe ser un número.")
 
+    # Convertir myFilter a un objeto TransferFunction si es un array NumPy
     if isinstance(myFilter, np.ndarray):
-        # Sección SOS
-
-        # Convertir sección SOS a una TransferFunction completa
-        wholeFilter = sos2tf_analog(myFilter)
-
-        # Obtener todas las singularidades
-        this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
-        this_zzpp = this_zzpp[this_zzpp > 0]
 
         # Calcular el eje de frecuencia según las singularidades del filtro completo
         if digital:
+
+            # Convertir sección SOS a una TransferFunction completa (digital)
+            wholeFilter = sos2tf(myFilter)
+    
+            # Obtener todas las singularidades (analog)
+            # this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
+            # this_zzpp = this_zzpp[this_zzpp > 0]
             
-            if bworNnumeroLista:
+            if bworNnumero:
             # worN numero
                 npoints = np.round(worN).astype('int')
                 ww = np.linspace(0, np.pi, npoints)
                 
             else:
             # worN lista pasada por el usuario
-
                 ww = np.array(worN)
             
         else:
+
+            # Convertir sección SOS a una TransferFunction completa
+            wholeFilter = sos2tf_analog(myFilter)
+    
+            # Obtener todas las singularidades
+            this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
+            this_zzpp = this_zzpp[this_zzpp > 0]
             
-            if bworNnumeroLista:
+            if bworNnumero:
             # worN numero
+                
                 this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
                 this_zzpp_rd = np.round(np.log10(small_val+np.min(this_zzpp)))
                 
@@ -1858,45 +1898,35 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
                 
                 npoints = np.round(worN).astype('int')
                 ww = np.logspace(start_ww, end_ww, npoints)
-        
+                
             else:
             # worN lista pasada por el usuario
 
                 ww = np.array(worN)
-        
+
         cant_sos = myFilter.shape[0]
-        phase = np.empty((npoints, cant_sos+1))
+        mag = np.empty((npoints, cant_sos + 1))
+        phase = np.empty_like(mag)
         sos_label = []
-
-        # Calcular la respuesta de fase para cada sección SOS y el filtro completo
-        for ii in range(cant_sos):
-            num, den = _one_sos2tf(myFilter[ii, :])
-            thisFilter = TransferFunction(num, den)
-
-            # this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
-            # this_zzpp = this_zzpp[this_zzpp > 0]
-
-            #a veces se pone pesado con warnings al calcular logaritmos.
-            np.seterr(divide = 'ignore') 
-            
-            _, _, phase[:, ii] = thisFilter.bode(ww)
-
-            #a veces se pone pesado con warnings al calcular logaritmos.
-            np.seterr(divide = 'warn') 
-
-            sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
-
-
-        # Filtro completo
-        thisFilter = sos2tf_analog(myFilter)
-
-        this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
-        this_zzpp = this_zzpp[this_zzpp > 0]
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'ignore') 
 
-        _, _, phase[:, cant_sos] = thisFilter.bode(ww)
+        # Calcular la respuesta de magnitud y fase para cada sección SOS y el filtro completo
+        for ii in range(cant_sos):
+
+            if digital:
+                num, den = _one_sos2tf(myFilter[ii, :])
+                thisFilter = TransferFunction(num, den, dt = 1/fs)
+            else:
+                num, den = _one_sos2tf(myFilter[ii, :])
+                thisFilter = TransferFunction(num, den)
+    
+            _, mag[:, ii], phase[:, ii] = thisFilter.bode(w=ww)
+
+            sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
+
+        _, mag[:, cant_sos], phase[:, cant_sos] = wholeFilter.bode(w=ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 
@@ -1904,42 +1934,49 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
         sos_label += [filter_description]
 
         filter_description = sos_label
-
-        phaseRad = phase * np.pi / 180.0
-
-        phaseRad = phaseRad.reshape((npoints, 1+cant_sos))
-
+        
+        phase = np.pi / 180 * phase
+        
         if unwrap_phase:
+        
             # Filtrar huecos y saltos en la respuesta de fase
-            all_jump_x, all_jump_y = (np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr).nonzero()
+            all_jump_x, all_jump_y = (np.abs(np.diff(phase, axis=0)) > phase_change_thr).nonzero()
     
             for this_jump_x, this_jump_y in zip(all_jump_x, all_jump_y):
-                phaseRad[this_jump_x+1:, this_jump_y] = phaseRad[this_jump_x+1:, this_jump_y] - np.pi
+                phase[this_jump_x+1:, this_jump_y] = phase[this_jump_x+1:, this_jump_y] - np.pi
+        
 
     else:
-        # Objeto LTI
+        # Si myFilter es un objeto TransferFunction
         cant_sos = 0
 
-        # Obtener todas las singularidades
         this_zzpp = np.abs(np.concatenate([myFilter.zeros, myFilter.poles]))
+        
         this_zzpp = this_zzpp[this_zzpp > 0]
+        
+        if this_zzpp.shape[0] == 0:
+            this_zzpp = np.array([1.])
 
-        # Calcular el eje de frecuencia según las singularidades del filtro completo
+        #a veces se pone pesado con warnings al calcular logaritmos.
+        np.seterr(divide = 'ignore') 
+
         if digital:
             
-            if bworNnumeroLista:
+            if bworNnumero:
             # worN numero
                 npoints = np.round(worN).astype('int')
                 ww = np.linspace(0, np.pi, npoints)
-                
             else:
             # worN lista pasada por el usuario
-
                 ww = np.array(worN)
             
-        else:
+
+            # ignoro ww porque dbode lo escala por dt.
+            _, mag, phase = myFilter.bode(w=ww)
             
-            if bworNnumeroLista:
+        else:
+
+            if bworNnumero:
             # worN numero
 
                 this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
@@ -1957,68 +1994,73 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
                     end_ww = this_zzpp_cl + 1
                 else:
                     end_ww = this_zzpp_cl
-
+                
                 npoints = np.round(worN).astype('int')
                 ww = np.logspace(start_ww, end_ww, npoints)
-            
+
             else:
             # worN lista pasada por el usuario
+                ww = np.array(worN)
 
-                    ww = np.array(worN)
-
-
-        #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'ignore') 
-
-        _, _, phase = myFilter.bode(ww)
+            ww, mag, phase = myFilter.bode(w=ww)
+                
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 
 
-        phaseRad = phase * np.pi / 180.0
+        phase = np.pi / 180 * phase
 
-        phaseRad = phaseRad.reshape((npoints, 1))
+        phase = phase.reshape((npoints, 1))
 
         if unwrap_phase:
 
-            all_jump = np.where(np.abs(np.diff(phaseRad, axis=0)) > phase_change_thr)[0]
+            all_jump = np.where(np.abs(np.diff(phase, axis=0)) > phase_change_thr)[0]
     
             for this_jump_x in all_jump:
-                phaseRad[this_jump_x+1:] = phaseRad[this_jump_x+1:] - np.pi
+                phase[this_jump_x+1:] = phase[this_jump_x+1:] - np.pi
+
 
     # Calcular el retardo de grupo
-    groupDelay = -np.diff(phaseRad, axis=0) / np.diff(ww).reshape((npoints-1, 1))
+    groupDelay = -np.diff(phase, axis=0) / np.diff(ww).reshape((npoints-1, 1))
 
     groupDelay = np.vstack((groupDelay[1,:], groupDelay[1:,:]))
 
-    # Convertir frecuencia a Hz si se solicita
-    if xaxis == "freq":
-        ww = ww / 2 / np.pi
-    elif xaxis == "norm":
-        if fs is None:
-            # Normalizar cada respuesta a su propio Nyquist
-            wnorm = 2 * np.pi / myFilter.dt / 2
+    if bworNnumero:
+        
+        # si NO se fuerza el eje omega
+        if digital:
+    
+            # Convertir frecuencia a Hz si se solicita
+            if xaxis == "freq":
+                # Convertimos r/s a Hz normalizados a Nyquist (fs/2)
+                ww = ww / np.pi * fs / 2
+            
         else:
-            # Normalizado a fs
-            wnorm = 2 * np.pi * fs
-        ww = ww / wnorm
-    else:
-        ww = ww
+            
+            # Analogico: Convertir frecuencia a Hz si se solicita 
+            if xaxis == "freq":
+                # Convertimos r/s a Hz
+                ww = ww / 2 / np.pi
 
     # Crear o recuperar figura
     if fig_id == 'none':
-        fig_hdl = plt.figure()
+        fig_hdl = plt.figure(figsize=(12, 5))
         fig_id = fig_hdl.number
     else:
         if plt.fignum_exists(fig_id):
-            fig_hdl = plt.figure(fig_id)
+            fig_hdl = plt.figure(fig_id, figsize=(12, 5))
         else:
-            fig_hdl = plt.figure(fig_id)
+            fig_hdl = plt.figure(fig_id, figsize=(12, 5))
             fig_id = fig_hdl.number
 
     # Graficar el retardo de grupo
     if digital:
         aux_hdl = plt.plot(ww[1:], groupDelay, label=filter_description)    # Gráfico de retardo de grupo
+        
+        groupDelay_median = np.median(groupDelay)
+        
+        plt.gca().set_ylim(bottom=0, top = np.ceil(1.05*groupDelay_median) )
+        
     else:
         aux_hdl = plt.semilogx(ww[1:], groupDelay, label=filter_description)    # Gráfico de retardo de grupo
 
@@ -2031,19 +2073,23 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
 
     # Etiquetas y título del gráfico
     if xaxis == "freq":
-        plt.xlabel('Frecuencia [Hz]')
-    elif xaxis == "norm":
-        plt.gca().set_xlim([0, 1])
-        if fs is None:
-            this_fs = 1 / myFilter.dt
+        
+        if fs == 2:
+            # normalizado a Nyquist
+            plt.gca().set_xlim([0, 1])
+            
+            plt.xlabel('Frecuencia normalizada a  Nyquist [#]')
+            
         else:
-            this_fs = fs
-        plt.xlabel('Frecuencia normalizada a fs={:3.3f} [#]'.format(this_fs))
+            plt.xlabel('Frecuencia [Hz]')
+        
+        
     else:
         plt.xlabel('Frecuencia angular [rad/seg]')
 
+
     plt.ylabel('Retardo de grupo [seg]')
-    plt.title('Retardo de grupo')
+    plt.title('Retardo de grupo' + title_suffix)
 
     axes_hdl = plt.gca()
 
@@ -2053,7 +2099,9 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, worN=1000, digi
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, worN=1000, digital=False, xaxis='omega', unwrap_phase=False, fs=2*np.pi):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
+             title_suffix = '', worN=1000, digital=False, xaxis='omega', 
+             unwrap_phase=False, fs=2):
     """
     Grafica el diagrama de Bode (magnitud y fase) de un filtro.
 
@@ -2082,7 +2130,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         al haber ceros sobre el eje j.omega o la circunsferencia unitaria. 
         Por defecto es False.
     fs : float, opcional
-        Frecuencia de muestreo. Por defecto es 2*pi.
+        Frecuencia de muestreo. Por defecto es 2.
 
 
     Returns
@@ -2140,9 +2188,9 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     if isinstance(worN, (Integral, Real, list, np.ndarray)):
 
         if isinstance(worN, (Integral, Real)):
-            bworNnumeroLista = True
+            bworNnumero = True
         else:
-            bworNnumeroLista = False
+            bworNnumero = False
         
     else:
         raise ValueError('worN debe ser un número o un array de números')
@@ -2152,22 +2200,23 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         raise ValueError("unwrap_phase debe ser un booleano.")
 
     # Verificar si xaxis es uno de los valores permitidos
-    if xaxis not in ['omega', 'freq', 'norm']:
-        raise ValueError("xaxis debe ser uno de los siguientes valores: 'omega', 'freq', 'norm'.")
+    if xaxis not in valid_xaxis:
+        raise ValueError("xaxis debe ser uno de los siguientes valores: 'omega', 'freq'.")
 
     # Convertir myFilter a un objeto TransferFunction si es un array NumPy
     if isinstance(myFilter, np.ndarray):
-        # Convertir sección SOS a una TransferFunction completa
-        wholeFilter = sos2tf_analog(myFilter)
-
-        # Obtener todas las singularidades
-        this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
-        this_zzpp = this_zzpp[this_zzpp > 0]
 
         # Calcular el eje de frecuencia según las singularidades del filtro completo
         if digital:
+
+            # Convertir sección SOS a una TransferFunction completa (digital)
+            wholeFilter = sos2tf(myFilter)
+    
+            # Obtener todas las singularidades (analog)
+            # this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
+            # this_zzpp = this_zzpp[this_zzpp > 0]
             
-            if bworNnumeroLista:
+            if bworNnumero:
             # worN numero
                 npoints = np.round(worN).astype('int')
                 ww = np.linspace(0, np.pi, npoints)
@@ -2177,8 +2226,15 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
                 ww = np.array(worN)
             
         else:
+
+            # Convertir sección SOS a una TransferFunction completa
+            wholeFilter = sos2tf_analog(myFilter)
+    
+            # Obtener todas las singularidades
+            this_zzpp = np.abs(np.concatenate([wholeFilter.zeros, wholeFilter.poles]))
+            this_zzpp = this_zzpp[this_zzpp > 0]
             
-            if bworNnumeroLista:
+            if bworNnumero:
             # worN numero
                 
                 this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
@@ -2216,17 +2272,18 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
         # Calcular la respuesta de magnitud y fase para cada sección SOS y el filtro completo
         for ii in range(cant_sos):
 
-            num, den = _one_sos2tf(myFilter[ii, :])
-            thisFilter = TransferFunction(num, den)
-
-            # this_zzpp = np.abs(np.concatenate([thisFilter.zeros, thisFilter.poles]))
-            # this_zzpp = this_zzpp[this_zzpp > 0]
-
-            _, mag[:, ii], phase[:, ii] = thisFilter.bode(ww)
+            if digital:
+                num, den = _one_sos2tf(myFilter[ii, :])
+                thisFilter = TransferFunction(num, den, dt = 1/fs)
+            else:
+                num, den = _one_sos2tf(myFilter[ii, :])
+                thisFilter = TransferFunction(num, den)
+    
+            _, mag[:, ii], phase[:, ii] = thisFilter.bode(w=ww)
 
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
 
-        _, mag[:, cant_sos], phase[:, cant_sos] = wholeFilter.bode(ww)
+        _, mag[:, cant_sos], phase[:, cant_sos] = wholeFilter.bode(w=ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 
@@ -2262,7 +2319,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
         if digital:
             
-            if bworNnumeroLista:
+            if bworNnumero:
             # worN numero
                 npoints = np.round(worN).astype('int')
                 ww = np.linspace(0, np.pi, npoints)
@@ -2270,10 +2327,13 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             # worN lista pasada por el usuario
                 ww = np.array(worN)
             
-            ww, mag, phase = myFilter.bode(n=ww)
+
+            # ignoro ww porque dbode lo escala por dt.
+            _, mag, phase = myFilter.bode(w=ww)
+            
         else:
 
-            if bworNnumeroLista:
+            if bworNnumero:
             # worN numero
 
                 this_zzpp_fl = np.floor(np.log10(small_val+np.min(this_zzpp)))
@@ -2298,8 +2358,9 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             else:
             # worN lista pasada por el usuario
                 ww = np.array(worN)
-            
-            ww, mag, phase = myFilter.bode(n=ww)
+
+            ww, mag, phase = myFilter.bode(w=ww)
+                
 
         #a veces se pone pesado con warnings al calcular logaritmos.
         np.seterr(divide = 'warn') 
@@ -2313,30 +2374,37 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
             for this_jump_x in all_jump:
                 phase[this_jump_x+1:] = phase[this_jump_x+1:] - np.pi
 
-    # Convertir frecuencia a Hz si se solicita
-    if xaxis == "freq":
-        ww = ww / 2 / np.pi
-    elif xaxis == "norm":
-        if fs is None:
-            # Normalizar cada respuesta a su propio Nyquist
-            wnorm = 2 * np.pi / myFilter.dt / 2
+
+    if bworNnumero:
+        
+        # si NO se fuerza el eje omega
+        if digital:
+    
+            # Convertir frecuencia a Hz si se solicita
+            if xaxis == "freq":
+                # Convertimos r/s a Hz normalizados a Nyquist (fs/2)
+                ww = ww / np.pi * fs / 2
+            
         else:
-            # Normalizado a fs
-            wnorm = 2 * np.pi * fs
-        ww = ww / wnorm
+            
+            # Analogico: Convertir frecuencia a Hz si se solicita 
+            if xaxis == "freq":
+                # Convertimos r/s a Hz
+                ww = ww / 2 / np.pi
+        
 
     # Crear o recuperar figura y ejes
     if fig_id == 'none':
-        fig_hdl, axes_hdl = plt.subplots(2, 1, sharex='col')
+        fig_hdl, axes_hdl = plt.subplots(2, 1, sharex='col', figsize=(12, 5) )
         fig_id = fig_hdl.number
     else:
         if plt.fignum_exists(fig_id):
-            fig_hdl = plt.figure(fig_id)
+            fig_hdl = plt.figure(fig_id, figsize=(12, 5))
             axes_hdl = fig_hdl.get_axes()
             if( len(axes_hdl) != 2 ):
                 raise ValueError("La figura {:d} no tiene dos ejes (módulo y fase).".format(fig_id))
         else:
-            fig_hdl = plt.figure(fig_id)
+            fig_hdl = plt.figure(fig_id, figsize=(12, 5))
             axes_hdl = fig_hdl.subplots(2, 1, sharex='col')
             fig_id = fig_hdl.number
 
@@ -2362,7 +2430,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
 
     plt.grid(True)
     plt.ylabel('Magnitud [dB]')
-    plt.title('Respuesta de Magnitud')
+    plt.title('Respuesta de Magnitud' + title_suffix)
 
     if not(filter_description is None):
         mag_ax_hdl.legend()
@@ -2416,16 +2484,17 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     plt.grid(True)
 
     if xaxis == "freq":
-        plt.xlabel('Frecuencia [Hz]')
-    elif xaxis == "norm":
-        plt.gca().set_xlim([0, 1])
-        if fs is None:
-            # Normalizar cada respuesta a su propio Nyquist
-            this_fs = 1 / myFilter.dt
+        
+        if fs == 2:
+            # normalizado a Nyquist
+            plt.gca().set_xlim([0, 1])
+            
+            plt.xlabel('Frecuencia normalizada a  Nyquist [#]')
+            
         else:
-            # Normalizado a fs
-            this_fs = fs
-        plt.xlabel('Frecuencia normalizada a fs={:3.3f} [#]'.format(this_fs))
+            plt.xlabel('Frecuencia [Hz]')
+        
+        
     else:
         plt.xlabel('Frecuencia angular [rad/seg]')
 
