@@ -350,18 +350,43 @@ def simplify_n_monic(tt):
 
     # Obtener el numerador y el denominador de la expresión y convertirlos en polinomios
     num, den = sp.fraction(sp.simplify(sp.expand(tt)))
-    num = sp.poly(num, s)
-    den = sp.poly(den, s)
+    
+    if num.has(s):
+
+        num = sp.poly(num, s)
+        
+        knum = num.LC() 
+
+        # Convertir el numerador y el denominador a forma monica
+        num = num.monic()
+
+        num = num.expr
+        
+    else:
+        
+        knum = sp.Rational(1)
+        
+    if den.has(s):
+
+        den = sp.poly(den, s)
+        
+        kden = den.LC() 
+
+        # Convertir el numerador y el denominador a forma monica
+        den = den.monic()
+        
+        den = den.expr
+        
+    else:
+        
+        kden = sp.Rational(1)
+        
     
     # Calcular el coeficiente principal del numerador y el denominador
-    k = num.LC() / den.LC()
+    k = knum / kden
     
-    # Convertir el numerador y el denominador a forma monica
-    num = num.monic()
-    den = den.monic()
-
     # Devolver el polinomio simplificado en forma monica
-    return(k, num.expr, den.expr)
+    return(k, num, den)
 
 def Chebyshev_polynomials(nn):
     '''
