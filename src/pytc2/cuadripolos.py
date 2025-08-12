@@ -430,8 +430,8 @@ def Y2Tabcd_s(YY):
 
     Notes
     -----
-    - La matriz YY debe tener el formato [ [Y11, Y12], [Y21, Y22] ].
-    - YY[1, 0] no puede ser nulo.
+    - La matriz YY será  [[-Y22/Y21 -1/Y21], [-DeltaY/Y21 -Y11/Y21]]
+    - YY[1, 0] = Y21 no puede ser nulo.
     - Esta función está diseñada para trabajar con matrices simbólicas utilizando el módulo SymPy.
 
     """
@@ -454,7 +454,7 @@ def Y2Tabcd_s(YY):
     TT[0, 0] = -YY[1, 1] 
     TT[0, 1] = -sp.Rational('1')
     TT[1, 0] = -sp.expand(sp.Determinant(YY))
-    TT[1, 1] = -YY[1, 1]
+    TT[1, 1] = -YY[0, 0]
 
     return sp.simplify(sp.expand(1/YY[1, 0] * TT))
 
@@ -873,7 +873,6 @@ def Model_conversion(src_model, dst_model):
             QQ[jj - 1, kk - 1] = bb.subs(det_src_matrix, dd)
 
     return {'matrix': QQ, 'name': f"{dst_model['model_name']}_{src_model['model_name']}"}
-
 
 def y2mai(YY):
     '''

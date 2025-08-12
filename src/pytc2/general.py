@@ -11,6 +11,7 @@ by Mariano Llamedo llamedom _at_ frba_utn_edu_ar
 """
 
 import sympy as sp
+from sympy import Pow
 import numpy as np
 from scipy.signal import TransferFunction
 from numbers import Integral, Real, Complex
@@ -299,7 +300,88 @@ def symbfunc2tf(tt):
 
     return cc
 
-def simplify_n_monic(tt):
+
+def flatten_pow(expr):
+    """
+    Convierte potencias anidadas (a**b)**c  ->  a**(b*c)
+    Repite la transformación hasta que ya no cambie la expresión.
+    """
+    prev = None
+    cur = expr
+    # Reemplazo repetido hasta estabilidad
+    while prev != cur:
+        prev = cur
+        cur = cur.replace(
+            lambda e: isinstance(e, Pow) and isinstance(e.base, Pow),
+            lambda e: Pow(e.base.base, sp.simplify(e.base.exp * e.exp))
+        )
+    return cur
+
+def _symbolic_gt(a, b):
+    """Intenta decidir si a > b (para exponentes simbólicos) con fallback numérico y lexicográfico."""
+    diff = sp.simplify(a - b)
+    if diff.is_positive:
+        return True
+    if diff.is_negative:
+        return False
+    # fallback: probar con una sustitución numérica (asumiendo símbolos positivos)
+    syms = list(diff.free_symbols)
+    if syms:
+        subs = {s: 5 for s in syms}   # valor arbitrario >0
+        try:
+            val = float(diff.subs(subs))
+            return val > 0
+        except Exception:
+            pass
+    # último recurso: comparación por cadena (determinista, no matemática)
+    return str(a) > str(b)
+
+def leading_coeff(terms, poly_val):
+    """
+    Dado un iterable de términos (sumandos), devuelve (coeficiente_líder, exponente_líder)
+    relativas a poly_val, aun cuando los exponentes sean simbólicos.
+    """
+    max_coeff = None
+    max_exp = None
+
+    for t in terms:
+        # expandir y "aplanar" potencias anidadas
+        t_flat = flatten_pow(sp.expand(t))
+        coeff, exp = t_flat.as_coeff_exponent(poly_val)
+
+        # si el término no contiene poly_val, as_coeff_exponent devuelve (t_flat, 0)
+        # en ese caso tratamos exp == 0 y coeff == t_flat (no es relevante si no hay poly_val)
+        if max_coeff is None:
+            max_coeff, max_exp = coeff, exp
+            continue
+
+        # comparar exponentes simbólicos con fallback
+        if _symbolic_gt(exp, max_exp):
+            max_coeff, max_exp = coeff, exp
+
+    return sp.simplify(max_coeff), sp.simplify(max_exp)
+
+def simplify_n_monic2(tt, poly_val=s):
+
+    
+    num, den = sp.fraction(sp.together(tt))
+
+    # detectar coeficientes principales sin forzar polinomio entero
+    num_terms = sp.Add.make_args(sp.expand(num))
+    den_terms = sp.Add.make_args(sp.expand(den))
+    
+    
+    knum, num_exp = leading_coeff(num_terms, poly_val)
+    kden, den_exp = leading_coeff(den_terms, poly_val)
+    
+    k = knum / kden
+    num = sp.simplify(num / knum)
+    den = sp.simplify(den / kden)
+
+    return k, num, den
+
+
+def simplify_n_monic(tt, poly_val = s):
     '''
     Factoriza una función racional tt, en polinmios numerador y denominador 
     mónicos multiplicados por un escalar k.
@@ -348,12 +430,15 @@ def simplify_n_monic(tt):
     if not isinstance(tt, sp.Expr):
         raise ValueError("La entrada debe ser una expresión simbólica.")
 
+    if not isinstance(poly_val, sp.Symbol):
+        raise ValueError("La variable del polinomio debe ser un símbolo SymPy.")
+
     # Obtener el numerador y el denominador de la expresión y convertirlos en polinomios
     num, den = sp.fraction(sp.simplify(sp.expand(tt)))
     
-    if num.has(s):
+    if num.has(poly_val):
 
-        num = sp.poly(num, s)
+        num = sp.poly(num, poly_val)
         
         knum = num.LC() 
 
@@ -366,9 +451,9 @@ def simplify_n_monic(tt):
         
         knum = sp.Rational(1)
         
-    if den.has(s):
+    if den.has(poly_val):
 
-        den = sp.poly(den, s)
+        den = sp.poly(den, poly_val)
         
         kden = den.LC() 
 
