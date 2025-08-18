@@ -18,6 +18,7 @@ from numbers import Integral, Real, Complex
 
 from IPython.display import display, Math, Markdown
 import os
+import warnings
 
 #%%
   ##############################################
@@ -361,10 +362,79 @@ def leading_coeff(terms, poly_val):
 
     return sp.simplify(max_coeff), sp.simplify(max_exp)
 
+
+def numeric_equiv(expr1, expr2, tol=1e-9, trials=5):
+    """
+    Verifica si dos expresiones simbólicas son equivalentes numéricamente
+    evaluándolas en valores aleatorios en el rango (0,1).
+
+    Parameters
+    ----------
+    expr1, expr2 : sympy.Expr
+        Expresiones simbólicas a comparar.
+    tol : float
+        Tolerancia relativa para la comparación.
+    trials : int
+        Número de evaluaciones aleatorias.
+
+    Returns
+    -------
+    bool
+        True si las expresiones son equivalentes numéricamente dentro de la tolerancia.
+    """
+    syms = list((expr1 - expr2).free_symbols)
+    if not syms:
+        # No hay símbolos → comparar directamente
+        return abs(float(expr1 - expr2)) <= tol
+
+    for _ in range(trials):
+        # Generar sustitución aleatoria en (0,1)
+        subs = {s: random.random() for s in syms}
+        try:
+            v1 = complex(expr1.subs(subs).evalf())
+            v2 = complex(expr2.subs(subs).evalf())
+        except Exception:
+            # Si falla (ej: división por cero), intentar otro set
+            continue
+
+        if v1 == v2 == 0:
+            continue  # ambos cero → ok
+        if abs(v1 - v2) > tol * max(1, abs(v1), abs(v2)):
+            return False
+    return True
+
+
+def flatten_exp_expr(expr, poly_val):
+
+    expr_terms = sp.Add.make_args(sp.expand(expr))
+
+    flat_expr = sp.Rational(0)
+
+    for t in expr_terms:
+        # expandir y "aplanar" potencias anidadas
+        this_term = flatten_pow(sp.expand(t))
+
+        flat_expr += sp.powsimp(this_term)
+
+
+
+    if sp.simplify( sp.expand()) == sp.Rational('0') :
+
+        return(flat_expr)
+    
+    else:
+        
+        warnings.warn("No se pudo aplanar la expresión. Revisar", UserWarning)
+        return(expr)
+        
+
 def simplify_n_monic2(tt, poly_val=s):
 
     
     num, den = sp.fraction(sp.together(tt))
+
+    num = flatten_exp_expr(num, poly_val)
+    den = flatten_exp_expr(den, poly_val)
 
     # detectar coeficientes principales sin forzar polinomio entero
     num_terms = sp.Add.make_args(sp.expand(num))
@@ -850,11 +920,27 @@ def print_console_subtitle(unstr):
     if not isinstance(unstr, str):
         raise ValueError("unstr debe ser una cadena.")
 
-    unstr = unstr + '\n'
-    unstr1 =  '-' * (len(unstr)-1) + '\n' 
-    
-    print( '\n\n' + unstr + unstr1 )
+    # unstr = unstr + '\n'
+    # unstr1 =  '-' * (len(unstr)-1) + '\n' 
+    # print( '\n\n' + unstr + unstr1 )
 
+    print( '\n\n\033[4m' + unstr + '\033[0m' )
+
+
+def running_in_spyder():
+    import sys
+    return "spyder_kernels.console" in sys.modules
+
+
+def running_in_jupyter():
+    try:
+        from IPython import get_ipython
+        shell = get_ipython().__class__.__name__
+        return shell == "ZMQInteractiveShell"  # típico de Jupyter Notebook/Lab
+    except:
+        return False
+
+     
 def print_subtitle(unstr):
     '''
     Imprime un subtítulo.
@@ -895,9 +981,15 @@ def print_subtitle(unstr):
 
     if not isinstance(unstr, str):
         raise ValueError("unstr debe ser una cadena.")
+
+    if running_in_jupyter():
     
-    display(Markdown('#### ' + unstr))
+        display(Markdown('#### ' + unstr))
+        
+    else:
     
+        print( '\n\n\033[4m' + unstr + '\033[0m' )
+        
 #%%
 
   ###########################################

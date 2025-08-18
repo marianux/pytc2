@@ -13,7 +13,7 @@ from numbers import Real, Complex
 import pandas as pd
 import re as re
 
-from pytc2.general import s, print_console_alert
+from pytc2.general import s, print_console_alert, print_latex, print_subtitle, a_equal_b_latex_s
 
 import platform
 import subprocess
@@ -2005,7 +2005,7 @@ def TabcdY(Yexc):
  ###############################################################
 #%%
 
-def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
+def calc_MAI_ztransf_ij_mn(Ymai, InPort, OutPort, verbose=False):
     """Calculates the impedance transfer V_ij / I_mn.
 
     This function calculates the impedance transfer V_ij / I_mn of a given
@@ -2079,9 +2079,23 @@ def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     if not isinstance(Ymai, sp.MatrixBase):
         raise ValueError("Ymai must be an instance of sp.Matrix.")
 
-    # Check if the indices are integers
-    if not all(isinstance(val, int) for val in [ii, jj, mm, nn]):
-        raise ValueError("Indices must be integers.")
+    # Check if ii and jj are integers
+    if not isinstance(InPort, (list, tuple, np.ndarray)):
+        raise ValueError("InPort must be list, tuple or np.ndarray.")
+    
+    try:
+        mm, nn = InPort  # desempaquetado en 2 valores
+    except (TypeError, ValueError):
+        raise ValueError("InPort must be of exactly two elements.")
+    
+    if not isinstance(OutPort, (list, tuple, np.ndarray)):
+        raise ValueError("OutPort must be list, tuple or np.ndarray.")
+
+    try:
+        ii, jj = OutPort  # desempaquetado en 2 valores
+    except (TypeError, ValueError):
+        raise ValueError("OutPort must be of exactly two elements.")
+
     # Check if verbose is an instance of bool
     if not isinstance(verbose, bool):
         raise ValueError("verbose must be an instance of bool")
@@ -2096,18 +2110,22 @@ def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     den_det = sp.simplify(den.det())
 
     # Sign correction
-    sign_correction = mm + nn + ii + jj
-    Tz = sp.simplify(-1 ** sign_correction * num_det / den_det)
+    sign_correction = (-1)**(mm + nn + ii + jj)
+    Tz = sp.simplify(sign_correction * num_det / den_det)
 
     # Print intermediate calculations if verbose is True
     if verbose:
-        print("Intermediate calculations:")
-        print(f"num: {num}, den: {den}, num_det: {num_det}, den_det: {den_det}")
-        print(f"Tz: {Tz}")
+        
+        print_subtitle("Intermediate calculations:")
+        print(f"Signo: {sign_correction}")
+        print_latex(a_equal_b_latex_s('P(s)', num_det))
+        print_latex(a_equal_b_latex_s('Q(s)', den_det))
+        print_latex( a_equal_b_latex_s(f'Z^{{ {ii:d}{jj:d} }}_{{ {mm:d}{nn:d} }}' + r'= \frac{P(s)}{Q(s)}',  sp.latex(Tz) ))
+        
 
     return Tz
 
-def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
+def calc_MAI_vtransf_ij_mn(Ymai, InPort, OutPort, verbose=False):
     """Calculates the voltage transfer V_ij / V_mn.
 
     This function calculates the voltage transfer V_ij / V_mn of a given
@@ -2181,9 +2199,22 @@ def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     if not isinstance(Ymai, sp.MatrixBase):
         raise ValueError("Ymai must be an instance of sp.Matrix.")
 
-    # Check if the indices are integers
-    if not all(isinstance(val, int) for val in [ii, jj, mm, nn]):
-        raise ValueError("Indices must be integers.")
+    # Check if ii and jj are integers
+    if not isinstance(InPort, (list, tuple, np.ndarray)):
+        raise ValueError("InPort must be list, tuple or np.ndarray.")
+    
+    try:
+        mm, nn = InPort  # desempaquetado en 2 valores
+    except (TypeError, ValueError):
+        raise ValueError("InPort must be of exactly two elements.")
+    
+    if not isinstance(OutPort, (list, tuple, np.ndarray)):
+        raise ValueError("OutPort must be list, tuple or np.ndarray.")
+
+    try:
+        ii, jj = OutPort  # desempaquetado en 2 valores
+    except (TypeError, ValueError):
+        raise ValueError("OutPort must be of exactly two elements.")
 
     # Check if verbose is an instance of bool
     if not isinstance(verbose, bool):
@@ -2198,43 +2229,44 @@ def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
     den_det = sp.simplify(den.det())
 
     # Sign correction
-    sign_correction = mm + nn + ii + jj
-    Av = sp.simplify(-1 ** sign_correction * num_det / den_det)
+    sign_correction = (-1)**(mm + nn + ii + jj )
+    Av = sp.simplify(sign_correction * num_det / den_det)
 
     # Print intermediate calculations if verbose is True
     if verbose:
-        print("Intermediate calculations:")
-        print(f"num: {num}, den: {den}, num_det: {num_det}, den_det: {den_det}")
-        print(f"Av: {Av}")
+
+        print_subtitle("Intermediate calculations:")
+        print(f"Signo: {sign_correction}")
+        print_latex(a_equal_b_latex_s('P(s)', num_det))
+        print_latex(a_equal_b_latex_s('Q(s)', den_det))
+        print_latex( a_equal_b_latex_s(f'Z^{{ {ii:d}{jj:d} }}_{{ {mm:d}{nn:d} }}' + r'= \frac{P(s)}{Q(s)}',  sp.latex(Av) ))
 
     return Av
 
-def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
-    """Calculates the impedance transfer V_ij / V_mn.
+def calc_MAI_impedance_ij(Ymai, InPort, verbose=False):
+    """Calculates the impedance at InPort.
 
-    This function calculates the impedance transfer V_ij / V_mn of a given
-    multiport network represented by its admittance matrix.
+    This function calculates the impedance at InPort nodes, given
+    multiport network represented by its indefinite admittance matrix Ymai.
 
     Parameters
     ----------
     Ymai : sp.Matrix
         The indefinite admittance matrix.
-    ii : int, optional
-        The index i of the output element, defaults to 0.
-    jj : int, optional
-        The index j of the output element, defaults to 1.
+    InPort : list of integers
+        The indexes ii, jj to calculate impedance.
     verbose : bool, optional
         If True, prints intermediate calculations, defaults to False.
 
     Returns
     -------
     ZZ : sp.Expr
-        The impedance transfer.
+        The impedance function.
 
     Raises
     ------
     ValueError
-        If ii or jj is not an integer.
+        If InPort is not an integer list.
         If Ymai is not an instance of sp.Matrix.
 
     Examples
@@ -2270,7 +2302,7 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
     >>> # con_detalles = False
     >>> con_detalles = True
     >>> # Calculo la Z en el puerto de entrada a partir de la MAI
-    >>> Zmai = calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=con_detalles)
+    >>> Zmai = calc_MAI_impedance_ij(Ymai, input_port, verbose=con_detalles)
     >>> print_latex(a_equal_b_latex_s('Z(s)', Zmai  ))
     Zmai  = (2*G*s + 2*s**2*(G*s + 1) + 1)/(2*G*s**2 + G + 2*s)
 
@@ -2280,8 +2312,16 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
         raise ValueError("Ymai must be an instance of sp.Matrix.")
 
     # Check if ii and jj are integers
-    if not isinstance(ii, int) or not isinstance(jj, int):
-        raise ValueError("ii and jj must be integers.")
+    if not isinstance(InPort, (list, tuple, np.ndarray)):
+        raise ValueError("InPort must be list, tuple or np.ndarray.")
+    
+    try:
+        ii, jj = InPort  # desempaquetado en 2 valores
+    except (TypeError, ValueError):
+        raise ValueError("InPort must be of exactly two elements.")
+    
+    if not (isinstance(ii, int) and isinstance(jj, int)):
+        raise ValueError("Both elements of InPort must be integers.")
 
     # Check if verbose is an instance of bool
     if not isinstance(verbose, bool):
@@ -2301,9 +2341,12 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
 
     # Print intermediate calculations if verbose is True
     if verbose:
-        print("Intermediate calculations:")
-        print(f"num: {num}, den: {den}, num_det: {num_det}, den_det: {den_det}")
-        print(f"ZZ: {ZZ}")
+        
+        print_subtitle("Intermediate calculations:")
+        print_latex(a_equal_b_latex_s('P(s)', num_det))
+        print_latex(a_equal_b_latex_s('Q(s)', den_det))
+        print_latex( a_equal_b_latex_s(f'Z_{{ {ii:d}{jj:d} }}' + r'= \frac{P(s)}{Q(s)}',  sp.latex(ZZ) ))
+        
 
     return ZZ
 
