@@ -986,12 +986,8 @@ def may2y(Ymai, nodes2del):
         raise ValueError("Ymai debe ser una instancia de sympy.Matrix")
 
     # Verificar si nodes2del es una lista o un entero
-    if not isinstance(nodes2del, (list, int)) :
+    if not isinstance(nodes2del, (list)) :
         raise ValueError("nodes2del debe ser una lista o un entero")
-
-    # Convertir nodes2del a lista si es un entero
-    if isinstance(nodes2del, int):
-        nodes2del = [nodes2del]
 
     # Verificar si los elementos de nodes2del son enteros
     if not all(isinstance(node, int) for node in nodes2del):
@@ -2106,11 +2102,11 @@ def calc_MAI_ztransf_ij_mn(Ymai, InPort, OutPort, verbose=False):
     den = Ymai.minor_submatrix(min(mm, nn), min(mm, nn))
 
     # Calculate determinants of the cofactors
-    num_det = sp.simplify(num.det())
+    num_det = (-1)**(mm + nn + ii + jj ) * sp.simplify(num.det())
     den_det = sp.simplify(den.det())
 
     # Sign correction
-    sign_correction = (-1)**(mm + nn + ii + jj)
+    sign_correction = np.sign(mm-nn) * np.sign(ii-jj)
     Tz = sp.simplify(sign_correction * num_det / den_det)
 
     # Print intermediate calculations if verbose is True
@@ -2220,16 +2216,17 @@ def calc_MAI_vtransf_ij_mn(Ymai, InPort, OutPort, verbose=False):
     if not isinstance(verbose, bool):
         raise ValueError("verbose must be an instance of bool")
 
-    # Calculate cofactors
+    # Calculate cofactors:
+    # primero remuevo los índices más grandes para no afectar los índices menores
     num = Ymai.minor_submatrix(max(ii, jj), max(mm, nn)).minor_submatrix(min(ii, jj), min(mm, nn))
     den = Ymai.minor_submatrix(max(mm, nn), max(mm, nn)).minor_submatrix(min(mm, nn), min(mm, nn))
 
     # Calculate determinants of the cofactors
-    num_det = sp.simplify(num.det())
+    num_det = (-1)**(mm + nn + ii + jj ) * sp.simplify(num.det())
     den_det = sp.simplify(den.det())
 
     # Sign correction
-    sign_correction = (-1)**(mm + nn + ii + jj )
+    sign_correction = np.sign(mm-nn) * np.sign(ii-jj)
     Av = sp.simplify(sign_correction * num_det / den_det)
 
     # Print intermediate calculations if verbose is True
@@ -2537,7 +2534,14 @@ def smna(file_schematic, opamp_model = 'OA_ideal', bAplicarValoresComponentes = 
             ltspice_exe = find_ltspice_exe(wineprefix)
         
             if ltspice_exe is None:
-                raise FileNotFoundError("No se encontró ningún ejecutable de LTspice en el WINEPREFIX.")
+                
+                # Configurar la variable de entorno WINEPREFIX
+                wineprefix = os.path.join(home_directory, '.wine64')
+                
+                ltspice_exe = find_ltspice_exe(wineprefix)
+            
+                if ltspice_exe is None:
+                    raise FileNotFoundError("No se encontró ningún ejecutable de LTspice en el WINEPREFIX.")
 
             ltspice_bin = os.path.expanduser(ltspice_exe)
         

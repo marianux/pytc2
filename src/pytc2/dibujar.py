@@ -192,22 +192,18 @@ def dibujar_Pi(YY, return_components=False):
     bSymbolic = isinstance(YY[0, 0], sp.Expr)
 
     if bSymbolic:
-        Za = sp.simplify(sp.expand(1/Ya))
-        Zb = sp.simplify(sp.expand(1/Yb))
-        Zc = sp.simplify(sp.expand(1/Yc))
-    else:
-        Za = 1/Ya
-        Zb = 1/Yb
-        Zc = 1/Yc
+        Ya = sp.simplify(sp.expand(Ya))
+        Yb = sp.simplify(sp.expand(Yb))
+        Yc = sp.simplify(sp.expand(Yc))
 
     if (bSymbolic and (not Ya.is_zero) or (not bSymbolic) and Ya != 0):
-        d = dibujar_elemento_derivacion(d, "Z", Za)
+        d = dibujar_elemento_derivacion(d, "Y", Ya)
 
     if (bSymbolic and (not Yb.is_zero) or (not bSymbolic) and Yb != 0):
-        d = dibujar_elemento_serie(d, "Z", Zb)
+        d = dibujar_elemento_serie(d, "Y", Yb)
 
     if (bSymbolic and (not Yc.is_zero) or (not bSymbolic) and Yc != 0):
-        d = dibujar_elemento_derivacion(d, "Z", Zc)
+        d = dibujar_elemento_derivacion(d, "Y", Yc)
 
     d = dibujar_puerto_salida(d)
 
