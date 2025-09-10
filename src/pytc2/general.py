@@ -11,7 +11,7 @@ by Mariano Llamedo llamedom _at_ frba_utn_edu_ar
 """
 
 import sympy as sp
-from sympy import Pow
+from sympy import simplify, expand, Pow
 import numpy as np
 from scipy.signal import TransferFunction
 from numbers import Integral, Real, Complex
@@ -214,7 +214,7 @@ def factorSOS(ratfunc, decimals = 4):
             if not grupo_existente:
                 raices_complejas_conjugadas_num.extend([raiz]*multiplicidad)
                 raices_complejas_conjugadas_num.extend([sp.conjugate(raiz)]*multiplicidad)
-                this_sos = sp.simplify(sp.expand((s - raiz) * (s - sp.conjugate(raiz))) )
+                this_sos = simplify(expand((s - raiz) * (s - sp.conjugate(raiz))) )
                 polySOS = polySOS * this_sos.evalf(decimals)**(multiplicidad)
                 
 
@@ -239,7 +239,7 @@ def factorSOS(ratfunc, decimals = 4):
             if not grupo_existente:
                 raices_complejas_conjugadas_den.extend([raiz]*multiplicidad)
                 raices_complejas_conjugadas_den.extend([sp.conjugate(raiz)]*multiplicidad)
-                this_sos = sp.simplify(sp.expand((s - raiz) * (s - sp.conjugate(raiz))) )
+                this_sos = simplify(expand((s - raiz) * (s - sp.conjugate(raiz))) )
                 polySOS = polySOS / this_sos.evalf(decimals)**(multiplicidad)
 
 
@@ -301,156 +301,6 @@ def symbfunc2tf(tt):
 
     return cc
 
-
-def flatten_pow(expr):
-    """
-    Convierte potencias anidadas (a**b)**c  ->  a**(b*c)
-    Repite la transformación hasta que ya no cambie la expresión.
-    """
-    prev = None
-    cur = expr
-    # Reemplazo repetido hasta estabilidad
-    while prev != cur:
-        prev = cur
-        cur = cur.replace(
-            lambda e: isinstance(e, Pow) and isinstance(e.base, Pow),
-            lambda e: Pow(e.base.base, sp.simplify(e.base.exp * e.exp))
-        )
-    return cur
-
-def _symbolic_gt(a, b):
-    """Intenta decidir si a > b (para exponentes simbólicos) con fallback numérico y lexicográfico."""
-    diff = sp.simplify(a - b)
-    if diff.is_positive:
-        return True
-    if diff.is_negative:
-        return False
-    # fallback: probar con una sustitución numérica (asumiendo símbolos positivos)
-    syms = list(diff.free_symbols)
-    if syms:
-        subs = {s: 5 for s in syms}   # valor arbitrario >0
-        try:
-            val = float(diff.subs(subs))
-            return val > 0
-        except Exception:
-            pass
-    # último recurso: comparación por cadena (determinista, no matemática)
-    return str(a) > str(b)
-
-def leading_coeff(terms, poly_val):
-    """
-    Dado un iterable de términos (sumandos), devuelve (coeficiente_líder, exponente_líder)
-    relativas a poly_val, aun cuando los exponentes sean simbólicos.
-    """
-    max_coeff = None
-    max_exp = None
-
-    for t in terms:
-        # expandir y "aplanar" potencias anidadas
-        t_flat = flatten_pow(sp.expand(t))
-        coeff, exp = t_flat.as_coeff_exponent(poly_val)
-
-        # si el término no contiene poly_val, as_coeff_exponent devuelve (t_flat, 0)
-        # en ese caso tratamos exp == 0 y coeff == t_flat (no es relevante si no hay poly_val)
-        if max_coeff is None:
-            max_coeff, max_exp = coeff, exp
-            continue
-
-        # comparar exponentes simbólicos con fallback
-        if _symbolic_gt(exp, max_exp):
-            max_coeff, max_exp = coeff, exp
-
-    return sp.simplify(max_coeff), sp.simplify(max_exp)
-
-
-def numeric_equiv(expr1, expr2, tol=1e-9, trials=5):
-    """
-    Verifica si dos expresiones simbólicas son equivalentes numéricamente
-    evaluándolas en valores aleatorios en el rango (0,1).
-
-    Parameters
-    ----------
-    expr1, expr2 : sympy.Expr
-        Expresiones simbólicas a comparar.
-    tol : float
-        Tolerancia relativa para la comparación.
-    trials : int
-        Número de evaluaciones aleatorias.
-
-    Returns
-    -------
-    bool
-        True si las expresiones son equivalentes numéricamente dentro de la tolerancia.
-    """
-    syms = list((expr1 - expr2).free_symbols)
-    if not syms:
-        # No hay símbolos → comparar directamente
-        return abs(float(expr1 - expr2)) <= tol
-
-    for _ in range(trials):
-        # Generar sustitución aleatoria en (0,1)
-        subs = {s: random.random() for s in syms}
-        try:
-            v1 = complex(expr1.subs(subs).evalf())
-            v2 = complex(expr2.subs(subs).evalf())
-        except Exception:
-            # Si falla (ej: división por cero), intentar otro set
-            continue
-
-        if v1 == v2 == 0:
-            continue  # ambos cero → ok
-        if abs(v1 - v2) > tol * max(1, abs(v1), abs(v2)):
-            return False
-    return True
-
-
-def flatten_exp_expr(expr, poly_val):
-
-    expr_terms = sp.Add.make_args(sp.expand(expr))
-
-    flat_expr = sp.Rational(0)
-
-    for t in expr_terms:
-        # expandir y "aplanar" potencias anidadas
-        this_term = flatten_pow(sp.expand(t))
-
-        flat_expr += sp.powsimp(this_term)
-
-
-
-    if sp.simplify( sp.expand()) == sp.Rational('0') :
-
-        return(flat_expr)
-    
-    else:
-        
-        warnings.warn("No se pudo aplanar la expresión. Revisar", UserWarning)
-        return(expr)
-        
-
-def simplify_n_monic2(tt, poly_val=s):
-
-    
-    num, den = sp.fraction(sp.together(tt))
-
-    num = flatten_exp_expr(num, poly_val)
-    den = flatten_exp_expr(den, poly_val)
-
-    # detectar coeficientes principales sin forzar polinomio entero
-    num_terms = sp.Add.make_args(sp.expand(num))
-    den_terms = sp.Add.make_args(sp.expand(den))
-    
-    
-    knum, num_exp = leading_coeff(num_terms, poly_val)
-    kden, den_exp = leading_coeff(den_terms, poly_val)
-    
-    k = knum / kden
-    num = sp.simplify(num / knum)
-    den = sp.simplify(den / kden)
-
-    return k, num, den
-
-
 def simplify_n_monic(tt, poly_val = s):
     '''
     Factoriza una función racional tt, en polinmios numerador y denominador 
@@ -504,7 +354,7 @@ def simplify_n_monic(tt, poly_val = s):
         raise ValueError("La variable del polinomio debe ser un símbolo SymPy.")
 
     # Obtener el numerador y el denominador de la expresión y convertirlos en polinomios
-    num, den = sp.fraction(sp.simplify(sp.expand(tt)))
+    num, den = sp.fraction(simplify(expand(tt)))
     
     if num.has(poly_val):
 
@@ -542,6 +392,200 @@ def simplify_n_monic(tt, poly_val = s):
     
     # Devolver el polinomio simplificado en forma monica
     return(k, num, den)
+
+def _symbolic_gt(a, b):
+    """Intenta decidir si a > b (para exponentes simbólicos) con fallback numérico y lexicográfico."""
+    diff = sp.simplify(a - b)
+    if diff.is_positive:
+        return True
+    if diff.is_negative:
+        return False
+    # fallback: probar con una sustitución numérica (asumiendo símbolos positivos)
+    syms = list(diff.free_symbols)
+    if syms:
+        subs = {s: 5 for s in syms}   # valor arbitrario >0
+        try:
+            val = float(diff.subs(subs))
+            return val > 0
+        except Exception:
+            pass
+    # último recurso: comparación por cadena (determinista, no matemática)
+    return str(a) > str(b)
+
+def flatten_pow(expr):
+    """
+    Convierte potencias anidadas (a**b)**c  ->  a**(b*c)
+    Repite la transformación hasta que ya no cambie la expresión.
+    """
+    prev = None
+    cur = expr
+    # Reemplazo repetido hasta estabilidad
+    while prev != cur:
+        prev = cur
+        cur = cur.replace(
+            lambda e: isinstance(e, Pow) and isinstance(e.base, Pow),
+            lambda e: Pow(e.base.base, sp.simplify(e.base.exp * e.exp))
+        )
+    return cur
+
+
+def simplify_symbolic_exponents(expr, poly_var):
+    """
+    Simplifica expresiones con exponentes simbólicos en la variable polinómica.
+    Intenta reescribir la expresión en términos de potencias enteras de poly_var.
+    
+    Parameters
+    ----------
+    expr : Expr
+        Expresión a simplificar
+    poly_var : Symbol
+        Variable del polinomio (ej: z)
+        
+    Returns
+    -------
+    Expr
+        Expresión simplificada
+    """
+    # Encuentra el máximo exponente simbólico
+    
+    expr_flat = 0
+    expr_terms = sp.Add.make_args(expr)
+    
+    max_coef = 0
+    max_exp = 0
+    
+    for add_term in expr_terms:
+        
+        add_term_flat = flatten_pow(expand(add_term))
+        
+        add_term_flat = simplify(add_term_flat)
+        
+        expr_flat += add_term_flat
+        
+        for term in add_term_flat.atoms(Pow):
+            
+            if term.base == poly_var:
+                
+                if _symbolic_gt(sp.Abs(term.exp), max_exp):
+                    max_exp = term.exp
+                    
+                    max_coef = add_term_flat / term
+    
+    return expr_flat, max_exp, max_coef
+
+def sort_poly_descending(poly_expr, poly_var, max_power, max_coef):
+    """
+    Reordenar el orden un polinomio. Especialmente para polinomios en la var.
+    compleja 'z'. 
+    
+    Parameters
+    ----------
+    poly_expr : Expr
+        Polinomio a reordenar
+    poly_var : Symbol
+        Variable del polinomio
+    max_power : Expr
+        Máximo exponente del polinomio
+    max_coef : Expr
+        Máximo coeficiente del término 'max_power' del polinomio
+        
+    Returns
+    -------
+    reorder_expr
+        Polinomio reordenado
+    """
+
+    reorder_expr = 0
+
+    expr_terms = sp.Add.make_args(poly_expr)
+    
+    for add_term in expr_terms:
+        
+        add_term_flat = flatten_pow(expand(add_term))
+        
+        add_term_flat = simplify(add_term_flat)
+        
+        bDone = False
+        
+        for term in add_term_flat.atoms(Pow):
+            
+            if term.base == poly_var:
+                
+                bDone = True
+                
+                term_coef = add_term_flat / term
+                
+                reorder_term = term_coef / max_coef * poly_var ** (simplify(expand(term.exp - max_power)))
+                
+                reorder_expr += reorder_term
+    
+        if not bDone:
+            # en caso que sea un término sin potencia en 'poly_var'
+
+            reorder_term = add_term_flat / max_coef * poly_var ** (-1 * max_power)
+            
+            reorder_expr += reorder_term
+    
+    return reorder_expr
+    
+def simplify_n_monic_z(tt, poly_var, bSortAscending = True):
+    """
+    Versión mejorada de simplify_n_monic que maneja exponentes simbólicos.
+    
+    Parameters
+    ----------
+    tt : Expr
+        Función racional a simplificar
+    poly_var : Symbol
+        Variable del polinomio
+    bSortAscending : bool
+        Ordenar polinomio de forma ascendente. Default: True.
+        
+    Returns
+    -------
+    k
+        Factor de escala
+    num
+        Numerador simplificado (no necesariamente mónico)
+    den
+        Denominador simplificado (no necesariamente mónico)
+    """
+    if not isinstance(tt, sp.Expr):
+        raise ValueError("La entrada debe ser una expresión simbólica.")
+    
+    # Simplificar y expandir la expresión
+    tt_simplified = simplify(expand(tt))
+    
+    # Obtener numerador y denominador
+    num, den = sp.fraction(sp.together(tt_simplified))
+    
+    # "Aplanar" exponentes en numerador y denominador
+    num_flat, num_exp, num_factor  = simplify_symbolic_exponents(expand(num), poly_var)
+    den_flat, den_exp, den_factor = simplify_symbolic_exponents(expand(den), poly_var)
+    
+        
+    if bSortAscending:
+        
+        # escalo por el COEF de mayor orden num_factor para dejar mónico y no reordenar
+        num_flat = expand(num_flat / num_factor)
+        den_flat = expand(den_flat / den_factor)
+        
+        # los factores comunes de num y den
+        k = num_factor / den_factor 
+        
+    else:
+        
+        # escalo por el término de mayor orden num_factor * poly_var**num_exp, 
+        num_flat = sort_poly_descending(num_flat, poly_var, num_exp, num_factor)
+        den_flat = sort_poly_descending(den_flat, poly_var, den_exp, den_factor)
+        
+        # los factores comunes de num y den
+        k = num_factor / den_factor * poly_var**( simplify( expand(num_exp - den_exp)) )
+    
+    return k, num_flat, den_flat
+    
+
+
 
 def Chebyshev_polynomials(nn):
     '''
@@ -598,7 +642,7 @@ def Chebyshev_polynomials(nn):
             Cn_pp = Cn_p
             Cn_p = Cn
             
-        return sp.simplify(sp.expand(Cn))
+        return simplify(expand(Cn))
 
 def a_equal_b_latex_s(a, b):
     '''

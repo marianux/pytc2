@@ -523,7 +523,7 @@ def zpk2sos_analog(zz, pp, kk):
     tf_j = TransferFunction(1.0, 1.0)
 
     #a veces se pone pesado con warnings al calcular logaritmos.
-    np.seterr(divide = 'ignore') 
+    orig_settings = np.seterr(all='ignore') 
 
     # Calcular ganancias y construir la función de transferencia para cada sección SOS
     for si in range(n_sections):
@@ -538,7 +538,7 @@ def zpk2sos_analog(zz, pp, kk):
         mmi[si] = 10 ** (np.max(mag) / 20)
 
     #a veces se pone pesado con warnings al calcular logaritmos.
-    np.seterr(divide = 'warn') 
+    np.seterr(**orig_settings)   
 
     # Calcular la primera ganancia para optimizar el rango dinámico
     gains[0] = kk * (mmi[-1] / mmi[0])
@@ -1477,7 +1477,7 @@ def pzmap(myFilter, annotations=False, filter_description=None, title_suffix = '
         fig_id = fig_hdl.number
     else:
         if plt.fignum_exists(fig_id):
-            fig_hdl = plt.figure(fig_id, figsize=(8, 8))
+            fig_hdl = plt.figure(fig_id)
         else:
             fig_hdl = plt.figure(fig_id, figsize=(8, 8))
             fig_id = fig_hdl.number
@@ -1910,7 +1910,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, title_suffix = 
         sos_label = []
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'ignore') 
+        orig_settings = np.seterr(all='ignore') 
 
         # Calcular la respuesta de magnitud y fase para cada sección SOS y el filtro completo
         for ii in range(cant_sos):
@@ -1929,7 +1929,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, title_suffix = 
         _, mag[:, cant_sos], phase[:, cant_sos] = wholeFilter.bode(w=ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'warn') 
+        np.seterr(**orig_settings)   
 
         sos_label += [filter_description]
 
@@ -1958,7 +1958,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, title_suffix = 
             this_zzpp = np.array([1.])
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'ignore') 
+        orig_settings = np.seterr(all='ignore') 
 
         if digital:
             
@@ -2006,7 +2006,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, title_suffix = 
                 
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'warn') 
+        np.seterr(**orig_settings)   
 
         phase = np.pi / 180 * phase
 
@@ -2048,7 +2048,7 @@ def GroupDelay(myFilter, fig_id='none', filter_description=None, title_suffix = 
         fig_id = fig_hdl.number
     else:
         if plt.fignum_exists(fig_id):
-            fig_hdl = plt.figure(fig_id, figsize=(12, 5))
+            fig_hdl = plt.figure(fig_id)
         else:
             fig_hdl = plt.figure(fig_id, figsize=(12, 5))
             fig_id = fig_hdl.number
@@ -2267,7 +2267,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None,
         sos_label = []
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'ignore') 
+        orig_settings = np.seterr(all='ignore') 
 
         # Calcular la respuesta de magnitud y fase para cada sección SOS y el filtro completo
         for ii in range(cant_sos):
@@ -2286,7 +2286,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None,
         _, mag[:, cant_sos], phase[:, cant_sos] = wholeFilter.bode(w=ww)
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'warn') 
+        np.seterr(**orig_settings)   
 
         sos_label += [filter_description]
 
@@ -2315,7 +2315,8 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None,
             this_zzpp = np.array([1.])
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'ignore') 
+        orig_settings = np.seterr(all='ignore') 
+        
 
         if digital:
             
@@ -2363,7 +2364,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None,
                 
 
         #a veces se pone pesado con warnings al calcular logaritmos.
-        np.seterr(divide = 'warn') 
+        np.seterr(**orig_settings)   
 
         phase = np.pi / 180 * phase
 
@@ -2399,7 +2400,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None,
         fig_id = fig_hdl.number
     else:
         if plt.fignum_exists(fig_id):
-            fig_hdl = plt.figure(fig_id, figsize=(12, 5))
+            fig_hdl = plt.figure(fig_id)
             axes_hdl = fig_hdl.get_axes()
             if( len(axes_hdl) != 2 ):
                 raise ValueError("La figura {:d} no tiene dos ejes (módulo y fase).".format(fig_id))

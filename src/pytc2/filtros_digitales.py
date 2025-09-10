@@ -1038,7 +1038,13 @@ class DC_removal_recursive_filter:
             a[0] = 1
             a[self.upsample] = -1
             
+            #a veces se pone pesado con warnings al calcular logaritmos.
+            orig_settings = np.seterr(all='ignore') 
+            
             w, frec_resp = freqz(b, a, worN=n_freq)
+            
+            #a veces se pone pesado con warnings al calcular logaritmos.
+            np.seterr(**orig_settings)   
             
             # cancelación cero polo en 1ej0
             frec_resp[0] = 1 - 0j
