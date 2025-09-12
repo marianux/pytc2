@@ -3,6 +3,7 @@
 Un módulo de teoría de circuitos para estudiantes de la Universidad Tecnológica Nacional, en Buenos Aires (UTN-BA), Argentina.
 
 * Software libre: licencia MIT
+* [Página del proyecto en Github](https://github.com/marianux/pytc2)
 * [Documentación en línea](https://pytc2.readthedocs.io)
 
 
@@ -14,7 +15,7 @@ $ pip install pytc2
 
 ## Uso
 
-- Consulte los ejemplos de jupyter notebook en la documentación para un inicio rápido.
+- Consulte los ejemplos de jupyter [notebook en la documentación](notebooks/principal.ipynb) para un inicio rápido.
 
 ## Contribuciones
 
