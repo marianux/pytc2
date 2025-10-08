@@ -875,14 +875,14 @@ def remover_polo_jw( immit, omega = None , isImpedance = True, omega_zero = None
     if not isinstance(immit , sp.Expr):
         raise ValueError('Hay que definir immit como una expresión simbólica.')
 
-    if not isinstance(omega , (Real, type(None))):
-        raise ValueError('Sigma debe ser un flotante.')
+    if not isinstance(omega , (Real, sp.Expr, type(None))):
+        raise ValueError('Omega debe ser un flotante.')
 
     if not isinstance(isImpedance, bool):
         raise ValueError('isImpedance debe ser un booleano.')
 
-    if not isinstance(omega_zero , (Real, type(None))):
-        raise ValueError('sigma_zero debe ser un flotante o None.')
+    if not isinstance(omega_zero , (Real, sp.Expr, type(None))):
+        raise ValueError('omega_zero debe ser un flotante o None.')
 
 
     if omega is None:

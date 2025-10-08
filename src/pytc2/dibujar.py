@@ -680,7 +680,7 @@ def dibujar_foster_derivacion(k0 = sp.Rational(0), koo = sp.Rational(0), ki = sp
     if not(k0.is_zero and koo.is_zero and ki is None and kk.is_zero):
         
         
-        if kk is None:
+        if kk.is_zero:
             bDisipativo = False
         else:
             bDisipativo = True
